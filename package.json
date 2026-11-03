@@ -1,0 +1,22 @@
+{
+  "name": "ai-product-intelligence-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Production-grade AI Product Intelligence SaaS monorepo",
+  "scripts": {
+    "dev:api": "pnpm --filter @saas/api dev",
+    "dev:dashboard": "pnpm --filter @saas/dashboard dev",
+    "dev:python": "powershell -Command \"& .\\.venv\\Scripts\\Activate.ps1; uvicorn services.scraping-engine.main:app --reload --port 8000\"",
+    "build": "pnpm --recursive run build",
+    "test": "pnpm --recursive run test",
+    "lint": "pnpm --recursive run lint",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:optional": "docker compose --profile optional up -d"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "pnpm@9.15.4"
+}
+

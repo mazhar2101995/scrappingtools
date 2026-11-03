@@ -1,0 +1,25 @@
+{
+  "name": "@saas/database",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.38.4",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.14",
+    "drizzle-kit": "^0.30.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}
+
