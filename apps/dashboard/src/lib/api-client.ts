@@ -536,6 +536,14 @@ export class DashboardApiClient {
       body: JSON.stringify(payload),
     }, 'client');
   }
+
+  // --- Push Product to Connected Store ---
+  async pushProductToStore(payload: { storeId: string; productId: string }): Promise<any> {
+    return this.fetchJson('/stores/push-product', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

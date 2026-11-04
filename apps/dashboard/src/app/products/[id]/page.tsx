@@ -17,7 +17,11 @@ import {
   Package,
   Image as ImageIcon,
   Sliders,
-  Check
+  Check,
+  ShoppingBag,
+  Sparkles,
+  ArrowUpRight,
+  AlertCircle
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -26,6 +30,12 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Store Push States
+  const [stores, setStores] = useState<any[]>([]);
+  const [pushingStoreId, setPushingStoreId] = useState<string | null>(null);
+  const [pushSuccessMsg, setPushSuccessMsg] = useState<string | null>(null);
+  const [pushErrorMsg, setPushErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProduct() {
@@ -50,8 +60,30 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
     if (params.id) {
       fetchProduct();
+      apiClient.getStores().then((res) => {
+        setStores(Array.isArray(res) ? res : []);
+      }).catch(() => {});
     }
   }, [params.id]);
+
+  async function handlePushToStore(storeId: string) {
+    if (!data?.product?.id) return;
+    try {
+      setPushingStoreId(storeId);
+      setPushSuccessMsg(null);
+      setPushErrorMsg(null);
+      const res = await apiClient.pushProductToStore({
+        storeId,
+        productId: data.product.id,
+      });
+      setPushSuccessMsg(res.message || 'Product pushed to store successfully!');
+      setTimeout(() => setPushSuccessMsg(null), 4000);
+    } catch (err: any) {
+      setPushErrorMsg(err.message || 'Failed to push product to store');
+    } finally {
+      setPushingStoreId(null);
+    }
+  }
 
   if (loading) {
     return (
@@ -192,6 +224,63 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 <div className="inline-flex items-baseline gap-1 text-2xl font-black text-slate-900 bg-amber-50/80 border border-amber-200 px-4 py-2 rounded-xl">
                   <span>{product.price}</span>
                   <span className="text-xs font-bold text-slate-500">USD</span>
+                </div>
+              )}
+            </div>
+
+            {/* 1-Click Push to Connected Store Action Bar */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#0d2a2c]/5 via-amber-500/5 to-transparent border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-[#0d2a2c]" />
+                  <span className="text-xs font-black text-slate-900">Direct E-Commerce Store Publish</span>
+                </div>
+                <Link href="/stores" className="text-[11px] font-bold text-slate-500 hover:text-slate-800 underline">
+                  Manage Stores
+                </Link>
+              </div>
+
+              {pushSuccessMsg && (
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>{pushSuccessMsg}</span>
+                </div>
+              )}
+
+              {pushErrorMsg && (
+                <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                  <span>{pushErrorMsg}</span>
+                </div>
+              )}
+
+              {stores.length === 0 ? (
+                <div className="text-xs text-slate-500 flex items-center justify-between">
+                  <span>No stores connected yet. Connect your Shopify or WooCommerce store to enable 1-click publishing.</span>
+                  <Link
+                    href="/stores"
+                    className="px-3 py-1.5 rounded-lg bg-[#0d2a2c] text-[#fad982] text-xs font-bold shrink-0 ml-3"
+                  >
+                    Connect Store
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  {stores.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      disabled={Boolean(pushingStoreId)}
+                      onClick={() => handlePushToStore(s.id)}
+                      className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold shadow-2xs transition disabled:opacity-50"
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>
+                        {pushingStoreId === s.id ? 'Publishing...' : `Push to ${s.storeName} (${s.platformType.toUpperCase()})`}
+                      </span>
+                      <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
