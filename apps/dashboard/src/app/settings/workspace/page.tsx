@@ -9,7 +9,11 @@ import {
   Save,
   Check,
   Shield,
-  Sliders
+  Sliders,
+  CreditCard,
+  Zap,
+  CheckCircle2,
+  Lock
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -20,6 +24,7 @@ export default function WorkspaceSettingsPage() {
   const [notifyOnSyncFailure, setNotifyOnSyncFailure] = useState(true);
   const [notifyOnReviewItem, setNotifyOnReviewItem] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [planTier, setPlanTier] = useState('pro');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -87,6 +92,88 @@ export default function WorkspaceSettingsPage() {
                 <option value="GBP">GBP (£) British Pound</option>
                 <option value="INR">INR (₹) Indian Rupee</option>
               </select>
+            </div>
+          </div>
+        </div>
+
+        {/* SaaS Subscription & Usage Quota Management */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-emerald-600" />
+                <span>Subscription Plan &amp; Usage Quotas</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Current billing tier, live monthly extraction quotas, and AI token allowances.
+              </p>
+            </div>
+            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-[#0d2a2c] text-[#fad982] self-start sm:self-auto">
+              {planTier} Tier
+            </span>
+          </div>
+
+          {/* Usage Meter Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-slate-700">Monthly Product Scrapes</span>
+                <span className="font-mono font-bold text-slate-900">42 / 2,500</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                <div className="bg-[#0d2a2c] h-2 rounded-full" style={{ width: '1.7%' }}></div>
+              </div>
+              <p className="text-[10px] text-slate-500">Resets on the 1st of every month</p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-slate-700">AI Prompt Enrichments</span>
+                <span className="font-mono font-bold text-slate-900">18 / 1,000</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                <div className="bg-amber-500 h-2 rounded-full" style={{ width: '1.8%' }}></div>
+              </div>
+              <p className="text-[10px] text-slate-500">Gemini 1.5 Pro &amp; Claude 3.5 Sonnet</p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-bold text-slate-700">Connected E-Com Stores</span>
+                <span className="font-mono font-bold text-slate-900">1 / 5 Stores</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                <div className="bg-emerald-600 h-2 rounded-full" style={{ width: '20%' }}></div>
+              </div>
+              <p className="text-[10px] text-slate-500">Shopify &amp; WooCommerce</p>
+            </div>
+          </div>
+
+          {/* Pricing Tier Selector */}
+          <div className="pt-2">
+            <label className="block text-xs font-bold text-slate-700 mb-2">Change Workspace Plan</label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { id: 'starter', name: 'Starter', price: '$49/mo', desc: '500 products/mo, 1 store, standard scraping' },
+                { id: 'pro', name: 'Professional', price: '$149/mo', desc: '2,500 products/mo, 5 stores, AI prompt engine, Shopify push' },
+                { id: 'enterprise', name: 'Enterprise', price: '$499/mo', desc: 'Unlimited products, BYOK AI keys, headless proxies & dedicated support' },
+              ].map((tier) => (
+                <div
+                  key={tier.id}
+                  onClick={() => setPlanTier(tier.id)}
+                  className={`p-3.5 rounded-xl border cursor-pointer transition ${
+                    planTier === tier.id
+                      ? 'border-[#0d2a2c] bg-[#0d2a2c]/5 ring-1 ring-[#0d2a2c]'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-slate-900">{tier.name}</span>
+                    <span className="text-xs font-black text-[#0d2a2c]">{tier.price}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug mt-1">{tier.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

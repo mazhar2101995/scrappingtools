@@ -511,6 +511,30 @@ export class DashboardApiClient {
       body: JSON.stringify(payload),
     }, 'client');
   }
+
+  // --- Catalog Export & Batch Scrape ---
+  async exportCatalogCsv(format: 'shopify' | 'universal' = 'shopify'): Promise<Blob> {
+    let token = '';
+    if (typeof window !== 'undefined') {
+      token = localStorage.getItem('saas_token_client') || localStorage.getItem('saas_token') || '';
+    }
+    const res = await fetch(`${this.baseUrl}/products/export/csv?format=${format}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!res.ok) {
+      throw new Error(`Export failed with HTTP ${res.status}`);
+    }
+    return res.blob();
+  }
+
+  async batchScrape(payload: { brandId: string; urls: string[] }): Promise<any> {
+    return this.fetchJson('/products/batch-scrape', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

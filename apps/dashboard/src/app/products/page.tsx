@@ -22,7 +22,10 @@ import {
   ArrowRight,
   Edit2,
   Check,
-  Package
+  Package,
+  Download,
+  UploadCloud,
+  FileSpreadsheet
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -63,6 +66,14 @@ export default function ProductsPage() {
   const [aiEnriched, setAiEnriched] = useState(false);
   const [aiEnrichMeta, setAiEnrichMeta] = useState<any>(null);
   const [originalRawData, setOriginalRawData] = useState<{ title: string; description: string } | null>(null);
+
+  // Bulk Scrape & Export States
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [batchUrlsInput, setBatchUrlsInput] = useState('');
+  const [batchBrandId, setBatchBrandId] = useState('');
+  const [batchSubmitting, setBatchSubmitting] = useState(false);
+  const [batchSuccessMsg, setBatchSuccessMsg] = useState('');
+  const [exportingCsv, setExportingCsv] = useState(false);
 
   async function loadCatalog() {
     try {
@@ -353,6 +364,79 @@ export default function ProductsPage() {
     }
   }
 
+  // Handle Export to CSV (Shopify or Universal)
+  async function handleExportCsv(format: 'shopify' | 'universal' = 'shopify') {
+    try {
+      setExportingCsv(true);
+      const blob = await apiClient.exportCatalogCsv(format);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${format}_catalog_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err: any) {
+      alert(`Export failed: ${err.message}`);
+    } finally {
+      setExportingCsv(false);
+    }
+  }
+
+  // Handle Open Batch Scrape Modal
+  async function handleOpenBatchModal() {
+    setShowBatchModal(true);
+    setBatchUrlsInput('');
+    setBatchSuccessMsg('');
+    setExtractionError('');
+    try {
+      setLoadingBrands(true);
+      const list = await apiClient.getBrands();
+      setBrandsList(Array.isArray(list) ? list : []);
+      if (Array.isArray(list) && list.length > 0 && !batchBrandId) {
+        setBatchBrandId(list[0].id);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingBrands(false);
+    }
+  }
+
+  // Handle Submit Batch Scraping
+  async function handleSubmitBatchScrape(e: React.FormEvent) {
+    e.preventDefault();
+    const rawList = batchUrlsInput
+      .split('\n')
+      .map((u) => u.trim())
+      .filter((u) => u.length > 0 && (u.startsWith('http://') || u.startsWith('https://')));
+
+    if (rawList.length === 0) {
+      alert('Please enter at least one valid product URL (https://...)');
+      return;
+    }
+
+    try {
+      setBatchSubmitting(true);
+      setExtractionError('');
+      const res = await apiClient.batchScrape({
+        brandId: batchBrandId,
+        urls: rawList,
+      });
+
+      setBatchSuccessMsg(`Success! Queued ${res.count || rawList.length} products for automated background scraping.`);
+      setTimeout(() => {
+        setShowBatchModal(false);
+        setBatchSuccessMsg('');
+      }, 3000);
+    } catch (err: any) {
+      setExtractionError(err.message || 'Batch scrape dispatch failed');
+    } finally {
+      setBatchSubmitting(false);
+    }
+  }
+
   const filtered = products.filter((p) => {
     const matchesSearch =
       p.canonicalTitle?.toLowerCase().includes(search.toLowerCase()) ||
@@ -373,10 +457,31 @@ export default function ProductsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <span className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-sm">
             Total Entities: {filtered.length}
           </span>
+
+          {/* Export Dropdown / Button */}
+          <button
+            onClick={() => handleExportCsv('shopify')}
+            disabled={exportingCsv || products.length === 0}
+            title="Download full catalog as Shopify-compatible CSV"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <span>{exportingCsv ? 'Exporting...' : 'Export Shopify CSV'}</span>
+          </button>
+
+          {/* Bulk Import Button */}
+          <button
+            onClick={handleOpenBatchModal}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0d2a2c]/10 hover:bg-[#0d2a2c]/20 text-[#0d2a2c] font-bold text-xs rounded-xl transition"
+          >
+            <UploadCloud className="w-3.5 h-3.5 text-[#0d2a2c]" />
+            <span>Batch Scrape (Multi-URL)</span>
+          </button>
+
           <button
             onClick={handleOpenAddModal}
             className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
@@ -962,6 +1067,102 @@ export default function ProductsPage() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+      {/* BATCH / BULK URL SCRAPE MODAL */}
+      {showBatchModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <UploadCloud className="w-5 h-5 text-[#0d2a2c]" />
+                <h3 className="text-base font-black text-slate-900">Batch Scrape (Multi-URL Queue)</h3>
+              </div>
+              <button
+                onClick={() => setShowBatchModal(false)}
+                className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {batchSuccessMsg ? (
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>{batchSuccessMsg}</span>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitBatchScrape} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                    Select Target Brand Profile
+                  </label>
+                  <select
+                    required
+                    value={batchBrandId}
+                    onChange={(e) => setBatchBrandId(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                  >
+                    {brandsList.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} ({b.officialWebsite || 'No website'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                    Product URLs (One per line)
+                  </label>
+                  <p className="text-[11px] text-slate-500 mb-2">
+                    Paste up to 50 product URLs. The background queue will scrape and extract all fields using the selected brand&apos;s field mappings.
+                  </p>
+                  <textarea
+                    rows={6}
+                    required
+                    value={batchUrlsInput}
+                    onChange={(e) => setBatchUrlsInput(e.target.value)}
+                    placeholder={`https://traxxas.com/products/models/electric/slash-4x4-ultimate\nhttps://traxxas.com/products/models/electric/x-maxx\nhttps://traxxas.com/products/models/electric/rustler-4x4-vxl`}
+                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition leading-relaxed"
+                  />
+                </div>
+
+                {extractionError && (
+                  <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+                    {extractionError}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowBatchModal(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={batchSubmitting || !batchUrlsInput.trim()}
+                    className="px-5 py-2.5 rounded-xl bg-[#0d2a2c] hover:bg-[#143d40] text-white font-bold text-xs shadow-sm transition flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {batchSubmitting ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Dispatching Jobs...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="w-4 h-4 text-[#fad982]" />
+                        <span>Queue Batch Extraction</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
