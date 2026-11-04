@@ -85,7 +85,9 @@ brandsRouter.post('/', async (req: Request, res: Response) => {
     notes,
     sourceConfigs = [],
     fieldMappings = [],
+    fieldGroups = [],
     customFields = [],
+    aiPromptRules = '',
   } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) {
@@ -122,7 +124,9 @@ brandsRouter.post('/', async (req: Request, res: Response) => {
         notes: notes || null,
         sourceConfigs: sourceConfigs || [],
         fieldMappings: fieldMappings || [],
+        fieldGroups: fieldGroups || [],
         customFields: customFields || [],
+        aiPromptRules: aiPromptRules || '',
       })
       .returning();
 
@@ -155,6 +159,7 @@ brandsRouter.put('/:id', async (req: Request, res: Response) => {
     fieldMappings,
     fieldGroups,
     customFields,
+    aiPromptRules,
   } = req.body;
 
   try {
@@ -189,6 +194,7 @@ brandsRouter.put('/:id', async (req: Request, res: Response) => {
     if (fieldMappings !== undefined) updatePayload.fieldMappings = fieldMappings;
     if (fieldGroups !== undefined) updatePayload.fieldGroups = fieldGroups;
     if (customFields !== undefined) updatePayload.customFields = customFields;
+    if (aiPromptRules !== undefined) updatePayload.aiPromptRules = aiPromptRules;
 
     const [updated] = await db
       .update(tenantBrandProfiles)

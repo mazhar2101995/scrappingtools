@@ -71,7 +71,7 @@ export default function BrandProfileDetailPage() {
   const router = useRouter();
   const brandId = params.id as string;
 
-  const [activeTab, setActiveTab] = useState<'visual' | 'mappings' | 'groups' | 'sources' | 'custom' | 'test' | 'overview'>('visual');
+  const [activeTab, setActiveTab] = useState<'visual' | 'mappings' | 'groups' | 'sources' | 'custom' | 'ai_prompts' | 'test' | 'overview'>('visual');
   const [brand, setBrand] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -84,6 +84,7 @@ export default function BrandProfileDetailPage() {
   const [logoUrl, setLogoUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('active');
+  const [aiPromptRules, setAiPromptRules] = useState('');
 
   // Dynamic field mappings state
   const [fieldMappings, setFieldMappings] = useState<any[]>([]);
@@ -158,6 +159,7 @@ export default function BrandProfileDetailPage() {
       setLogoUrl(data.logoUrl || '');
       setNotes(data.notes || '');
       setStatus(data.status || 'active');
+      setAiPromptRules(data.aiPromptRules || '');
       setFieldMappings(Array.isArray(data.fieldMappings) ? data.fieldMappings : []);
       setFieldGroups(Array.isArray(data.fieldGroups) ? data.fieldGroups : []);
       setSourceConfigs(Array.isArray(data.sourceConfigs) ? data.sourceConfigs : []);
@@ -212,6 +214,7 @@ export default function BrandProfileDetailPage() {
         fieldGroups: finalGroups,
         sourceConfigs,
         customFields,
+        aiPromptRules,
       });
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
@@ -626,6 +629,7 @@ export default function BrandProfileDetailPage() {
           { key: 'groups', label: 'Field Groups', icon: FolderKanban, count: fieldGroups.length },
           { key: 'sources', label: 'Product Sources', icon: Layers, count: sourceConfigs.length },
           { key: 'custom', label: 'Custom Client Fields', icon: ListPlus, count: customFields.length },
+          { key: 'ai_prompts', label: 'AI Prompt Rules', icon: Sparkles, badge: 'AI' },
           { key: 'test', label: 'Test & Preview', icon: Play },
           { key: 'overview', label: 'Brand Details', icon: Settings },
         ].map((tab) => {
@@ -1590,6 +1594,77 @@ export default function BrandProfileDetailPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* TAB: BRAND AI PROMPT RULES */}
+      {activeTab === 'ai_prompts' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6 max-w-4xl">
+          <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
+                  Brand Intelligence
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Inherits Workspace Global Rules</span>
+              </div>
+              <h2 className="text-lg font-black tracking-tight text-slate-900">
+                {brandName} AI Prompt & Persona Rules
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Configure brand-specific rules for tone of voice, terminology, mandatory feature callouts, and prohibited phrases.
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleSaveChanges()}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
+            >
+              <Save className="w-4 h-4" />
+              <span>{saving ? 'Saving...' : 'Save AI Rules'}</span>
+            </button>
+          </div>
+
+          {/* Inheritance explanation card */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+            <Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <div className="text-xs space-y-1 text-slate-600">
+              <span className="font-bold text-slate-900">Rule Hierarchy in Execution:</span>
+              <p>
+                When scraping or enriching products for <strong className="text-slate-900">{brandName}</strong>, the AI engine first applies your <strong className="text-slate-900">Workspace Global AI Rules</strong>, then applies the brand-specific instructions configured below. Brand rules specialize the output for {brandName}&apos;s catalog.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                Brand-Specific AI Guidelines & Prompt Rules
+              </label>
+              <textarea
+                rows={7}
+                value={aiPromptRules}
+                onChange={(e) => setAiPromptRules(e.target.value)}
+                placeholder={`Example for ${brandName}:
+- Emphasize waterproof electronics and heavy-duty drivetrain durability.
+- Never use generic superlatives like 'best in the world'; use verified technical specs.
+- Call out modular chassis design and battery compatibility (2S/3S LiPo).
+- Always include the official part number in titles and key specification bullet points.`}
+                className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white leading-relaxed"
+              />
+            </div>
+
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-xs text-emerald-800 space-y-1.5">
+              <span className="font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                Active Post-Scraping Enrichment Workflow
+              </span>
+              <p className="text-[11px] leading-relaxed">
+                When adding products for <strong>{brandName}</strong> in the Product Catalog, clicking &quot;Improve with AI&quot; will automatically apply these rules along with your Workspace Global Templates to polish the title, generate SEO descriptions, and extract key selling points.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

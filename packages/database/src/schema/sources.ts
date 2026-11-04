@@ -33,6 +33,7 @@ export const tenantBrandProfiles = pgTable('tenant_brand_profiles', {
   fieldMappings: jsonb('field_mappings').notNull().default(sql`'[]'::jsonb`),
   fieldGroups: jsonb('field_groups').notNull().default(sql`'[]'::jsonb`),
   customFields: jsonb('custom_fields').notNull().default(sql`'[]'::jsonb`),
+  aiPromptRules: text('ai_prompt_rules'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [

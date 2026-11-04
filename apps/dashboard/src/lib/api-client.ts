@@ -425,6 +425,7 @@ export class DashboardApiClient {
     fieldMappings?: any[];
     fieldGroups?: any[];
     customFields?: any[];
+    aiPromptRules?: string;
   }): Promise<any> {
     return this.fetchJson(`/brands/${id}`, {
       method: 'PUT',
@@ -470,6 +471,45 @@ export class DashboardApiClient {
 
   async getHealth(): Promise<any> {
     return this.fetchJson('/jobs/monitoring/health');
+  }
+
+  // --- Organization AI Settings ---
+  async getAiSettings(): Promise<any> {
+    return this.fetchJson('/organizations/ai-settings', {}, 'client');
+  }
+
+  async saveAiSettings(payload: {
+    model?: string;
+    provider?: string;
+    temperature?: number;
+    apiKey?: string;
+    globalRules?: string;
+    titlePrompt?: string;
+    descriptionPrompt?: string;
+  }): Promise<any> {
+    return this.fetchJson('/organizations/ai-settings', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  // --- AI Product Enrichment ---
+  async enrichProductWithAi(payload: {
+    brandId?: string;
+    brandName?: string;
+    rawTitle: string;
+    rawDescription?: string;
+    modelNumber?: string;
+    sku?: string;
+    price?: number | string;
+    features?: string[];
+    attributes?: Record<string, any>;
+    customFields?: Record<string, any>;
+  }): Promise<any> {
+    return this.fetchJson('/ai/enrich-product', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
   }
 }
 

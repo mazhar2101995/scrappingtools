@@ -49,7 +49,7 @@ export default function ProductsPage() {
   const [savingProduct, setSavingProduct] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  // Editable Review Form Fields
+  // Review Form & AI Enrichment States
   const [reviewTitle, setReviewTitle] = useState('');
   const [reviewModel, setReviewModel] = useState('');
   const [reviewSku, setReviewSku] = useState('');
@@ -59,6 +59,10 @@ export default function ProductsPage() {
   const [reviewImages, setReviewImages] = useState<string[]>([]);
   const [reviewAttributes, setReviewAttributes] = useState<Record<string, any>>({});
   const [reviewCustomFields, setReviewCustomFields] = useState<Record<string, any>>({});
+  const [aiEnriching, setAiEnriching] = useState(false);
+  const [aiEnriched, setAiEnriched] = useState(false);
+  const [aiEnrichMeta, setAiEnrichMeta] = useState<any>(null);
+  const [originalRawData, setOriginalRawData] = useState<{ title: string; description: string } | null>(null);
 
   async function loadCatalog() {
     try {
@@ -253,10 +257,61 @@ export default function ProductsPage() {
         }
       }
       setReviewCustomFields(customCollected);
+      setAiEnriched(false);
+      setAiEnrichMeta(null);
+      setOriginalRawData(null);
     } catch (err: any) {
       setExtractionError(err.message || 'Product extraction failed');
     } finally {
       setExtracting(false);
+    }
+  }
+
+  // Hierarchical AI Product Enrichment (Global Workspace Prompt + Brand Prompt Rules)
+  async function handleEnrichWithAi() {
+    if (!reviewTitle.trim() && !reviewDescription.trim()) return;
+    try {
+      setAiEnriching(true);
+      setExtractionError('');
+
+      // Cache original raw scraped data so user can revert anytime
+      if (!originalRawData) {
+        setOriginalRawData({
+          title: reviewTitle,
+          description: reviewDescription,
+        });
+      }
+
+      const res = await apiClient.enrichProductWithAi({
+        brandId: selectedBrandId || undefined,
+        brandName: selectedBrand?.name || undefined,
+        rawTitle: reviewTitle,
+        rawDescription: reviewDescription,
+        modelNumber: reviewModel || undefined,
+        sku: reviewSku || undefined,
+        price: reviewPrice || undefined,
+        attributes: reviewAttributes,
+        customFields: reviewCustomFields,
+      });
+
+      if (res?.data) {
+        if (res.data.enhancedTitle) setReviewTitle(res.data.enhancedTitle);
+        if (res.data.enhancedDescription) setReviewDescription(res.data.enhancedDescription);
+        setAiEnriched(true);
+        setAiEnrichMeta(res.meta || null);
+      }
+    } catch (err: any) {
+      setExtractionError(err.message || 'AI Enrichment failed');
+    } finally {
+      setAiEnriching(false);
+    }
+  }
+
+  function handleRevertToRaw() {
+    if (originalRawData) {
+      setReviewTitle(originalRawData.title);
+      setReviewDescription(originalRawData.description);
+      setAiEnriched(false);
     }
   }
 
@@ -703,6 +758,56 @@ export default function ProductsPage() {
                       {extractionError}
                     </div>
                   )}
+
+                  {/* AI ENRICHMENT ACTION BANNER */}
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#0d2a2c]/5 via-amber-500/5 to-transparent border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-2.5">
+                      <Sparkles className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-slate-900">Post-Scraping AI Improvement</span>
+                          {aiEnriched && (
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black bg-emerald-100 text-emerald-800 uppercase tracking-wide">
+                              Enriched
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Applies Workspace Global Rules + <strong>{selectedBrand?.name || 'Brand'}</strong> AI Rules to format title, optimize SEO description & specs.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-end sm:self-center">
+                      {aiEnriched && originalRawData && (
+                        <button
+                          type="button"
+                          onClick={handleRevertToRaw}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-[11px] font-semibold text-slate-600 transition"
+                        >
+                          Revert to Raw
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        disabled={aiEnriching}
+                        onClick={handleEnrichWithAi}
+                        className="px-3.5 py-1.5 rounded-xl bg-[#0d2a2c] hover:bg-[#153e41] text-[#fad982] text-xs font-bold transition flex items-center gap-1.5 shadow-sm disabled:opacity-50"
+                      >
+                        {aiEnriching ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-[#fad982] border-t-transparent rounded-full animate-spin"></div>
+                            <span>Improving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5 text-[#fad982]" />
+                            <span>{aiEnriched ? 'Re-run AI' : 'Improve with AI'}</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
 
                   {/* Review / Edit Form */}
                   <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1">
