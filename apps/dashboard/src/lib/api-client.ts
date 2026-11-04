@@ -1,100 +1,70 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
 
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  total?: number;
-  limit?: number;
-  offset?: number;
-}
-
-export interface MetricSummary {
+export interface OverviewMetrics {
+  isPlatformAdmin: boolean;
   totalProducts: number;
   totalBrands: number;
+  totalSources: number;
+  connectedStores: number;
+  totalJobs: number;
   activeJobs: number;
-  completedJobs: number;
-  failedJobs: number;
-  systemHealth: 'healthy' | 'degraded' | 'down';
+  totalOrganizations: number;
+  totalUsers: number;
+  systemHealth: string;
 }
 
-export interface GlobalProduct {
+export interface AiMetrics {
+  totalTokensUsed: number;
+  totalExecutions: number;
+  estimatedCostUsd: number;
+  avgLatencyMs: number;
+  cachedTranslationsCount: number;
+  totalCharactersTranslated: number;
+}
+
+export interface AiPromptTemplate {
   id: string;
-  canonicalTitle: string;
-  brand: string;
-  brandId?: string;
-  eanGtin?: string | null;
-  manufacturerPartNumber?: string | null;
-  modelNumber?: string | null;
-  status: string;
-  variantsCount: number;
-  sourcesCount: number;
-  lastScrapedAt: string;
+  slug: string;
+  version: number;
+  taskType: string;
+  systemPrompt: string;
+  userPromptTemplate: string;
+  modelPreference: string;
+  temperature: string;
+  isActive: boolean;
+}
+
+export interface ReviewQueueItem {
+  id: string;
+  sourceProductListingId: string;
+  suggestedGlobalProductId: string;
+  matchConfidence: string;
+  matchReasons: string[];
+  resolutionStatus: string;
   createdAt: string;
-  primaryImage?: string;
+  listingTitle: string;
+  listingUrl: string;
+  suggestedTitle: string;
 }
 
-export interface ProductDetail extends GlobalProduct {
-  attributes: Record<string, any>;
-  variants: Array<{
-    id: string;
-    sku: string;
-    title: string;
-    price: number | null;
-    currency: string;
-    stockStatus: string;
-  }>;
-  sources: Array<{
-    id: string;
-    sourceDomain: string;
-    sourceUrl: string;
-    firstSeenAt: string;
-    lastCrawledAt: string;
-    extractionConfidence: number;
-  }>;
-  provenance: Array<{
-    field: string;
-    source: string;
-    confidence: number;
-    extractedAt: string;
-  }>;
-}
-
-export interface BrandItem {
+export interface OrganizationItem {
   id: string;
   name: string;
   slug: string;
-  websiteUrl: string;
-  logoUrl?: string;
-  productCount: number;
-  status: 'active' | 'pending' | 'disabled';
-  lastScrapedAt: string;
-  profileConfig?: {
-    engine: string;
-    selectors: Record<string, string>;
-  };
-}
-
-export interface ScrapingJob {
-  id: string;
-  brand: string;
-  targetUrl: string;
-  status: 'pending' | 'waiting' | 'active' | 'completed' | 'failed';
-  worker: string;
-  priority: number;
-  attempts: number;
-  maxAttempts: number;
+  planTier: string;
+  isActive: boolean;
   createdAt: string;
-  processedAt?: string;
-  error?: string | null;
 }
 
-export interface SystemServiceStatus {
-  service: string;
-  status: 'online' | 'degraded' | 'offline';
-  latencyMs: number;
-  uptime: string;
-  details?: Record<string, any>;
+export interface StoreItem {
+  id: string;
+  platformType: string;
+  storeName: string;
+  storeUrl: string;
+  status: string;
+  capabilities: string[];
+  lastSyncAt: string | null;
+  createdAt: string;
 }
 
 export class DashboardApiClient {
@@ -106,80 +76,98 @@ export class DashboardApiClient {
 
   private async fetchJson<T>(path: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${path}`;
-    try {
-      const response = await fetch(url, {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-        ...options,
-        cache: 'no-store',
-      });
+    const token = typeof window !== 'undefined' ? localStorage.getItem('saas_token') : null;
+    const orgId = typeof window !== 'undefined' ? localStorage.getItem('saas_org_id') : null;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API HTTP ${response.status}: ${errorText}`);
-      }
-
-      return (await response.json()) as T;
-    } catch (err: any) {
-      // In SSR or when API server isn't actively reachable, provide typed fallback data
-      // to ensure UI renders with resilience
-      console.warn(`[DashboardApiClient] Network call failed to ${url}: ${err.message}`);
-      throw err;
-    }
-  }
-
-  async getHealth(): Promise<{ status: string; uptime: number; redis: string; postgres: string }> {
-    return this.fetchJson('/jobs/monitoring/health');
-  }
-
-  async getProducts(params?: { search?: string; brand?: string; limit?: number; offset?: number }): Promise<{
-    items: GlobalProduct[];
-    total: number;
-  }> {
-    const query = new URLSearchParams();
-    if (params?.search) query.set('q', params.search);
-    if (params?.brand) query.set('brand', params.brand);
-    if (params?.limit) query.set('limit', String(params.limit));
-    if (params?.offset) query.set('offset', String(params.offset));
-
-    const qs = query.toString() ? `?${query.toString()}` : '';
-    const res = await this.fetchJson<any>(`/products${qs}`);
-    return {
-      items: res.data || res.products || [],
-      total: res.total || (res.data ? res.data.length : 0),
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string>),
     };
+
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (orgId) headers['x-organization-id'] = orgId;
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`API ${response.status}: ${errText}`);
+    }
+
+    return (await response.json()) as T;
   }
 
-  async getProductById(id: string): Promise<ProductDetail> {
-    const res = await this.fetchJson<any>(`/products/${id}`);
-    return res.data || res;
+  async getOverviewMetrics(): Promise<OverviewMetrics> {
+    const res = await this.fetchJson<any>('/metrics/overview');
+    return res.data;
   }
 
-  async getBrands(): Promise<BrandItem[]> {
-    const res = await this.fetchJson<any>('/brands');
-    return res.data || res.brands || [];
+  async getAiMetrics(): Promise<AiMetrics> {
+    const res = await this.fetchJson<any>('/ai/metrics');
+    return res.data;
   }
 
-  async getJobs(): Promise<ScrapingJob[]> {
-    const res = await this.fetchJson<any>('/jobs');
-    return res.data || res.jobs || [];
+  async getAiPrompts(): Promise<AiPromptTemplate[]> {
+    const res = await this.fetchJson<any>('/ai/prompts');
+    return res.data;
   }
 
-  async triggerScrapeJob(data: { brand: string; targetUrl: string; priority?: number }): Promise<{ jobId: string }> {
-    return this.fetchJson('/jobs/scrape', {
+  async getReviewQueue(): Promise<ReviewQueueItem[]> {
+    const res = await this.fetchJson<any>('/review/queue');
+    return res.data;
+  }
+
+  async resolveReviewItem(id: string, action: string): Promise<any> {
+    return this.fetchJson(`/review/queue/${id}/resolve`, {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ action }),
     });
   }
 
-  async retryJob(jobId: string): Promise<{ success: boolean }> {
-    return this.fetchJson(`/jobs/${jobId}/retry`, {
+  async getOrganizations(): Promise<OrganizationItem[]> {
+    const res = await this.fetchJson<any>('/organizations');
+    return res.data;
+  }
+
+  async getStores(): Promise<StoreItem[]> {
+    const res = await this.fetchJson<any>('/stores');
+    return res.stores;
+  }
+
+  async triggerStoreSync(storeId: string): Promise<any> {
+    return this.fetchJson(`/stores/${storeId}/sync`, {
       method: 'POST',
+      body: JSON.stringify({ direction: 'PULL' }),
     });
+  }
+
+  async getProducts(params?: { q?: string; limit?: number; offset?: number }): Promise<any> {
+    const qs = new URLSearchParams();
+    if (params?.q) qs.set('q', params.q);
+    if (params?.limit) qs.set('limit', String(params.limit));
+    if (params?.offset) qs.set('offset', String(params.offset));
+    return this.fetchJson(`/products?${qs.toString()}`);
+  }
+
+  async getProductById(id: string): Promise<any> {
+    return this.fetchJson(`/products/${id}`);
+  }
+
+  async getBrands(): Promise<any> {
+    return this.fetchJson('/brands');
+  }
+
+  async getJobs(): Promise<any> {
+    return this.fetchJson('/jobs');
+  }
+
+  async getHealth(): Promise<any> {
+    return this.fetchJson('/jobs/monitoring/health');
   }
 }
 
 export const apiClient = new DashboardApiClient();
-

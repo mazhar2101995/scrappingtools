@@ -4,4 +4,5 @@ export * from './products';
 export * from './provenance';
 export * from './customer';
 export * from './operations';
-
+export * from './intelligence';
+export * from './stores';

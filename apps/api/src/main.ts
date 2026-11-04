@@ -8,6 +8,11 @@ import { productsRouter } from './routes/product.routes';
 import { catalogRouter } from './routes/catalog.routes';
 import { jobsRouter } from './routes/job.routes';
 import { brandsRouter } from './routes/brand.routes';
+import { storeRouter } from './routes/store.routes';
+import { metricsRouter } from './routes/metrics.routes';
+import { aiRouter } from './routes/ai.routes';
+import { reviewRouter } from './routes/review.routes';
+import { organizationRouter } from './routes/organization.routes';
 import { ServiceHealth } from '@saas/shared-types';
 
 const app = express();
@@ -48,6 +53,11 @@ app.use('/api/v1/products', productsRouter);
 app.use('/api/v1/catalog', catalogRouter);
 app.use('/api/v1/jobs', jobsRouter);
 app.use('/api/v1/brands', brandsRouter);
+app.use('/api/v1/stores', storeRouter);
+app.use('/api/v1/metrics', metricsRouter);
+app.use('/api/v1/ai', aiRouter);
+app.use('/api/v1/review', reviewRouter);
+app.use('/api/v1/organizations', organizationRouter);
 
 // 4. Start Server
 if (process.env.NODE_ENV !== 'test') {

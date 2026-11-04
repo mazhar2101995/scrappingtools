@@ -14,6 +14,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@saas/connectors':
+        specifier: workspace:*
+        version: link:../../packages/connectors
       '@saas/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -122,6 +125,31 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  packages/connectors:
+    dependencies:
+      '@saas/database':
+        specifier: workspace:*
+        version: link:../database
+      '@saas/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
+      drizzle-orm:
+        specifier: ^0.38.4
+        version: 0.38.4(@types/react@18.3.31)(postgres@3.4.9)(react@18.3.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.14
+        version: 20.19.43
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.43)
+
   packages/database:
     dependencies:
       dotenv:
@@ -140,6 +168,31 @@ importers:
       drizzle-kit:
         specifier: ^0.30.2
         version: 0.30.6
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@20.19.43)
+
+  packages/product-intelligence:
+    dependencies:
+      '@saas/database':
+        specifier: workspace:*
+        version: link:../database
+      '@saas/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
+      drizzle-orm:
+        specifier: ^0.38.4
+        version: 0.38.4(@types/react@18.3.31)(postgres@3.4.9)(react@18.3.1)
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.14
+        version: 20.19.43
       typescript:
         specifier: ^5.7.3
         version: 5.9.3

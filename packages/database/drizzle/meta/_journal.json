@@ -8,6 +8,20 @@
       "when": 1793709828584,
       "tag": "0000_powerful_invisible_woman",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793766880194,
+      "tag": "0001_flaky_stone_men",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793768088792,
+      "tag": "0002_quick_bedlam",
+      "breakpoints": true
     }
   ]
 }

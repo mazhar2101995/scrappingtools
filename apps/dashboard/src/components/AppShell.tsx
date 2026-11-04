@@ -9,6 +9,7 @@ import {
   Layers,
   Wrench,
   Activity,
+  ShoppingBag,
   KeyRound,
   ShieldCheck,
   ChevronDown,
@@ -21,6 +22,7 @@ import {
 const NAV_ITEMS = [
   { name: 'Overview', href: '/', icon: LayoutDashboard },
   { name: 'Product Catalog', href: '/products', icon: Boxes },
+  { name: 'Connected Stores', href: '/stores', icon: ShoppingBag },
   { name: 'Brand Intelligence', href: '/brands', icon: Layers },
   { name: 'Scraping Studio', href: '/studio', icon: Wrench },
   { name: 'Job Pipelines', href: '/jobs', icon: Activity },
