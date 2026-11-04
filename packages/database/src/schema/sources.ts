@@ -1,8 +1,10 @@
 import { pgTable, uuid, varchar, text, numeric, integer, boolean, jsonb, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import { organizations } from './tenants';
 
 export const brands = pgTable('brands', {
   id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
   name: varchar('name', { length: 255 }).notNull(),
   normalizedName: varchar('normalized_name', { length: 255 }).notNull().unique(),
   officialWebsite: text('official_website'),
@@ -14,6 +16,28 @@ export const brands = pgTable('brands', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index('idx_brands_normalized').on(table.normalizedName),
+  index('idx_brands_org_id').on(table.organizationId),
+]);
+
+// 1.1 Tenant Brand Profiles with Dynamic Field Mapping & Custom Fields
+export const tenantBrandProfiles = pgTable('tenant_brand_profiles', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  normalizedName: varchar('normalized_name', { length: 255 }).notNull(),
+  officialWebsite: text('official_website'),
+  logoUrl: text('logo_url'),
+  status: varchar('status', { length: 50 }).notNull().default('active'),
+  notes: text('notes'),
+  sourceConfigs: jsonb('source_configs').notNull().default(sql`'[]'::jsonb`),
+  fieldMappings: jsonb('field_mappings').notNull().default(sql`'[]'::jsonb`),
+  fieldGroups: jsonb('field_groups').notNull().default(sql`'[]'::jsonb`),
+  customFields: jsonb('custom_fields').notNull().default(sql`'[]'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('idx_tbp_org_brand_name').on(table.organizationId, table.normalizedName),
+  index('idx_tbp_org_id').on(table.organizationId),
 ]);
 
 export const sourceWebsites = pgTable('source_websites', {

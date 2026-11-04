@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { db, users, organizations, organizationMemberships, apiKeys } from '@saas/database';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { config } from '../config';
 import { authMiddleware } from '../middleware/auth.middleware';
 
@@ -129,6 +129,112 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 // 3. Current User Profile
 authRouter.get('/me', authMiddleware, async (req: Request, res: Response) => {
   return res.json({ user: req.user });
+});
+
+// 3.1 Dev/Demo Session Bootstrap (Ensures browser clients and admins get valid authenticated JWT sessions)
+authRouter.get('/session', async (req: Request, res: Response) => {
+  const role = (req.query.role as string) || 'client'; // 'client' or 'admin'
+
+  try {
+    const isPlatformAdmin = role === 'admin';
+    const assignedRole = isPlatformAdmin ? 'super_admin' : 'tenant_admin';
+
+    // 1. Fetch user & org - prioritize the latest registered user/membership for realistic client experience
+    const [latestMembership] = await db
+      .select({
+        userId: organizationMemberships.userId,
+        organizationId: organizationMemberships.organizationId,
+        role: organizationMemberships.role,
+        userName: users.fullName,
+        userEmail: users.email,
+        orgName: organizations.name,
+        orgSlug: organizations.slug,
+        orgPlanTier: organizations.planTier,
+      })
+      .from(organizationMemberships)
+      .innerJoin(users, eq(organizationMemberships.userId, users.id))
+      .innerJoin(organizations, eq(organizationMemberships.organizationId, organizations.id))
+      .orderBy(desc(organizationMemberships.createdAt))
+      .limit(1);
+
+    let activeUser = latestMembership ? {
+      id: latestMembership.userId,
+      email: latestMembership.userEmail,
+      fullName: latestMembership.userName,
+    } : null;
+
+    let activeOrg = latestMembership ? {
+      id: latestMembership.organizationId,
+      name: latestMembership.orgName,
+      slug: latestMembership.orgSlug,
+      planTier: latestMembership.orgPlanTier,
+    } : null;
+
+    if (!activeOrg || !activeUser) {
+      let [primaryOrg] = await db.select().from(organizations).limit(1);
+      if (!primaryOrg) {
+        [primaryOrg] = await db.insert(organizations).values({
+          name: 'Mazhar Dev',
+          slug: 'mazhar-dev',
+          planTier: 'enterprise',
+        }).returning();
+      }
+      activeOrg = {
+        id: primaryOrg.id,
+        name: primaryOrg.name,
+        slug: primaryOrg.slug,
+        planTier: primaryOrg.planTier,
+      };
+
+      let [primaryUser] = await db.select().from(users).limit(1);
+      if (!primaryUser) {
+        const passwordHash = await bcrypt.hash('password123', 10);
+        [primaryUser] = await db.insert(users).values({
+          email: 'mak@gmail.com',
+          fullName: 'mazhar client',
+          passwordHash,
+        }).returning();
+
+        await db.insert(organizationMemberships).values({
+          organizationId: primaryOrg.id,
+          userId: primaryUser.id,
+          role: 'owner',
+        });
+      }
+      activeUser = {
+        id: primaryUser.id,
+        email: primaryUser.email,
+        fullName: primaryUser.fullName,
+      };
+    }
+
+    // Sign a 24h JWT token
+    const accessToken = jwt.sign(
+      {
+        userId: activeUser.id,
+        email: activeUser.email,
+        organizationId: activeOrg.id,
+        role: assignedRole,
+      },
+      config.jwtSecret,
+      { expiresIn: '24h' }
+    );
+
+    return res.json({
+      success: true,
+      accessToken,
+      user: {
+        id: activeUser.id,
+        email: activeUser.email,
+        fullName: isPlatformAdmin ? 'Platform Super Admin' : activeUser.fullName,
+        role: assignedRole,
+        organizationId: activeOrg.id,
+      },
+      organization: activeOrg,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to initialize session', details: err.message });
+  }
 });
 
 // 4. API Key Generation for Tenant

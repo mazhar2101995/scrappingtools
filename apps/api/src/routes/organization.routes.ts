@@ -38,3 +38,30 @@ organizationRouter.get('/', async (req: Request, res: Response) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
+// GET /api/v1/organizations/my-team - Get team members for the client workspace
+organizationRouter.get('/my-team', async (req: Request, res: Response) => {
+  try {
+    const orgId = (req as any).user?.organizationId;
+    if (!orgId) {
+      return res.status(400).json({ error: 'Organization context required' });
+    }
+
+    const members = await db
+      .select({
+        id: organizationMemberships.id,
+        userId: users.id,
+        fullName: users.fullName,
+        email: users.email,
+        role: organizationMemberships.role,
+        joinedAt: organizationMemberships.createdAt,
+      })
+      .from(organizationMemberships)
+      .innerJoin(users, eq(organizationMemberships.userId, users.id))
+      .where(eq(organizationMemberships.organizationId, orgId));
+
+    return res.json({ success: true, members });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   ShoppingBag,
   Plus,
@@ -12,151 +13,235 @@ import {
   Layers,
   ArrowRight,
   ShieldCheck,
+  X,
+  Store
 } from 'lucide-react';
-
-const CONNECTED_STORES = [
-  {
-    id: 'store_oc_01',
-    name: 'Acme EU OpenCart Shop',
-    platform: 'OpenCart 3.0',
-    storeUrl: 'https://opencart-shop.acme.com',
-    status: 'connected',
-    productsSynced: 842,
-    conflictsPending: 0,
-    lastSync: '12 mins ago',
-    capabilities: ['PULL_PRODUCTS', 'PUSH_PRODUCTS', 'UPDATE_PRICING', 'MULTILINGUAL'],
-  },
-  {
-    id: 'store_sh_01',
-    name: 'Shopify US Direct Store',
-    platform: 'Shopify',
-    storeUrl: 'https://acme-rc-usa.myshopify.com',
-    status: 'connected',
-    productsSynced: 295,
-    conflictsPending: 1,
-    lastSync: '1 hour ago',
-    capabilities: ['PULL_PRODUCTS', 'PUSH_PRODUCTS', 'UPDATE_PRICING', 'UPDATE_STOCK', 'WEBHOOK_CHANGES'],
-  },
-  {
-    id: 'store_wc_01',
-    name: 'WooCommerce B2B Wholesale',
-    platform: 'WooCommerce',
-    storeUrl: 'https://wholesale.acme-rc.de',
-    status: 'connected',
-    productsSynced: 111,
-    conflictsPending: 0,
-    lastSync: '3 hours ago',
-    capabilities: ['PULL_PRODUCTS', 'PUSH_PRODUCTS', 'UPDATE_PRICING', 'PRODUCT_VARIANTS'],
-  },
-];
+import { apiClient } from '@/lib/api-client';
 
 export default function StoresPage() {
-  const [stores, setStores] = useState(CONNECTED_STORES);
+  const [stores, setStores] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [storeName, setStoreName] = useState('');
+  const [storeUrl, setStoreUrl] = useState('');
+  const [platformType, setPlatformType] = useState('opencart');
 
-  const handleTriggerSync = (storeId: string) => {
-    setIsSyncing(storeId);
-    setTimeout(() => {
+  async function loadStores() {
+    try {
+      setLoading(true);
+      const res = await apiClient.getStores();
+      setStores(Array.isArray(res) ? res : []);
+    } catch (e) {
+      console.error(e);
+      setStores([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadStores();
+  }, []);
+
+  const handleTriggerSync = async (storeId: string) => {
+    try {
+      setIsSyncing(storeId);
+      await apiClient.triggerStoreSync(storeId);
+      await loadStores();
+    } catch (e) {
+      console.error(e);
+    } finally {
       setIsSyncing(null);
-      setStores((prev) =>
-        prev.map((s) => (s.id === storeId ? { ...s, lastSync: 'Just now' } : s))
-      );
-    }, 1200);
+    }
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans text-slate-800">
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Universal Connected E-Commerce Stores</h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <h1 className="text-2xl font-black tracking-tight text-slate-900">Connected E-Commerce Stores</h1>
+          <p className="text-xs text-slate-500 mt-1 font-medium">
             Connect OpenCart, Shopify, and WooCommerce stores to sync verified canonical catalog data and manage field-level overrides.
           </p>
         </div>
-        <div>
-          <button className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs transition shadow-sm">
-            <Plus className="w-4 h-4" />
-            <span>Connect New Store</span>
-          </button>
-        </div>
+
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-lg shadow-sm transition"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Connect New Store</span>
+        </button>
       </div>
 
-      {/* Connected Stores Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stores.map((store) => (
-          <div
-            key={store.id}
-            className="bg-[#0e1626] border border-slate-800 rounded-xl p-6 shadow-sm flex flex-col justify-between hover:border-slate-700 transition"
-          >
-            <div>
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <span className="px-2 py-0.5 rounded text-xs font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                  {store.platform}
-                </span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-400">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Active Link</span>
-                </span>
+      {/* Modal Dialog */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xl max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-bold text-slate-900 text-sm">Connect E-Commerce Store</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); setShowAddModal(false); }} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Store Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. My RC Shop Germany"
+                  value={storeName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                />
               </div>
 
-              <h3 className="font-semibold text-white text-base mt-4">{store.name}</h3>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Platform *</label>
+                <select
+                  value={platformType}
+                  onChange={(e) => setPlatformType(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                >
+                  <option value="opencart">OpenCart 3.x / 4.x</option>
+                  <option value="shopify">Shopify</option>
+                  <option value="woocommerce">WooCommerce</option>
+                </select>
+              </div>
 
-              <a
-                href={store.storeUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition font-mono mt-1"
-              >
-                <Globe className="w-3.5 h-3.5 text-slate-500" />
-                <span className="truncate">{store.storeUrl}</span>
-                <ExternalLink className="w-3 h-3 text-slate-500 shrink-0" />
-              </a>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Store URL *</label>
+                <input
+                  type="url"
+                  required
+                  placeholder="https://myshop.com"
+                  value={storeUrl}
+                  onChange={(e) => setStoreUrl(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                />
+              </div>
 
-              <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
-                <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
-                  <div className="text-[11px] text-slate-400">Synced Products</div>
-                  <div className="font-mono text-white font-bold text-sm mt-0.5">{store.productsSynced}</div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-bold bg-[#0d2a2c] text-white rounded-lg hover:bg-[#143d40]"
+                >
+                  Connect Store
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Stores Grid in Clean Brand Style */}
+      {loading ? (
+        <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 text-slate-400 text-xs">
+          Loading connected stores...
+        </div>
+      ) : stores.length === 0 ? (
+        <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-xl">
+            🏪
+          </div>
+          <h3 className="text-sm font-bold text-slate-900">No Stores Connected Yet</h3>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium">
+            Link your first OpenCart, Shopify, or WooCommerce store to enable automated two-way catalog synchronization.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {stores.map((store) => (
+            <div
+              key={store.id}
+              className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm hover:border-slate-300 transition flex flex-col justify-between space-y-4"
+            >
+              <div>
+                {/* Store Header */}
+                <div className="flex items-center justify-between mb-3">
+                  <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold font-mono bg-slate-100 text-slate-700 uppercase">
+                    {store.platformType}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>Active Link</span>
+                  </div>
                 </div>
-                <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800">
-                  <div className="text-[11px] text-slate-400">Field Conflicts</div>
-                  <div className={`font-mono font-bold text-sm mt-0.5 ${store.conflictsPending > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
-                    {store.conflictsPending}
+
+                <h3 className="font-bold text-base text-slate-900 leading-tight">{store.storeName}</h3>
+                <a
+                  href={store.storeUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-slate-400 hover:text-[#0d2a2c] flex items-center gap-1 mt-1 truncate"
+                >
+                  <Globe className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{store.storeUrl}</span>
+                </a>
+
+                {/* Metrics Box in Clean Brand Style */}
+                <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 border border-slate-100 rounded-xl my-4 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold">Synced Products</span>
+                    <div className="text-lg font-black text-slate-900 font-mono mt-0.5">
+                      {store.syncedCount || 0}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-semibold">Field Conflicts</span>
+                    <div className="text-lg font-black text-slate-900 font-mono mt-0.5">
+                      {store.conflictsCount || 0}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Capabilities */}
+                <div className="space-y-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                    Declared Capabilities
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {(store.capabilities || ['PULL_PRODUCTS', 'PUSH_PRODUCTS', 'UPDATE_PRICING']).map((cap: string) => (
+                      <span
+                        key={cap}
+                        className="px-1.5 py-0.5 bg-slate-100 border border-slate-200 text-slate-600 rounded text-[9px] font-mono font-medium"
+                      >
+                        {cap}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* Declared capabilities */}
-              <div className="mt-4 pt-3 border-t border-slate-800">
-                <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-2">Declared Capabilities</div>
-                <div className="flex flex-wrap gap-1.5">
-                  {store.capabilities.map((cap) => (
-                    <span
-                      key={cap}
-                      className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-slate-900 border border-slate-750 text-slate-400"
-                    >
-                      {cap}
-                    </span>
-                  ))}
-                </div>
+              {/* Sync Trigger Footer */}
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="text-[11px] text-slate-400">
+                  {store.lastSyncAt ? `Sync ${new Date(store.lastSyncAt).toLocaleTimeString()}` : 'Never synced'}
+                </span>
+                <button
+                  onClick={() => handleTriggerSync(store.id)}
+                  disabled={isSyncing === store.id}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold rounded-lg text-xs transition shadow-sm disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncing === store.id ? 'animate-spin' : ''}`} />
+                  <span>{isSyncing === store.id ? 'Syncing...' : 'Sync Store'}</span>
+                </button>
               </div>
             </div>
-
-            <div className="mt-6 pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
-              <span className="text-[11px] text-slate-400">Sync: {store.lastSync}</span>
-              <button
-                onClick={() => handleTriggerSync(store.id)}
-                disabled={isSyncing === store.id}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-750 text-sky-400 hover:border-sky-500 transition disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing === store.id ? 'animate-spin' : ''}`} />
-                <span>{isSyncing === store.id ? 'Syncing...' : 'Sync Store'}</span>
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-

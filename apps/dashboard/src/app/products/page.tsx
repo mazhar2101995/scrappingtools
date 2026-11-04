@@ -1,200 +1,865 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Search,
-  Filter,
   CheckCircle2,
   ExternalLink,
-  ChevronRight,
   ShieldCheck,
   Tag,
   ArrowUpDown,
   Layers,
+  Filter,
+  Plus,
+  X,
+  Globe,
+  SlidersHorizontal,
+  Play,
+  Save,
+  AlertCircle,
+  Sparkles,
+  ArrowRight,
+  Edit2,
+  Check,
+  Package
 } from 'lucide-react';
-
-const SAMPLE_PRODUCTS = [
-  {
-    id: 'prod-001',
-    canonicalTitle: 'Traxxas Slash 4X4 VXL 1/10 Scale 4WD Short Course Truck',
-    brand: 'Traxxas',
-    modelNumber: '68086-4',
-    eanGtin: '0020334680864',
-    status: 'verified',
-    sourcesCount: 3,
-    variantsCount: 4,
-    lastScrapedAt: '10 mins ago',
-    priceEstimate: '$429.95',
-    category: 'RC Vehicles / Electric Trucks',
-  },
-  {
-    id: 'prod-002',
-    canonicalTitle: 'Xray X4 2024 Luxury 1/10 Electric Touring Car Kit - Carbon Chassis',
-    brand: 'Xray',
-    modelNumber: '300034',
-    eanGtin: '8581703000342',
-    status: 'verified',
-    sourcesCount: 2,
-    variantsCount: 2,
-    lastScrapedAt: '1 hour ago',
-    priceEstimate: '€749.00',
-    category: 'Competition Kits / Touring',
-  },
-  {
-    id: 'prod-003',
-    canonicalTitle: 'Bittydesign HYPER-HR 190mm Clear Body Lightweight for 1/10 TC',
-    brand: 'Bittydesign',
-    modelNumber: 'BD-HYP-HR',
-    eanGtin: '0714833215509',
-    status: 'verified',
-    sourcesCount: 2,
-    variantsCount: 1,
-    lastScrapedAt: '3 hours ago',
-    priceEstimate: '€32.90',
-    category: 'RC Bodies / Aerodynamics',
-  },
-  {
-    id: 'prod-004',
-    canonicalTitle: 'Traxxas TRX-4 1979 Chevrolet Blazer High Trail Edition 4WD Scale Crawler',
-    brand: 'Traxxas',
-    modelNumber: '82076-4',
-    eanGtin: '0020334820765',
-    status: 'verified',
-    sourcesCount: 4,
-    variantsCount: 3,
-    lastScrapedAt: 'Yesterday',
-    priceEstimate: '$549.95',
-    category: 'Scale Trail Crawlers',
-  },
-  {
-    id: 'prod-005',
-    canonicalTitle: 'Xray XB2D 2024 1/10 2WD Buggy Dirt Edition Competition Kit',
-    brand: 'Xray',
-    modelNumber: '320015',
-    eanGtin: '8581703200155',
-    status: 'verified',
-    sourcesCount: 1,
-    variantsCount: 1,
-    lastScrapedAt: '2 days ago',
-    priceEstimate: '€499.00',
-    category: 'Competition Buggy / 2WD',
-  },
-];
+import { apiClient } from '@/lib/api-client';
 
 export default function ProductsPage() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedBrand, setSelectedBrand] = useState('ALL');
+  const [brandFilter, setBrandFilter] = useState('ALL');
 
-  const filteredProducts = SAMPLE_PRODUCTS.filter((prod) => {
-    const matchesBrand = selectedBrand === 'ALL' || prod.brand.toUpperCase() === selectedBrand;
+  // Add Product Workflow Modal States
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [brandsList, setBrandsList] = useState<any[]>([]);
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [selectedBrandId, setSelectedBrandId] = useState('');
+  const [selectedSourceUrl, setSelectedSourceUrl] = useState('');
+  const [productUrl, setProductUrl] = useState('');
+  const [urlValidationError, setUrlValidationError] = useState('');
+  const [urlValidSuccess, setUrlValidSuccess] = useState(false);
+
+  // Extraction & Review States
+  const [extracting, setExtracting] = useState(false);
+  const [extractionError, setExtractionError] = useState('');
+  const [extractedData, setExtractedData] = useState<any | null>(null);
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Editable Review Form Fields
+  const [reviewTitle, setReviewTitle] = useState('');
+  const [reviewModel, setReviewModel] = useState('');
+  const [reviewSku, setReviewSku] = useState('');
+  const [reviewPrice, setReviewPrice] = useState('');
+  const [reviewDescription, setReviewDescription] = useState('');
+  const [reviewPrimaryImage, setReviewPrimaryImage] = useState('');
+  const [reviewImages, setReviewImages] = useState<string[]>([]);
+  const [reviewAttributes, setReviewAttributes] = useState<Record<string, any>>({});
+  const [reviewCustomFields, setReviewCustomFields] = useState<Record<string, any>>({});
+
+  async function loadCatalog() {
+    try {
+      setLoading(true);
+      const res = await apiClient.getProducts({ limit: 50 });
+      setProducts(res.data || res.items || []);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadCatalog();
+  }, []);
+
+  // Load client's tenant brand profiles when opening modal
+  async function handleOpenAddModal() {
+    setShowAddModal(true);
+    setExtractionError('');
+    setExtractedData(null);
+    setUrlValidationError('');
+    setUrlValidSuccess(false);
+    setProductUrl('');
+    setSelectedBrandId('');
+    setSelectedSourceUrl('');
+
+    try {
+      setLoadingBrands(true);
+      const list = await apiClient.getBrands();
+      setBrandsList(Array.isArray(list) ? list : []);
+
+      // If user has exactly one brand, auto-select it
+      if (Array.isArray(list) && list.length === 1) {
+        handleSelectBrand(list[0].id, list);
+      }
+    } catch (err: any) {
+      console.error('Failed to load brand profiles for Add Product:', err);
+    } finally {
+      setLoadingBrands(false);
+    }
+  }
+
+  const selectedBrand = brandsList.find((b) => b.id === selectedBrandId) || null;
+
+  function handleSelectBrand(brandId: string, currentList?: any[]) {
+    const list = currentList || brandsList;
+    const b = list.find((item) => item.id === brandId);
+    setSelectedBrandId(brandId);
+    setExtractionError('');
+    setExtractedData(null);
+    setProductUrl('');
+    setUrlValidationError('');
+    setUrlValidSuccess(false);
+
+    if (b) {
+      // Auto-select source if only 1 source or official website
+      const sources = Array.isArray(b.sourceConfigs) ? b.sourceConfigs : [];
+      if (sources.length === 1 && sources[0].url) {
+        setSelectedSourceUrl(sources[0].url);
+      } else if (b.officialWebsite) {
+        setSelectedSourceUrl(b.officialWebsite);
+      } else if (sources.length > 0 && sources[0].url) {
+        setSelectedSourceUrl(sources[0].url);
+      } else {
+        setSelectedSourceUrl('');
+      }
+    } else {
+      setSelectedSourceUrl('');
+    }
+  }
+
+  // Validate URL against Brand Domain / Sources dynamically
+  function handleUrlChange(newUrl: string) {
+    setProductUrl(newUrl);
+    setUrlValidationError('');
+    setUrlValidSuccess(false);
+
+    if (!newUrl.trim()) return;
+
+    try {
+      const parsed = new URL(newUrl.trim());
+      const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+
+      if (!selectedBrand) {
+        setUrlValidationError('Please select a Brand Profile first');
+        return;
+      }
+
+      // Collect all authorized domains for this brand
+      const allowedDomains: string[] = [];
+      if (selectedBrand.officialWebsite) {
+        try {
+          allowedDomains.push(new URL(selectedBrand.officialWebsite).hostname.toLowerCase().replace(/^www\./, ''));
+        } catch (_) {}
+      }
+      if (Array.isArray(selectedBrand.sourceConfigs)) {
+        for (const src of selectedBrand.sourceConfigs) {
+          if (src.url) {
+            try {
+              allowedDomains.push(new URL(src.url).hostname.toLowerCase().replace(/^www\./, ''));
+            } catch (_) {}
+          }
+        }
+      }
+
+      // Also check normalized brand name match (e.g. traxxas.com matching traxxas)
+      const brandNormalized = selectedBrand.normalizedName || selectedBrand.name?.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      const isMatch = allowedDomains.some((d) => host === d || host.endsWith(`.${d}`)) ||
+        (allowedDomains.length === 0 && host.includes(brandNormalized));
+
+      if (isMatch) {
+        setUrlValidSuccess(true);
+        setUrlValidationError('');
+      } else {
+        const domainList = allowedDomains.length > 0 ? allowedDomains.join(', ') : `${brandNormalized}.*`;
+        setUrlValidationError(`URL domain "${host}" does not match approved domains for ${selectedBrand.name} (${domainList})`);
+      }
+    } catch (_) {
+      setUrlValidationError('Please enter a valid HTTP/HTTPS URL');
+    }
+  }
+
+  // Execute Brand-Driven Extraction using Brand's configured field mappings
+  async function handleExtractProduct(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedBrandId || !productUrl.trim()) return;
+
+    try {
+      setExtracting(true);
+      setExtractionError('');
+      setExtractedData(null);
+
+      // Call test-mapping endpoint with the brand's configured mappings
+      const res = await apiClient.testBrandMapping(selectedBrandId, {
+        sampleUrl: productUrl.trim(),
+        mappings: selectedBrand?.fieldMappings || [],
+      });
+
+      if (!res.results || Object.keys(res.results).length === 0) {
+        throw new Error('No data could be extracted. Check Brand Profile field mappings.');
+      }
+
+      const results = res.results;
+      setExtractedData(results);
+
+      // Populate review form with extracted values
+      const nameVal = results.name?.extractedValue || results.title?.extractedValue || '';
+      const modelVal = results.model?.extractedValue || results.modelNumber?.extractedValue || '';
+      const skuVal = results.sku?.extractedValue || '';
+      const priceVal = results.price?.extractedValue || '';
+      const descVal = typeof results.description?.extractedValue === 'string' ? results.description.extractedValue : '';
+
+      let imgList: string[] = [];
+      let primaryImg = '';
+
+      if (Array.isArray(results.images?.extractedValue)) {
+        imgList = results.images.extractedValue;
+        primaryImg = imgList[0] || '';
+      } else if (typeof results.images?.extractedValue === 'string' && results.images.extractedValue.startsWith('http')) {
+        imgList = [results.images.extractedValue];
+        primaryImg = results.images.extractedValue;
+      }
+
+      if (Array.isArray(results.extra_iamge?.extractedValue)) {
+        for (const extra of results.extra_iamge.extractedValue) {
+          if (!imgList.includes(extra)) imgList.push(extra);
+        }
+      }
+
+      setReviewTitle(nameVal);
+      setReviewModel(modelVal);
+      setReviewSku(skuVal);
+      setReviewPrice(priceVal);
+      setReviewDescription(descVal);
+      setReviewPrimaryImage(primaryImg);
+      setReviewImages(imgList);
+      setReviewAttributes(
+        results.attributes?.extractedValue && typeof results.attributes.extractedValue === 'object'
+          ? results.attributes.extractedValue
+          : {}
+      );
+
+      // Collect all custom non-standard fields (e.g. futured, extra_iamge, etc.)
+      const customCollected: Record<string, any> = {};
+      const standardKeys = ['name', 'model', 'sku', 'price', 'description', 'images', 'attributes'];
+      for (const [k, valObj] of Object.entries(results || {})) {
+        if (!standardKeys.includes(k) && (valObj as any)?.extractedValue && (valObj as any).status !== 'missing' && (valObj as any).status !== 'error') {
+          customCollected[k] = (valObj as any).extractedValue;
+        }
+      }
+      setReviewCustomFields(customCollected);
+    } catch (err: any) {
+      setExtractionError(err.message || 'Product extraction failed');
+    } finally {
+      setExtracting(false);
+    }
+  }
+
+  // Save reviewed product directly into Client Catalog
+  async function handleSaveExtractedProduct() {
+    if (!reviewTitle.trim()) {
+      alert('Product title is required');
+      return;
+    }
+
+    try {
+      setSavingProduct(true);
+      setExtractionError('');
+
+      await apiClient.createProduct({
+        brandId: selectedBrandId,
+        productUrl: productUrl.trim(),
+        title: reviewTitle.trim(),
+        modelNumber: reviewModel.trim() || undefined,
+        sku: reviewSku.trim() || undefined,
+        price: reviewPrice.trim() || undefined,
+        description: reviewDescription.trim() || undefined,
+        primaryImageUrl: reviewPrimaryImage || undefined,
+        images: reviewImages,
+        attributes: reviewAttributes,
+        customData: reviewCustomFields,
+      });
+
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setSaveSuccess(false);
+        setShowAddModal(false);
+        loadCatalog();
+      }, 1500);
+    } catch (err: any) {
+      setExtractionError(err.message || 'Failed to save product to catalog');
+    } finally {
+      setSavingProduct(false);
+    }
+  }
+
+  const filtered = products.filter((p) => {
     const matchesSearch =
-      prod.canonicalTitle.toLowerCase().includes(search.toLowerCase()) ||
-      (prod.eanGtin && prod.eanGtin.includes(search)) ||
-      (prod.modelNumber && prod.modelNumber.toLowerCase().includes(search.toLowerCase()));
-    return matchesBrand && matchesSearch;
+      p.canonicalTitle?.toLowerCase().includes(search.toLowerCase()) ||
+      p.modelNumber?.toLowerCase().includes(search.toLowerCase()) ||
+      p.gtinEan?.toLowerCase().includes(search.toLowerCase());
+    const matchesBrand = brandFilter === 'ALL' || p.brand?.toLowerCase() === brandFilter.toLowerCase();
+    return matchesSearch && matchesBrand;
   });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto font-sans">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Global Product Catalog</h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <h1 className="text-2xl font-black tracking-tight text-slate-900">Product Catalog</h1>
+          <p className="text-xs text-slate-500 mt-1 font-medium">
             Browse normalized catalog entries, verified EAN/GTINs, provenance audits, and tenant overrides.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400 bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
-            Total Entities: <strong className="text-white font-mono">{SAMPLE_PRODUCTS.length}</strong>
+
+        <div className="flex items-center gap-3">
+          <span className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-sm">
+            Total Entities: {filtered.length}
           </span>
+          <button
+            onClick={handleOpenAddModal}
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Product</span>
+          </button>
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-[#0e1626] p-4 rounded-xl border border-slate-800">
-        <div className="relative w-full md:w-96">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+      {/* Filter & Search Bar */}
+      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="relative flex-1 w-full sm:max-w-md">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
+            placeholder="Search by Title, GTIN/EAN, or MPN..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by Title, GTIN/EAN, or MPN..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-750 rounded-lg text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sky-500"
+            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
           />
         </div>
 
-        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto">
-          {['ALL', 'TRAXXAS', 'XRAY', 'BITTYDESIGN'].map((brand) => (
+        {/* Brand Filter Pills */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {['ALL', 'TRAXXAS', 'XRAY', 'BITTYDESIGN'].map((b) => (
             <button
-              key={brand}
-              onClick={() => setSelectedBrand(brand)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition shrink-0 ${
-                selectedBrand === brand
-                  ? 'bg-sky-500 text-slate-950 font-semibold'
-                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+              key={b}
+              onClick={() => setBrandFilter(b)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                brandFilter === b ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {brand}
+              {b}
             </button>
           ))}
         </div>
       </div>
 
       {/* Products Table */}
-      <div className="bg-[#0e1626] border border-slate-800 rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase font-semibold text-[11px] tracking-wider">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <table className="w-full text-left text-xs text-slate-700">
+          <thead className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+            <tr>
+              <th className="py-3.5 px-5">Product Details</th>
+              <th className="py-3.5 px-4">Brand</th>
+              <th className="py-3.5 px-4">Identifiers</th>
+              <th className="py-3.5 px-4">Sources / Variants</th>
+              <th className="py-3.5 px-4">Price Est.</th>
+              <th className="py-3.5 px-5 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 font-medium">
+            {loading ? (
               <tr>
-                <th className="py-3 px-4">Product Details</th>
-                <th className="py-3 px-4">Brand</th>
-                <th className="py-3 px-4">Identifiers</th>
-                <th className="py-3 px-4">Sources / Variants</th>
-                <th className="py-3 px-4">Price Est.</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <td colSpan={6} className="py-12 text-center text-slate-400">
+                  Loading catalog entries from database...
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
-              {filteredProducts.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-900/40 transition">
-                  <td className="py-4 px-4 max-w-md">
-                    <div className="font-semibold text-slate-100 text-sm line-clamp-1">{p.canonicalTitle}</div>
-                    <div className="text-[11px] text-slate-500 mt-0.5">{p.category}</div>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-16 text-center">
+                  <div className="max-w-md mx-auto space-y-3">
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                      <Package className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-900">No products in your catalog yet</h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      You haven&apos;t added or scraped any products for this organization yet. Click below to add your first product using your configured Brand Profiles.
+                    </p>
+                    <button
+                      onClick={handleOpenAddModal}
+                      className="px-4 py-2 bg-[#0d2a2c] text-[#fad982] text-xs font-bold rounded-xl hover:bg-[#143d40] transition shadow-xs inline-flex items-center gap-1.5"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>+ Add Product</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              filtered.map((prod) => (
+                <tr key={prod.id} className="hover:bg-slate-50/80 transition">
+                  <td className="py-4 px-5 max-w-sm">
+                    <Link
+                      href={`/products/${prod.id}`}
+                      className="font-bold text-slate-900 hover:text-[#0d2a2c] hover:underline block leading-snug"
+                    >
+                      {prod.canonicalTitle}
+                    </Link>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">{prod.categoryPath || 'General'}</span>
                   </td>
+
                   <td className="py-4 px-4">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                      {p.brand}
+                    <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#0d2a2c]/5 text-[#0d2a2c] border border-[#0d2a2c]/10">
+                      {prod.brand || '—'}
                     </span>
                   </td>
-                  <td className="py-4 px-4 font-mono text-[11px]">
-                    {p.eanGtin && <div>EAN: {p.eanGtin}</div>}
-                    {p.modelNumber && <div className="text-slate-400">MPN: {p.modelNumber}</div>}
+
+                  <td className="py-4 px-4 font-mono text-[11px] text-slate-600 space-y-0.5">
+                    <div>
+                      EAN: <span className="text-slate-900 font-bold">{prod.gtinEan || '—'}</span>
+                    </div>
+                    <div>
+                      MPN: <span className="text-slate-500">{prod.modelNumber || '—'}</span>
+                    </div>
                   </td>
-                  <td className="py-4 px-4">
-                    <div className="text-slate-200">{p.sourcesCount} domains</div>
-                    <div className="text-[11px] text-slate-400">{p.variantsCount} variants</div>
+
+                  <td className="py-4 px-4 text-[11px] text-slate-600">
+                    <div>{prod.sourcesCount || 1} domains</div>
+                    <div className="text-slate-400 font-medium">{prod.variantsCount || 1} variants</div>
                   </td>
-                  <td className="py-4 px-4 font-semibold text-slate-100">
-                    {p.priceEstimate}
-                  </td>
-                  <td className="py-4 px-4 text-right">
+
+                  <td className="py-4 px-4 font-bold text-slate-900">{prod.priceEstimate || '—'}</td>
+
+                  <td className="py-4 px-5 text-right">
                     <Link
-                      href={`/products/${p.id}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-750 text-slate-200 hover:border-sky-500 hover:text-sky-400 transition"
+                      href={`/products/${prod.id}`}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
                     >
                       <span>Inspect</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
+                      <span>›</span>
                     </Link>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
+
+      {/* ========================================================================= */}
+      {/* BRAND-DRIVEN ADD PRODUCT MODAL (Clean, Non-Technical Client Workflow)      */}
+      {/* ========================================================================= */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8 animate-scaleUp">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-[#0d2a2c] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#fad982] flex items-center justify-center text-slate-950 font-black text-sm">
+                  +
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-white">Add Product to Catalog</h3>
+                  <p className="text-[11px] text-slate-300">Brand-driven automated extraction & review</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* If client has NO Brand Profiles configured */}
+              {loadingBrands ? (
+                <div className="py-12 text-center text-xs text-slate-500">
+                  <div className="inline-block w-5 h-5 border-2 border-slate-300 border-t-[#0d2a2c] rounded-full animate-spin mb-2"></div>
+                  <p>Loading your organization's Brand Profiles...</p>
+                </div>
+              ) : brandsList.length === 0 ? (
+                <div className="text-center py-8 space-y-4">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">No Brand Profiles Configured</h4>
+                    <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
+                      You need to create a Brand Profile before adding a product from an external source. Brand Profiles define the allowed domains and field extraction rules.
+                    </p>
+                  </div>
+                  <div>
+                    <Link
+                      href="/brands"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0d2a2c] text-white font-bold text-xs rounded-xl hover:bg-[#143d40] transition shadow"
+                    >
+                      <Plus className="w-4 h-4 text-[#fad982]" />
+                      <span>+ Create Brand Profile</span>
+                    </Link>
+                  </div>
+                </div>
+              ) : !extractedData ? (
+                /* STEP 1, 2 & 3: FORM INPUT */
+                <form onSubmit={handleExtractProduct} className="space-y-5">
+                  {/* Step 1: Select Brand Profile */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                      Step 1 — Select Brand Profile <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={selectedBrandId}
+                      onChange={(e) => handleSelectBrand(e.target.value)}
+                      required
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                    >
+                      <option value="">-- Choose Brand Profile --</option>
+                      {brandsList.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.officialWebsite || 'No official domain'} &bull;{' '}
+                          {Array.isArray(b.fieldMappings) ? b.fieldMappings.length : 0} Mappings)
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Brand Status / Guidance Pill */}
+                    {selectedBrand && (
+                      <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <span className="font-bold text-slate-900 block">{selectedBrand.name}</span>
+                          <span className="text-[11px] text-slate-500 font-mono">
+                            Domain: {selectedBrand.officialWebsite || 'Configured via sources'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
+                            {selectedBrand.status || 'Active'}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fad982] text-slate-950">
+                            {Array.isArray(selectedBrand.fieldMappings) ? selectedBrand.fieldMappings.length : 0} Mappings
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Warning if Brand Profile has 0 mappings */}
+                  {selectedBrand && (!selectedBrand.fieldMappings || selectedBrand.fieldMappings.length === 0) && (
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2.5">
+                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold block">No Field Mappings Configured</span>
+                        <span>This Brand Profile does not have extraction mappings configured yet. </span>
+                        <Link
+                          href={`/brands/${selectedBrand.id}`}
+                          className="font-bold underline hover:text-amber-950"
+                        >
+                          Configure Field Mapping &rarr;
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Step 2: Select Source (Only if multiple sources exist) */}
+                  {selectedBrand && Array.isArray(selectedBrand.sourceConfigs) && selectedBrand.sourceConfigs.length > 1 && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                        Step 2 — Select Source / Domain
+                      </label>
+                      <select
+                        value={selectedSourceUrl}
+                        onChange={(e) => setSelectedSourceUrl(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none"
+                      >
+                        {selectedBrand.officialWebsite && (
+                          <option value={selectedBrand.officialWebsite}>
+                            Official Website — {selectedBrand.officialWebsite}
+                          </option>
+                        )}
+                        {selectedBrand.sourceConfigs.map((src: any, idx: number) => (
+                          <option key={idx} value={src.url}>
+                            {src.type || 'Catalog'} — {src.url}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Step 3: Product URL Input */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                      {selectedBrand && Array.isArray(selectedBrand.sourceConfigs) && selectedBrand.sourceConfigs.length > 1
+                        ? 'Step 3 — Product URL'
+                        : 'Step 2 — Product URL'}{' '}
+                      <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="url"
+                      required
+                      disabled={!selectedBrand}
+                      placeholder={
+                        selectedBrand?.officialWebsite
+                          ? `${selectedBrand.officialWebsite}/products/...`
+                          : 'https://brand-domain.com/product-slug'
+                      }
+                      value={productUrl}
+                      onChange={(e) => handleUrlChange(e.target.value)}
+                      className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono transition focus:outline-none ${
+                        urlValidationError
+                          ? 'border-rose-300 bg-rose-50/50 text-rose-900 focus:border-rose-500'
+                          : urlValidSuccess
+                          ? 'border-emerald-300 bg-emerald-50/40 text-emerald-950 focus:border-emerald-500'
+                          : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-[#0d2a2c] focus:bg-white'
+                      }`}
+                    />
+
+                    {/* Live Validation Guidance */}
+                    {urlValidSuccess && (
+                      <p className="text-[11px] text-emerald-700 font-semibold mt-1 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>URL belongs to approved {selectedBrand?.name} source</span>
+                      </p>
+                    )}
+                    {urlValidationError && (
+                      <p className="text-[11px] text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+                        <span>{urlValidationError}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {extractionError && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+                      {extractionError}
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={
+                        extracting ||
+                        !selectedBrandId ||
+                        !productUrl.trim() ||
+                        Boolean(urlValidationError) ||
+                        (!selectedBrand?.fieldMappings || selectedBrand.fieldMappings.length === 0)
+                      }
+                      className="px-5 py-2.5 rounded-xl bg-[#fad982] hover:bg-amber-300 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-sm transition flex items-center gap-2"
+                    >
+                      {extracting ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
+                          <span>Extracting Product...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Extract Product</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                /* STEP 4: REVIEW & CONFIRM EXTRACTED PRODUCT */
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <h4 className="text-xs font-bold text-slate-900">Extracted Product Review</h4>
+                    </div>
+                    <button
+                      onClick={() => setExtractedData(null)}
+                      className="text-[11px] font-bold text-slate-500 hover:text-slate-800 underline"
+                    >
+                      &larr; Re-extract with different URL
+                    </button>
+                  </div>
+
+                  {saveSuccess && (
+                    <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>Product saved to catalog successfully! Refreshing...</span>
+                    </div>
+                  )}
+
+                  {extractionError && (
+                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+                      {extractionError}
+                    </div>
+                  )}
+
+                  {/* Review / Edit Form */}
+                  <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                        Product Title <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={reviewTitle}
+                        onChange={(e) => setReviewTitle(e.target.value)}
+                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:bg-white"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                          Model Number / MPN
+                        </label>
+                        <input
+                          type="text"
+                          value={reviewModel}
+                          onChange={(e) => setReviewModel(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                          SKU / Part Number
+                        </label>
+                        <input
+                          type="text"
+                          value={reviewSku}
+                          onChange={(e) => setReviewSku(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Price Est.</label>
+                        <input
+                          type="text"
+                          value={reviewPrice}
+                          onChange={(e) => setReviewPrice(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Extracted Images */}
+                    {reviewImages.length > 0 && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
+                          Extracted Images ({reviewImages.length})
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          {reviewImages.map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={img}
+                              alt="thumbnail"
+                              className="w-12 h-12 object-contain rounded-lg border border-slate-200 bg-white shadow-2xs"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    {reviewDescription && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                          Extracted Description
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={reviewDescription}
+                          onChange={(e) => setReviewDescription(e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-800 focus:outline-none focus:bg-white"
+                        />
+                      </div>
+                    )}
+
+                    {/* Key-Value Specifications */}
+                    {reviewAttributes && Object.keys(reviewAttributes).length > 0 && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                          Specifications ({Object.keys(reviewAttributes).length} properties)
+                        </label>
+                        <div className="bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-100 max-h-36 overflow-y-auto text-xs">
+                          {Object.entries(reviewAttributes).map(([k, v]: [string, any]) => (
+                            <div key={k} className="px-3 py-1.5 flex justify-between gap-3">
+                              <span className="font-semibold text-slate-700">{k}:</span>
+                              <span className="text-slate-900 font-mono text-right">{String(v)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Custom Client Attributes (e.g. futured) */}
+                    {reviewCustomFields && Object.keys(reviewCustomFields).length > 0 && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                          Custom Attributes ({Object.keys(reviewCustomFields).length})
+                        </label>
+                        <div className="bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-100 max-h-36 overflow-y-auto text-xs">
+                          {Object.entries(reviewCustomFields).map(([k, v]: [string, any]) => (
+                            <div key={k} className="px-3 py-2 flex flex-col gap-1">
+                              <span className="font-semibold text-slate-700">{k}:</span>
+                              <div className="text-slate-900 font-mono text-[11px] whitespace-pre-line max-h-24 overflow-y-auto bg-white p-2 rounded border border-slate-200">
+                                {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setExtractedData(null)}
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="button"
+                      disabled={savingProduct || !reviewTitle.trim()}
+                      onClick={handleSaveExtractedProduct}
+                      className="px-5 py-2.5 rounded-xl bg-[#0d2a2c] hover:bg-[#143d40] text-white font-bold text-xs shadow-sm transition flex items-center gap-2"
+                    >
+                      {savingProduct ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Saving to Catalog...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4 text-[#fad982]" />
+                          <span>Save to Catalog</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

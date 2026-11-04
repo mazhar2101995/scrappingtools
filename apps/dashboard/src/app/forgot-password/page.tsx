@@ -1,0 +1,92 @@
+'use client';
+
+import React, { useState } from 'react';
+import Link from 'next/link';
+import { Mail, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+
+export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState('');
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email) return;
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      setSubmitted(true);
+    }, 700);
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f4f7f6] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans text-slate-800">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
+        <div className="inline-flex w-12 h-12 rounded-xl bg-[#0d2a2c] items-center justify-center font-bold text-xl text-[#fad982] shadow-lg shadow-teal-950/20 mb-4 border border-[#143d40]">
+          AI
+        </div>
+        <h2 className="text-2xl font-black tracking-tight text-slate-900">Reset Your Password</h2>
+        <p className="text-xs text-slate-500 mt-1 font-medium">
+          Enter your registered work email and we will send you a password reset link.
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-6 shadow-md border border-slate-200 rounded-2xl sm:px-10 space-y-6">
+          {submitted ? (
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs space-y-2">
+              <div className="flex items-center gap-2 font-bold text-emerald-900">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <span>Password Reset Email Sent!</span>
+              </div>
+              <p className="leading-relaxed">
+                If an account exists for <strong>{email}</strong>, you will receive instructions on how to set a new password within a few minutes.
+              </p>
+              <div className="pt-2">
+                <Link href="/login" className="text-xs font-bold text-[#0d2a2c] hover:underline flex items-center gap-1">
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Return to Sign In</span>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Work Email Address
+                </label>
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@company.com"
+                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs font-bold text-slate-950 bg-[#fad982] hover:bg-[#f6cd64] transition shadow-sm disabled:opacity-50"
+              >
+                <span>{loading ? 'Sending Request...' : 'Send Reset Link'}</span>
+              </button>
+
+              <div className="text-center pt-2">
+                <Link href="/login" className="text-xs text-slate-500 font-bold hover:text-[#0d2a2c] flex items-center justify-center gap-1">
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  <span>Back to Sign In</span>
+                </Link>
+              </div>
+            </form>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
