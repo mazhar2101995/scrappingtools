@@ -544,6 +544,25 @@ export class DashboardApiClient {
       body: JSON.stringify(payload),
     }, 'client');
   }
+
+  // --- Price & Stock Monitoring ---
+  async getProductMonitoring(productId: string): Promise<any> {
+    return this.fetchJson(`/products/${productId}/monitoring`, {}, 'client');
+  }
+
+  async updateProductMonitoring(productId: string, payload: {
+    enabled?: boolean;
+    frequency?: string;
+    targetUrl?: string;
+    baselinePrice?: string | number;
+    currentPrice?: string | number;
+    inStock?: boolean;
+  }): Promise<any> {
+    return this.fetchJson(`/products/${productId}/monitoring`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

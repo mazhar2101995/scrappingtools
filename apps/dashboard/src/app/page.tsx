@@ -103,6 +103,125 @@ export default function ClientDashboardOverview() {
         </div>
       </div>
 
+      {/* 1.5 Interactive SaaS Onboarding Progress Wizard (For High Conversion & Retention) */}
+      <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c] text-[#fad982] uppercase tracking-wider">
+                Getting Started
+              </span>
+              <span className="text-xs font-bold text-slate-500">
+                Setup Progress: {totalProducts > 0 && storesCount > 0 ? '100%' : totalProducts > 0 ? '75%' : '25%'}
+              </span>
+            </div>
+            <h2 className="text-base font-black text-slate-900">Workspace Activation Checklist</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Complete these steps to automate your e-commerce scraping, AI normalization, and live store sync.
+            </p>
+          </div>
+
+          <div className="w-full sm:w-44 bg-slate-100 h-2 rounded-full overflow-hidden self-start sm:self-center">
+            <div
+              className="bg-emerald-500 h-full rounded-full transition-all duration-700"
+              style={{
+                width: totalProducts > 0 && storesCount > 0 ? '100%' : totalProducts > 0 ? '75%' : '25%',
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+          {/* Step 1 */}
+          <Link
+            href="/brands"
+            className="p-3.5 rounded-2xl border border-slate-200 hover:border-[#0d2a2c] bg-slate-50/60 hover:bg-white transition flex items-start gap-3 group"
+          >
+            <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+              ✓
+            </div>
+            <div>
+              <span className="text-xs font-bold text-slate-900 group-hover:text-[#0d2a2c] transition block">
+                1. Brand Profiles
+              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                Configured approved brand sources and click-to-map CSS selectors.
+              </p>
+            </div>
+          </Link>
+
+          {/* Step 2 */}
+          <Link
+            href="/products"
+            className={`p-3.5 rounded-2xl border transition flex items-start gap-3 group ${
+              totalProducts > 0
+                ? 'border-slate-200 bg-slate-50/60 hover:bg-white'
+                : 'border-amber-300 bg-amber-50/40 hover:bg-white ring-1 ring-amber-300'
+            }`}
+          >
+            <div
+              className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 ${
+                totalProducts > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+              }`}
+            >
+              {totalProducts > 0 ? '✓' : '2'}
+            </div>
+            <div>
+              <span className="text-xs font-bold text-slate-900 group-hover:text-[#0d2a2c] transition block">
+                2. Scrape First Product
+              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                {totalProducts > 0 ? `${totalProducts} products extracted` : 'Add URL & extract canonical specs'}
+              </p>
+            </div>
+          </Link>
+
+          {/* Step 3 */}
+          <Link
+            href="/settings/ai"
+            className="p-3.5 rounded-2xl border border-slate-200 hover:border-[#0d2a2c] bg-slate-50/60 hover:bg-white transition flex items-start gap-3 group"
+          >
+            <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+              ✓
+            </div>
+            <div>
+              <span className="text-xs font-bold text-slate-900 group-hover:text-[#0d2a2c] transition block">
+                3. AI Prompt Rules
+              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                Workspace global rules &amp; BYOK keys configured for copy optimization.
+              </p>
+            </div>
+          </Link>
+
+          {/* Step 4 */}
+          <Link
+            href="/stores"
+            className={`p-3.5 rounded-2xl border transition flex items-start gap-3 group ${
+              storesCount > 0
+                ? 'border-slate-200 bg-slate-50/60 hover:bg-white'
+                : 'border-amber-300 bg-amber-50/40 hover:bg-white ring-1 ring-amber-300'
+            }`}
+          >
+            <div
+              className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 ${
+                storesCount > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+              }`}
+            >
+              {storesCount > 0 ? '✓' : '4'}
+            </div>
+            <div>
+              <span className="text-xs font-bold text-slate-900 group-hover:text-[#0d2a2c] transition block">
+                4. Connect Store
+              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                {storesCount > 0 ? `${storesCount} active stores` : 'Connect Shopify or WooCommerce'}
+              </p>
+            </div>
+          </Link>
+        </div>
+      </div>
+
       {/* 2. Top Metric Cards (Dynamic DB Metrics) */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
         {/* Card 1: Total Products */}

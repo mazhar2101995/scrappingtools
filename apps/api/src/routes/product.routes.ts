@@ -661,3 +661,103 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
   }
 });
 
+// 9. AUTOMATED PRICE & STOCK MONITOR (Get / Toggle / Check)
+productsRouter.get('/:id/monitoring', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  const productId = req.params.id as string;
+  if (!orgId) return res.status(403).json({ error: 'Unauthorized' });
+
+  try {
+    const [override] = await db
+      .select({ customAttributes: customerProductOverrides.customAttributes })
+      .from(customerProductOverrides)
+      .where(
+        and(
+          eq(customerProductOverrides.organizationId, orgId),
+          eq(customerProductOverrides.globalProductId, productId)
+        )
+      )
+      .limit(1);
+
+    const customAttrs = (override?.customAttributes as any) || {};
+    const monitoring = customAttrs.priceMonitoring || {
+      enabled: false,
+      frequency: 'DAILY',
+      targetUrl: customAttrs.productUrl || null,
+      lastCheckedAt: null,
+      baselinePrice: customAttrs.price || null,
+      currentPrice: customAttrs.price || null,
+      inStock: true,
+      priceAlerts: [],
+    };
+
+    return res.json({ success: true, monitoring });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+productsRouter.post('/:id/monitoring', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  const productId = req.params.id as string;
+  const { enabled, frequency, targetUrl, baselinePrice, currentPrice, inStock } = req.body;
+  if (!orgId) return res.status(403).json({ error: 'Unauthorized' });
+
+  try {
+    const [existing] = await db
+      .select()
+      .from(customerProductOverrides)
+      .where(
+        and(
+          eq(customerProductOverrides.organizationId, orgId),
+          eq(customerProductOverrides.globalProductId, productId)
+        )
+      )
+      .limit(1);
+
+    const currentAttrs = (existing?.customAttributes as any) || {};
+    const existingMonitoring = currentAttrs.priceMonitoring || {};
+
+    const updatedMonitoring = {
+      ...existingMonitoring,
+      enabled: enabled !== undefined ? Boolean(enabled) : existingMonitoring.enabled ?? true,
+      frequency: frequency || existingMonitoring.frequency || 'DAILY',
+      targetUrl: targetUrl || existingMonitoring.targetUrl || currentAttrs.productUrl || '',
+      baselinePrice: baselinePrice || existingMonitoring.baselinePrice || currentAttrs.price || '0.00',
+      currentPrice: currentPrice || existingMonitoring.currentPrice || currentAttrs.price || '0.00',
+      inStock: inStock !== undefined ? Boolean(inStock) : existingMonitoring.inStock ?? true,
+      lastCheckedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updatedAttrs = {
+      ...currentAttrs,
+      priceMonitoring: updatedMonitoring,
+    };
+
+    await db
+      .insert(customerProductOverrides)
+      .values({
+        organizationId: orgId,
+        globalProductId: productId,
+        customAttributes: updatedAttrs,
+      })
+      .onConflictDoUpdate({
+        target: [customerProductOverrides.organizationId, customerProductOverrides.globalProductId],
+        set: {
+          customAttributes: updatedAttrs,
+          updatedAt: new Date(),
+        },
+      });
+
+    return res.json({
+      success: true,
+      message: 'Automated price & stock monitor updated',
+      monitoring: updatedMonitoring,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+

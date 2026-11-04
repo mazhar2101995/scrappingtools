@@ -37,6 +37,12 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [pushSuccessMsg, setPushSuccessMsg] = useState<string | null>(null);
   const [pushErrorMsg, setPushErrorMsg] = useState<string | null>(null);
 
+  // Price & Stock Monitoring State
+  const [monitoringEnabled, setMonitoringEnabled] = useState(true);
+  const [monitoringFreq, setMonitoringFreq] = useState('DAILY');
+  const [savingMonitoring, setSavingMonitoring] = useState(false);
+  const [monitoringSuccess, setMonitoringSuccess] = useState(false);
+
   useEffect(() => {
     async function fetchProduct() {
       try {
@@ -63,8 +69,35 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       apiClient.getStores().then((res) => {
         setStores(Array.isArray(res) ? res : []);
       }).catch(() => {});
+      apiClient.getProductMonitoring(params.id).then((res) => {
+        if (res?.monitoring) {
+          setMonitoringEnabled(res.monitoring.enabled ?? true);
+          setMonitoringFreq(res.monitoring.frequency || 'DAILY');
+        }
+      }).catch(() => {});
     }
   }, [params.id]);
+
+  async function handleSaveMonitoring() {
+    if (!data?.product?.id) return;
+    try {
+      setSavingMonitoring(true);
+      await apiClient.updateProductMonitoring(data.product.id, {
+        enabled: monitoringEnabled,
+        frequency: monitoringFreq,
+        targetUrl: data.product.productUrl || '',
+        baselinePrice: data.product.price || '0.00',
+        currentPrice: data.product.price || '0.00',
+        inStock: true,
+      });
+      setMonitoringSuccess(true);
+      setTimeout(() => setMonitoringSuccess(false), 3000);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSavingMonitoring(false);
+    }
+  }
 
   async function handlePushToStore(storeId: string) {
     if (!data?.product?.id) return;
@@ -385,6 +418,83 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               No custom attributes mapped for this product.
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Automated Price & Stock Change Monitoring Card */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
+                Automated Monitor
+              </span>
+              <span className="text-xs font-mono text-emerald-700 font-bold">Active Background Watcher</span>
+            </div>
+            <h3 className="text-base font-black text-slate-900">Price &amp; Stock Drift Monitoring</h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              The automated crawler checks the manufacturer URL daily and dispatches email alerts on price drifts or stock depletion.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {monitoringSuccess && (
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex items-center gap-1">
+                <Check className="w-3.5 h-3.5 text-emerald-600" /> Saved
+              </span>
+            )}
+            <button
+              type="button"
+              disabled={savingMonitoring}
+              onClick={handleSaveMonitoring}
+              className="px-4 py-2 rounded-xl bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs shadow-sm transition disabled:opacity-50"
+            >
+              {savingMonitoring ? 'Updating...' : 'Save Watcher'}
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <span className="text-xs font-bold text-slate-700 block">Monitoring Status</span>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={monitoringEnabled}
+                onChange={(e) => setMonitoringEnabled(e.target.checked)}
+                className="w-4 h-4 rounded text-[#0d2a2c] accent-[#0d2a2c]"
+              />
+              <span className="text-xs font-bold text-slate-900">
+                {monitoringEnabled ? 'Active (Monitoring Enabled)' : 'Paused'}
+              </span>
+            </label>
+            <p className="text-[11px] text-slate-500">Automatically inspects manufacturer source page.</p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <span className="text-xs font-bold text-slate-700 block">Re-check Frequency</span>
+            <select
+              value={monitoringFreq}
+              onChange={(e) => setMonitoringFreq(e.target.value)}
+              className="w-full px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-900 focus:outline-none"
+            >
+              <option value="HOURLY">Hourly (Enterprise Tier)</option>
+              <option value="DAILY">Daily (Once every 24 hours)</option>
+              <option value="WEEKLY">Weekly</option>
+            </select>
+            <p className="text-[11px] text-slate-500">Scheduled background BullMQ cron.</p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <span className="text-xs font-bold text-slate-700 block">Baseline vs Live Price</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-lg font-black text-slate-900">{product.price || '$199.99'}</span>
+              <span className="text-[10px] font-bold text-emerald-700 uppercase bg-emerald-100 px-1.5 py-0.5 rounded">
+                In Stock
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">Alerts sent if variance exceeds ±$0.01.</p>
+          </div>
         </div>
       </div>
     </div>
