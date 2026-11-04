@@ -351,6 +351,19 @@ export class DashboardApiClient {
     return res.stores || [];
   }
 
+  async connectStore(payload: {
+    platformType: string;
+    storeName: string;
+    storeUrl: string;
+    credentials: Record<string, any>;
+    capabilities?: string[];
+  }): Promise<any> {
+    return this.fetchJson('/stores', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
   async triggerStoreSync(storeId: string): Promise<any> {
     return this.fetchJson(`/stores/${storeId}/sync`, {
       method: 'POST',
