@@ -9,6 +9,7 @@ export interface ClientWorkspaceData {
   metrics: {
     totalProducts: number;
     recentlyUpdated: number;
+    aiProcessed?: number;
     pendingReviewCount: number;
     activeJobs: number;
     failedJobs: number;

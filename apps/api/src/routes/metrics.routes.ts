@@ -9,6 +9,7 @@ import {
   sourceWebsites,
   users,
   customerProductMappings,
+  customerProductOverrides,
   storeSyncHistory,
   storeConflictLogs,
   identityReviewQueue,
@@ -109,6 +110,22 @@ metricsRouter.get('/client-overview', async (req: Request, res: Response) => {
       .from(customerProductMappings)
       .where(eq(customerProductMappings.organizationId, orgId));
     const totalMyProducts = myProdRes?.count || 0;
+
+    // 2b. Count AI processed products for this organization
+    const orgSettings = (org?.settings as any) || {};
+    const aiConfig = orgSettings.ai || {};
+
+    // Calculate AI enriched count directly from customerProductOverrides or processing history
+    const [aiEnrichedRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(customerProductOverrides)
+      .where(
+        and(
+          eq(customerProductOverrides.organizationId, orgId),
+          sql`${customerProductOverrides.customTitle} IS NOT NULL`
+        )
+      );
+    const totalAiEnriched = aiEnrichedRes?.count || 0;
 
     // 3. Products updated recently (last 7 days)
     const [recentUpdatedRes] = await db
@@ -268,6 +285,7 @@ metricsRouter.get('/client-overview', async (req: Request, res: Response) => {
         metrics: {
           totalProducts: totalMyProducts,
           recentlyUpdated: recentUpdatedRes?.count || 0,
+          aiProcessed: totalAiEnriched,
           pendingReviewCount: pendingConflicts.length,
           activeJobs: activeJobsCount,
           failedJobs: failedJobsCount,

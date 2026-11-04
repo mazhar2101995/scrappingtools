@@ -78,8 +78,17 @@ export default function ProductsPage() {
   async function loadCatalog() {
     try {
       setLoading(true);
-      const res = await apiClient.getProducts({ limit: 50 });
-      setProducts(res.data || res.items || []);
+      const [res, brandsRes] = await Promise.allSettled([
+        apiClient.getProducts({ limit: 50 }),
+        apiClient.getBrands(),
+      ]);
+
+      if (res.status === 'fulfilled') {
+        setProducts(res.value?.data || res.value?.items || []);
+      }
+      if (brandsRes.status === 'fulfilled') {
+        setBrandsList(Array.isArray(brandsRes.value) ? brandsRes.value : []);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -505,17 +514,27 @@ export default function ProductsPage() {
           />
         </div>
 
-        {/* Brand Filter Pills */}
+        {/* Dynamic Brand Filter Pills */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          {['ALL', 'TRAXXAS', 'XRAY', 'BITTYDESIGN'].map((b) => (
+          <button
+            onClick={() => setBrandFilter('ALL')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+              brandFilter === 'ALL' ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            ALL
+          </button>
+          {brandsList.map((b) => (
             <button
-              key={b}
-              onClick={() => setBrandFilter(b)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-                brandFilter === b ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              key={b.id}
+              onClick={() => setBrandFilter(b.name)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition uppercase ${
+                brandFilter.toLowerCase() === b.name?.toLowerCase()
+                  ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {b}
+              {b.name}
             </button>
           ))}
         </div>
