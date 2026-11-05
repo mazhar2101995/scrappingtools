@@ -15,19 +15,25 @@ function getOrgId(req: Request): string | null {
   return (req as any).user?.organizationId || null;
 }
 
-// 1. List Organization-Specific Brand Profiles
+// 1. List Organization-Specific Brand Profiles (or all for platform admin)
 brandsRouter.get('/', async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
-  if (!orgId) {
+  const userRole = (req as any).user?.role || 'viewer';
+  const isPlatformAdmin = ['super_admin', 'platform_admin'].includes(userRole);
+  const queryAll = req.query.scope === 'global';
+
+  if (!orgId && !isPlatformAdmin) {
     return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
   }
 
   try {
-    const list = await db
+    const query = db
       .select()
-      .from(tenantBrandProfiles)
-      .where(eq(tenantBrandProfiles.organizationId, orgId))
-      .orderBy(desc(tenantBrandProfiles.createdAt));
+      .from(tenantBrandProfiles);
+
+    const list = isPlatformAdmin && queryAll
+      ? await query.orderBy(desc(tenantBrandProfiles.createdAt))
+      : await query.where(eq(tenantBrandProfiles.organizationId, orgId!)).orderBy(desc(tenantBrandProfiles.createdAt));
 
     return res.json({
       success: true,

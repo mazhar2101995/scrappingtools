@@ -36,54 +36,51 @@ export default function AdminAiPromptsPage() {
   const safePrompts = Array.isArray(prompts) ? prompts : [];
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-5">
+    <div className="space-y-8 max-w-7xl mx-auto font-sans">
+      <div className="p-7 rounded-3xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20 uppercase tracking-wider">
-              Prompt & Cost Control
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#fad982]/50 text-[#7a5e12] border border-[#ebd085] uppercase tracking-wider font-mono">
+              PROMPT & COST CONTROL
             </span>
-            <span className="text-xs text-slate-500 font-mono">Platform Admin</span>
+            <span className="text-xs text-slate-500 font-mono">Platform Admin Privileges</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">AI Engine & Global Prompts</h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <h1 className="text-2xl font-black tracking-tight text-slate-900">
+            AI Engine & Global Prompt Registry
+          </h1>
+          <p className="text-xs text-slate-500 mt-1 font-medium">
             Global LLM token consumption, inference cost accounting, and version-controlled prompt templates.
           </p>
         </div>
-
-        <button className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium bg-purple-600 hover:bg-purple-500 text-white transition shadow-sm">
-          <Plus className="w-4 h-4" />
-          <span>New Prompt Template</span>
-        </button>
       </div>
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
+        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
           <strong>API Error:</strong> {error}
         </div>
       )}
 
       {/* Real Token & Cost Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Total Tokens Consumed</span>
-            <Cpu className="w-4 h-4 text-purple-400" />
+        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider">Total Tokens Consumed</span>
+            <Cpu className="w-4 h-4 text-purple-600" />
           </div>
-          <div className="text-2xl font-bold text-white font-mono">
+          <div className="text-3xl font-black text-slate-900 font-mono">
             {loading ? '...' : totalTokens.toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-500 mt-2">
-            Average Latency: <span className="text-slate-300 font-mono">{latency}ms</span> per call
+            Average Latency: <span className="text-slate-900 font-bold font-mono">{latency}ms</span> per call
           </div>
         </div>
 
-        <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Estimated Expenditure</span>
-            <DollarSign className="w-4 h-4 text-emerald-400" />
+        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider">Estimated Expenditure</span>
+            <DollarSign className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-bold text-emerald-400 font-mono">
+          <div className="text-3xl font-black text-emerald-700 font-mono">
             {loading ? '...' : `$${cost.toFixed(4)}`}
           </div>
           <div className="text-[11px] text-slate-500 mt-2">
@@ -91,66 +88,64 @@ export default function AdminAiPromptsPage() {
           </div>
         </div>
 
-        <div className="p-5 rounded-xl bg-slate-900/60 border border-slate-800 shadow-sm">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Inference Executions</span>
-            <Activity className="w-4 h-4 text-sky-400" />
+        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+          <div className="flex items-center justify-between text-slate-500 mb-2">
+            <span className="text-xs font-bold uppercase tracking-wider">Inference Executions</span>
+            <Activity className="w-4 h-4 text-sky-600" />
           </div>
-          <div className="text-2xl font-bold text-white font-mono">
+          <div className="text-3xl font-black text-slate-900 font-mono">
             {loading ? '...' : totalCalls.toLocaleString()}
           </div>
           <div className="text-[11px] text-slate-500 mt-2">
-            Attribute extraction, normalization & multi-source enrichment
+            Attribute extraction, normalization & enrichment
           </div>
         </div>
       </div>
 
       {/* Prompt Templates Table */}
       <div className="space-y-4">
-        <h3 className="text-base font-semibold text-white flex items-center gap-2">
-          <FileCode className="w-4 h-4 text-purple-400" />
+        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+          <FileCode className="w-4 h-4 text-[#8a6e19]" />
           <span>Active Prompt Templates</span>
         </h3>
 
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 overflow-hidden shadow-sm">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950/70 border-b border-slate-800 text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+        <div className="rounded-3xl border border-[#ebdcb9] bg-white overflow-hidden shadow-xs">
+          <table className="w-full text-left text-xs text-slate-700">
+            <thead className="bg-[#fcfaf5] border-b border-[#ebdcb9] text-[11px] uppercase tracking-wider text-slate-500 font-mono">
               <tr>
-                <th className="py-3 px-4">Template Name</th>
-                <th className="py-3 px-4">Domain / Task</th>
-                <th className="py-3 px-4">Version</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-3.5 px-5">Template Name</th>
+                <th className="py-3.5 px-4">Domain / Task</th>
+                <th className="py-3.5 px-4">Version</th>
+                <th className="py-3.5 px-4">Status</th>
+                <th className="py-3.5 px-5 text-right">Model Preference</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono">
+            <tbody className="divide-y divide-slate-100 font-mono">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-500 font-sans">
+                  <td colSpan={5} className="py-12 text-center text-slate-400 font-sans">
                     Loading templates from database...
                   </td>
                 </tr>
               ) : safePrompts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-500 font-sans">
-                    No custom templates configured yet. System default prompts are active.
+                  <td colSpan={5} className="py-12 text-center text-slate-400 font-sans">
+                    No custom templates configured yet.
                   </td>
                 </tr>
               ) : (
                 safePrompts.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-850/50 transition">
-                    <td className="py-3 px-4 font-sans font-medium text-white">{p.name || p.slug}</td>
-                    <td className="py-3 px-4 text-slate-400">{p.taskType}</td>
-                    <td className="py-3 px-4 text-purple-400">v{p.version}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase">
+                  <tr key={p.id} className="hover:bg-[#faf7ee]/60 transition">
+                    <td className="py-3.5 px-5 font-sans font-bold text-slate-900">{p.name || p.slug}</td>
+                    <td className="py-3.5 px-4 text-slate-500">{p.taskType}</td>
+                    <td className="py-3.5 px-4 text-[#8a6e19] font-bold">v{p.version}</td>
+                    <td className="py-3.5 px-4">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 uppercase">
                         Active
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right font-sans">
-                      <button className="text-xs text-purple-400 hover:text-purple-300 font-medium transition">
-                        Edit Prompt →
-                      </button>
+                    <td className="py-3.5 px-5 text-right font-mono text-slate-600 font-semibold">
+                      {p.modelPreference || 'gpt-4o-mini'}
                     </td>
                   </tr>
                 ))

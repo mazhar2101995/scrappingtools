@@ -341,9 +341,39 @@ export class DashboardApiClient {
     });
   }
 
-  async getOrganizations(): Promise<OrganizationItem[]> {
+  async getOrganizations(): Promise<any[]> {
     const res = await this.fetchJson<any>('/organizations', {}, 'admin');
     return res.data || [];
+  }
+
+  async inspectOrganization(id: string): Promise<any> {
+    const res = await this.fetchJson<any>(`/organizations/${id}/inspect`, {}, 'admin');
+    return res;
+  }
+
+  async impersonateOrganization(id: string): Promise<any> {
+    const res = await this.fetchJson<any>(`/organizations/${id}/impersonate`, {
+      method: 'POST',
+    }, 'admin');
+    if (res.token && typeof window !== 'undefined') {
+      localStorage.setItem('saas_token', res.token);
+      localStorage.setItem('saas_token_client', res.token);
+      localStorage.setItem('saas_org_id', res.organization.id);
+      localStorage.setItem('saas_current_org_name', res.organization.name);
+      localStorage.setItem('saas_current_user', JSON.stringify(res.user));
+    }
+    return res;
+  }
+
+  async toggleOrganizationStatus(id: string): Promise<any> {
+    return this.fetchJson(`/organizations/${id}/toggle-status`, {
+      method: 'PATCH',
+    }, 'admin');
+  }
+
+  async getGlobalBrands(): Promise<any[]> {
+    const res = await this.fetchJson<any>('/brands?scope=global', {}, 'admin');
+    return res.brands || [];
   }
 
   async getMyTeam(): Promise<any[]> {
