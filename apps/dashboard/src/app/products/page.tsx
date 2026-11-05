@@ -1023,9 +1023,15 @@ export default function ProductsPage() {
                         <input
                           type="text"
                           value={reviewPrice}
+                          placeholder="Price not available from this source"
                           onChange={(e) => setReviewPrice(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:bg-white"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:bg-white placeholder:text-amber-600 placeholder:italic"
                         />
+                        {!reviewPrice && (
+                          <span className="text-[10px] text-amber-700 italic block mt-0.5">
+                            Price not available from this source
+                          </span>
+                        )}
                       </div>
                     </div>
 
