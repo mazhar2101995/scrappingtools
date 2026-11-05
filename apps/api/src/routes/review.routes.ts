@@ -14,6 +14,7 @@ import {
 } from '@saas/database';
 import { eq, desc, and, sql, or } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { ProductIdentityService } from '../services/product-identity.service';
 
 export const reviewRouter = Router();
 
@@ -23,6 +24,46 @@ reviewRouter.use(authMiddleware);
 function getOrgId(req: Request): string | null {
   return (req as any).user?.organizationId || (req.headers['x-organization-id'] as string) || null;
 }
+
+// 0. POST /api/v1/review/analyze-identity - Real Multi-Evidence Identity Resolution (Phase 2)
+reviewRouter.post('/analyze-identity', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  const {
+    title,
+    brandName,
+    modelNumber,
+    mpn,
+    gtin,
+    sku,
+    sourceProductListingId,
+    sourceUrl,
+  } = req.body;
+
+  if (!title || typeof title !== 'string') {
+    return res.status(400).json({ error: 'title is required for identity resolution' });
+  }
+
+  try {
+    const analysis = await ProductIdentityService.resolveIdentity({
+      title,
+      brandName,
+      modelNumber,
+      mpn,
+      gtin,
+      sku,
+      sourceProductListingId,
+      sourceUrl,
+      currentOrganizationId: orgId || undefined,
+    });
+
+    return res.json({
+      success: true,
+      analysis,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to analyze product identity', details: err.message });
+  }
+});
 
 // 1. GET /api/v1/review/metrics - Real Dynamic Intelligence Metrics
 reviewRouter.get('/metrics', async (req: Request, res: Response) => {
