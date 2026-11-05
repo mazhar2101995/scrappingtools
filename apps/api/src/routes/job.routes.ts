@@ -100,9 +100,24 @@ jobsRouter.post('/', async (req: Request, res: Response) => {
   });
 });
 
+// 4. Real-Time Queue Metrics & Health (Defined before /:id parameter)
+jobsRouter.get('/monitoring/health', async (req: Request, res: Response) => {
+  const health = await getAllQueuesHealth();
+  return res.json(health);
+});
+
+// Alias for stats
+jobsRouter.get('/stats', async (req: Request, res: Response) => {
+  const health = await getAllQueuesHealth();
+  return res.json(health);
+});
+
 // 2. Get Job Status and Logs
 jobsRouter.get('/:id', async (req: Request, res: Response) => {
   const id = req.params.id as string;
+  if (!id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+    return res.status(400).json({ error: 'Invalid Job UUID format' });
+  }
 
   const [job] = await db.select().from(scrapingJobs).where(eq(scrapingJobs.id, id)).limit(1);
   if (!job) {
@@ -122,6 +137,9 @@ jobsRouter.get('/:id', async (req: Request, res: Response) => {
 // 3. Retry a Failed Job
 jobsRouter.post('/:id/retry', async (req: Request, res: Response) => {
   const id = req.params.id as string;
+  if (!id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+    return res.status(400).json({ error: 'Invalid Job UUID format' });
+  }
 
   const [job] = await db.select().from(scrapingJobs).where(eq(scrapingJobs.id, id)).limit(1);
   if (!job) {
@@ -155,10 +173,4 @@ jobsRouter.post('/:id/retry', async (req: Request, res: Response) => {
   );
 
   return res.json({ message: 'Job re-queued successfully for execution', jobId: id });
-});
-
-// 4. Real-Time Queue Metrics & Health
-jobsRouter.get('/monitoring/health', async (req: Request, res: Response) => {
-  const health = await getAllQueuesHealth();
-  return res.json(health);
 });
