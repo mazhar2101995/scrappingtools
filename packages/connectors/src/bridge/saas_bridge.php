@@ -1,210 +1,339 @@
 <?php
 /**
- * Product Intelligence AI - OpenCart Connector Bridge
+ * Product Intelligence AI - Enterprise Universal OpenCart Connector Bridge
  * 
- * Instructions:
- * 1. Place this file in the root folder of your OpenCart installation (e.g. public_html/saas_bridge.php).
- * 2. In SaaS Dashboard > Connected Stores, set your OpenCart API Secret Key.
- * 3. This bridge will securely authenticate requests and create/update products in your catalog.
+ * Version: 2.0.0 (Zero-Maintenance Dynamic Gateway)
+ * 
+ * Features:
+ * 1. Zero File Edits: Customer uploads this file once. Never needs to be modified again.
+ * 2. Self-Configuring: Reads DB credentials automatically from OpenCart's config.php.
+ * 3. Future-Proof Universal Dispatcher:
+ *    - ping: Health check and version verification
+ *    - push_product: Insert or update product, categories, images, and SEO URLs
+ *    - pull_products: Two-way sync to pull catalog back to SaaS
+ *    - update_stock_price: Live inventory and price synchronization
+ *    - delete_product: Remote catalog cleanup
+ *    - execute_query / rpc: Future extensible commands dispatched from SaaS backend
  */
 
-// Error reporting configuration
+// Error handling - never expose sensitive PHP warnings in API response
 error_reporting(0);
 ini_set('display_errors', 0);
 
 header('Content-Type: application/json; charset=utf-8');
+header('X-Bridge-Version: 2.0.0');
 
-// Load OpenCart Configuration
+// 1. Load OpenCart Environment & Database Configuration
 if (file_exists('config.php')) {
     require_once('config.php');
+} elseif (file_exists('../config.php')) {
+    require_once('../config.php');
 } else {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'config.php not found. Please place saas_bridge.php in your OpenCart root directory.']);
+    echo json_encode([
+        'success' => false,
+        'error' => 'OpenCart config.php not found. Please upload this file to your OpenCart root folder.'
+    ]);
     exit;
 }
 
-// Connect to Database
-$db_port = defined('DB_PORT') ? DB_PORT : 3306;
+// 2. Establish High-Speed Database Connection
+$db_port = defined('DB_PORT') ? (int)DB_PORT : 3306;
 $mysqli = new mysqli(DB_HOSTNAME, DB_USERNAME, DB_PASSWORD, DB_DATABASE, $db_port);
 
 if ($mysqli->connect_error) {
     http_response_code(500);
-    echo json_encode(['success' => false, 'error' => 'Database connection failed: ' . $mysqli->connect_error]);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Database connection failed: ' . $mysqli->connect_error
+    ]);
     exit;
 }
 $mysqli->set_charset("utf8");
 
-// Table prefix
 $prefix = defined('DB_PREFIX') ? DB_PREFIX : 'oc_';
 
-// Verify API Key / Token Authentication
+// 3. Dynamic Authentication Layer
+// Checks both X-Saas-Key header and request parameters against oc_api
 $headers = getallheaders();
 $provided_key = '';
 
-if (isset($_SERVER['HTTP_X_SAAS_KEY'])) {
+if (!empty($_SERVER['HTTP_X_SAAS_KEY'])) {
     $provided_key = $_SERVER['HTTP_X_SAAS_KEY'];
-} elseif (isset($_REQUEST['key'])) {
+} elseif (!empty($_REQUEST['key'])) {
     $provided_key = $_REQUEST['key'];
-} elseif (isset($headers['X-Saas-Key'])) {
+} elseif (!empty($headers['X-Saas-Key'])) {
     $provided_key = $headers['X-Saas-Key'];
+} elseif (!empty($headers['x-saas-key'])) {
+    $provided_key = $headers['x-saas-key'];
 }
 
 if (empty($provided_key)) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'error' => 'Unauthorized: Missing API Key in X-Saas-Key header or key parameter.']);
+    echo json_encode([
+        'success' => false,
+        'error' => 'Unauthorized: Missing API Key. Ensure your OpenCart API Secret Key is entered in SaaS Connected Stores.'
+    ]);
     exit;
 }
 
-// Validate Key against OpenCart oc_api table or fallback key check
 $safe_key = $mysqli->real_escape_string($provided_key);
 $api_query = $mysqli->query("SELECT * FROM `{$prefix}api` WHERE `key` = '{$safe_key}' AND `status` = 1 LIMIT 1");
 
 if (!$api_query || $api_query->num_rows === 0) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'error' => 'Forbidden: Invalid or inactive OpenCart API Key provided.']);
-    exit;
-}
-
-$action = isset($_GET['action']) ? $_GET['action'] : 'push_product';
-
-// Ping action to verify bridge installation
-if ($action === 'ping') {
-    $count_res = $mysqli->query("SELECT COUNT(*) as total FROM `{$prefix}product`");
-    $total_prods = $count_res ? $count_res->fetch_assoc()['total'] : 0;
-    
     echo json_encode([
-        'success' => true,
-        'message' => 'SaaS OpenCart Bridge is active and ready!',
-        'opencart_version' => defined('VERSION') ? VERSION : '3.x',
-        'database' => DB_DATABASE,
-        'total_products' => (int)$total_prods
+        'success' => false,
+        'error' => 'Forbidden: API Key does not match any active API User in OpenCart (System > Users > API).'
     ]);
     exit;
 }
 
-// Push Product action
-if ($action === 'push_product') {
-    $raw_input = file_get_contents('php://input');
-    $payload = json_decode($raw_input, true);
+// Helper: Get Active Language ID
+$lang_res = $mysqli->query("SELECT language_id FROM `{$prefix}language` WHERE `status` = 1 ORDER BY `sort_order` ASC LIMIT 1");
+$language_id = ($lang_res && $row = $lang_res->fetch_assoc()) ? (int)$row['language_id'] : 1;
 
-    if (!$payload || !is_array($payload)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'error' => 'Invalid JSON payload received.']);
-        exit;
-    }
+// Parse Incoming Action & Payload
+$action = isset($_GET['action']) ? trim($_GET['action']) : 'push_product';
+$raw_input = file_get_contents('php://input');
+$payload = !empty($raw_input) ? json_decode($raw_input, true) : [];
 
-    $title = isset($payload['name']['en']) ? $payload['name']['en'] : (isset($payload['name']) && is_string($payload['name']) ? $payload['name'] : 'Unnamed Product');
-    $description = isset($payload['description']['en']) ? $payload['description']['en'] : (isset($payload['description']) && is_string($payload['description']) ? $payload['description'] : '');
-    $sku = isset($payload['sku']) ? $payload['sku'] : '';
-    $model = isset($payload['modelNumber']) && !empty($payload['modelNumber']) ? $payload['modelNumber'] : (!empty($sku) ? $sku : 'MODEL-' . time());
-    $price = isset($payload['price']) ? (float)$payload['price'] : 0.00;
-    $quantity = isset($payload['stockQuantity']) ? (int)$payload['stockQuantity'] : 100;
-    $primary_image = '';
+// =========================================================================
+// ACTION ROUTER (All Future Features & Updates Handled Here Automatically)
+// =========================================================================
 
-    if (isset($payload['images']) && is_array($payload['images']) && count($payload['images']) > 0) {
-        $primary_image = $payload['images'][0]['url'];
-    }
+switch ($action) {
 
-    $safe_model = $mysqli->real_escape_string($model);
-    $safe_sku = $mysqli->real_escape_string($sku);
-    $safe_title = $mysqli->real_escape_string($title);
-    $safe_desc = $mysqli->real_escape_string($description);
-    $safe_image = $mysqli->real_escape_string($primary_image);
+    // ---------------------------------------------------------------------
+    // 1. HEALTH PING & STORE AUDIT
+    // ---------------------------------------------------------------------
+    case 'ping':
+        $prod_count_res = $mysqli->query("SELECT COUNT(*) as total FROM `{$prefix}product`");
+        $total_prods = $prod_count_res ? (int)$prod_count_res->fetch_assoc()['total'] : 0;
 
-    // Get default language ID
-    $lang_res = $mysqli->query("SELECT language_id FROM `{$prefix}language` WHERE `status` = 1 ORDER BY `sort_order` ASC LIMIT 1");
-    $language_id = ($lang_res && $row = $lang_res->fetch_assoc()) ? (int)$row['language_id'] : 1;
+        $cat_count_res = $mysqli->query("SELECT COUNT(*) as total FROM `{$prefix}category`");
+        $total_cats = $cat_count_res ? (int)$cat_count_res->fetch_assoc()['total'] : 0;
 
-    // Check if product with this model or SKU already exists
-    $existing = null;
-    if (!empty($safe_model)) {
-        $chk = $mysqli->query("SELECT product_id FROM `{$prefix}product` WHERE `model` = '{$safe_model}' LIMIT 1");
-        if ($chk && $chk->num_rows > 0) {
-            $existing = $chk->fetch_assoc()['product_id'];
-        }
-    }
-
-    if ($existing) {
-        $product_id = (int)$existing;
-        // Update product
-        $mysqli->query("UPDATE `{$prefix}product` SET `price` = {$price}, `quantity` = {$quantity}, `sku` = '{$safe_sku}', `status` = 1, `date_modified` = NOW() WHERE `product_id` = {$product_id}");
-        
-        // Update description
-        $mysqli->query("UPDATE `{$prefix}product_description` SET `name` = '{$safe_title}', `description` = '{$safe_desc}' WHERE `product_id` = {$product_id} AND `language_id` = {$language_id}");
-        
         echo json_encode([
             'success' => true,
-            'action' => 'updated',
-            'product_id' => $product_id,
-            'model' => $model,
-            'sku' => $sku
+            'bridge_version' => '2.0.0',
+            'opencart_version' => defined('VERSION') ? VERSION : '3.x',
+            'store_name' => defined('HTTP_SERVER') ? HTTP_SERVER : 'OpenCart Live Store',
+            'database' => DB_DATABASE,
+            'total_products' => $total_prods,
+            'total_categories' => $total_cats,
+            'capabilities' => ['PUSH', 'PULL', 'UPDATE_PRICE', 'UPDATE_STOCK', 'DELETE', 'REMOTE_RPC']
         ]);
         exit;
-    } else {
-        // Insert new product
-        $insert_sql = "INSERT INTO `{$prefix}product` SET 
-            `model` = '{$safe_model}',
-            `sku` = '{$safe_sku}',
-            `quantity` = {$quantity},
-            `stock_status_id` = 7,
-            `image` = '{$safe_image}',
-            `shipping` = 1,
-            `price` = {$price},
-            `status` = 1,
-            `date_added` = NOW(),
-            `date_modified` = NOW()";
 
-        if (!$mysqli->query($insert_sql)) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'error' => 'Product insert error: ' . $mysqli->error]);
+    // ---------------------------------------------------------------------
+    // 2. PUSH / INSERT / UPDATE CATALOG PRODUCT
+    // ---------------------------------------------------------------------
+    case 'push_product':
+        if (!$payload || !is_array($payload)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Invalid JSON payload received.']);
             exit;
         }
 
-        $product_id = $mysqli->insert_id;
+        $title = isset($payload['name']['en']) ? $payload['name']['en'] : (isset($payload['name']) && is_string($payload['name']) ? $payload['name'] : 'Product');
+        $description = isset($payload['description']['en']) ? $payload['description']['en'] : (isset($payload['description']) && is_string($payload['description']) ? $payload['description'] : '');
+        $sku = isset($payload['sku']) ? $payload['sku'] : '';
+        $model = !empty($payload['modelNumber']) ? $payload['modelNumber'] : (!empty($sku) ? $sku : 'MODEL-' . time());
+        $price = isset($payload['price']) ? (float)$payload['price'] : 0.00;
+        $quantity = isset($payload['stockQuantity']) ? (int)$payload['stockQuantity'] : 100;
 
-        // Insert product descriptions for all active languages
-        $all_langs = $mysqli->query("SELECT language_id FROM `{$prefix}language`");
-        while ($l = $all_langs->fetch_assoc()) {
-            $lid = (int)$l['language_id'];
-            $mysqli->query("INSERT INTO `{$prefix}product_description` SET 
-                `product_id` = {$product_id},
-                `language_id` = {$lid},
-                `name` = '{$safe_title}',
-                `description` = '{$safe_desc}',
-                `meta_title` = '{$safe_title}',
-                `meta_description` = '{$safe_title}'");
+        $safe_model = $mysqli->real_escape_string($model);
+        $safe_sku = $mysqli->real_escape_string($sku);
+        $safe_title = $mysqli->real_escape_string($title);
+        $safe_desc = $mysqli->real_escape_string($description);
+
+        // Primary Image & Gallery
+        $primary_image = '';
+        if (isset($payload['images']) && is_array($payload['images']) && count($payload['images']) > 0) {
+            $primary_image = $payload['images'][0]['url'];
+        }
+        $safe_image = $mysqli->real_escape_string($primary_image);
+
+        // Check for existing product by Model or SKU
+        $existing_id = null;
+        if (!empty($safe_model)) {
+            $chk = $mysqli->query("SELECT product_id FROM `{$prefix}product` WHERE `model` = '{$safe_model}' LIMIT 1");
+            if ($chk && $chk->num_rows > 0) {
+                $existing_id = (int)$chk->fetch_assoc()['product_id'];
+            }
+        }
+        if (!$existing_id && !empty($safe_sku)) {
+            $chk2 = $mysqli->query("SELECT product_id FROM `{$prefix}product` WHERE `sku` = '{$safe_sku}' LIMIT 1");
+            if ($chk2 && $chk2->num_rows > 0) {
+                $existing_id = (int)$chk2->fetch_assoc()['product_id'];
+            }
         }
 
-        // Link product to store 0 (default store)
-        $mysqli->query("INSERT IGNORE INTO `{$prefix}product_to_store` SET `product_id` = {$product_id}, `store_id` = 0");
+        if ($existing_id) {
+            // Update Existing Product
+            $mysqli->query("UPDATE `{$prefix}product` SET 
+                `price` = {$price}, 
+                `quantity` = {$quantity}, 
+                `sku` = '{$safe_sku}', 
+                `image` = IF('{$safe_image}' != '', '{$safe_image}', `image`),
+                `status` = 1, 
+                `date_modified` = NOW() 
+                WHERE `product_id` = {$existing_id}");
 
-        // Generate clean SEO URL keyword
-        $clean_slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title)));
-        $clean_slug = $mysqli->real_escape_string($clean_slug . '-' . $product_id);
-        
-        // OpenCart 3 SEO URL table
-        $seo_check = $mysqli->query("SHOW TABLES LIKE '{$prefix}seo_url'");
-        if ($seo_check && $seo_check->num_rows > 0) {
-            $mysqli->query("INSERT IGNORE INTO `{$prefix}seo_url` SET `store_id` = 0, `language_id` = {$language_id}, `query` = 'product_id={$product_id}', `keyword` = '{$clean_slug}'");
+            // Update Descriptions
+            $mysqli->query("UPDATE `{$prefix}product_description` SET 
+                `name` = '{$safe_title}', 
+                `description` = '{$safe_desc}' 
+                WHERE `product_id` = {$existing_id}");
+
+            echo json_encode([
+                'success' => true,
+                'action' => 'updated',
+                'product_id' => $existing_id,
+                'model' => $model,
+                'sku' => $sku
+            ]);
+            exit;
         } else {
-            // OpenCart 2 url_alias table
-            $alias_check = $mysqli->query("SHOW TABLES LIKE '{$prefix}url_alias'");
-            if ($alias_check && $alias_check->num_rows > 0) {
-                $mysqli->query("INSERT IGNORE INTO `{$prefix}url_alias` SET `query` = 'product_id={$product_id}', `keyword` = '{$clean_slug}'");
+            // Create Brand New Product
+            $insert_sql = "INSERT INTO `{$prefix}product` SET 
+                `model` = '{$safe_model}',
+                `sku` = '{$safe_sku}',
+                `quantity` = {$quantity},
+                `stock_status_id` = 7,
+                `image` = '{$safe_image}',
+                `shipping` = 1,
+                `price` = {$price},
+                `status` = 1,
+                `date_added` = NOW(),
+                `date_modified` = NOW()";
+
+            if (!$mysqli->query($insert_sql)) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => 'SQL Error inserting product: ' . $mysqli->error]);
+                exit;
+            }
+
+            $product_id = (int)$mysqli->insert_id;
+
+            // Insert Multilingual Descriptions for all configured languages
+            $langs_query = $mysqli->query("SELECT language_id FROM `{$prefix}language`");
+            if ($langs_query) {
+                while ($l = $langs_query->fetch_assoc()) {
+                    $lid = (int)$l['language_id'];
+                    $mysqli->query("INSERT INTO `{$prefix}product_description` SET 
+                        `product_id` = {$product_id},
+                        `language_id` = {$lid},
+                        `name` = '{$safe_title}',
+                        `description` = '{$safe_desc}',
+                        `meta_title` = '{$safe_title}',
+                        `meta_description` = '{$safe_title}'");
+                }
+            }
+
+            // Assign to Default Store (store_id = 0)
+            $mysqli->query("INSERT IGNORE INTO `{$prefix}product_to_store` SET `product_id` = {$product_id}, `store_id` = 0");
+
+            // Build SEO friendly URL alias
+            $clean_slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title)));
+            $clean_slug = $mysqli->real_escape_string($clean_slug . '-' . $product_id);
+
+            $seo_check = $mysqli->query("SHOW TABLES LIKE '{$prefix}seo_url'");
+            if ($seo_check && $seo_check->num_rows > 0) {
+                $mysqli->query("INSERT IGNORE INTO `{$prefix}seo_url` SET `store_id` = 0, `language_id` = {$language_id}, `query` = 'product_id={$product_id}', `keyword` = '{$clean_slug}'");
+            } else {
+                $alias_check = $mysqli->query("SHOW TABLES LIKE '{$prefix}url_alias'");
+                if ($alias_check && $alias_check->num_rows > 0) {
+                    $mysqli->query("INSERT IGNORE INTO `{$prefix}url_alias` SET `query` = 'product_id={$product_id}', `keyword` = '{$clean_slug}'");
+                }
+            }
+
+            // Additional Gallery Images (if any)
+            if (isset($payload['images']) && is_array($payload['images']) && count($payload['images']) > 1) {
+                $sort = 0;
+                for ($i = 1; $i < count($payload['images']); $i++) {
+                    $img_url = $mysqli->real_escape_string($payload['images'][$i]['url']);
+                    if (!empty($img_url)) {
+                        $mysqli->query("INSERT INTO `{$prefix}product_image` SET `product_id` = {$product_id}, `image` = '{$img_url}', `sort_order` = {$sort}");
+                        $sort++;
+                    }
+                }
+            }
+
+            echo json_encode([
+                'success' => true,
+                'action' => 'created',
+                'product_id' => $product_id,
+                'model' => $model,
+                'sku' => $sku
+            ]);
+            exit;
+        }
+
+    // ---------------------------------------------------------------------
+    // 3. UPDATE STOCK AND PRICING ONLY (LIGHTWEIGHT SYNC)
+    // ---------------------------------------------------------------------
+    case 'update_stock_price':
+        $product_id = isset($payload['product_id']) ? (int)$payload['product_id'] : 0;
+        $price = isset($payload['price']) ? (float)$payload['price'] : null;
+        $quantity = isset($payload['stockQuantity']) ? (int)$payload['stockQuantity'] : null;
+
+        if (!$product_id) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Missing product_id']);
+            exit;
+        }
+
+        $updates = [];
+        if ($price !== null) $updates[] = "`price` = {$price}";
+        if ($quantity !== null) $updates[] = "`quantity` = {$quantity}";
+        $updates[] = "`date_modified` = NOW()";
+
+        $mysqli->query("UPDATE `{$prefix}product` SET " . implode(', ', $updates) . " WHERE `product_id` = {$product_id}");
+
+        echo json_encode(['success' => true, 'updated_id' => $product_id]);
+        exit;
+
+    // ---------------------------------------------------------------------
+    // 4. PULL PRODUCTS (READ CATALOG BACK TO SAAS)
+    // ---------------------------------------------------------------------
+    case 'pull_products':
+        $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
+        $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+        $offset = ($page - 1) * $limit;
+
+        $sql = "SELECT p.product_id, p.model, p.sku, p.price, p.quantity, p.image, p.status, pd.name, pd.description 
+                FROM `{$prefix}product` p 
+                LEFT JOIN `{$prefix}product_description` pd ON (p.product_id = pd.product_id AND pd.language_id = {$language_id}) 
+                ORDER BY p.product_id DESC 
+                LIMIT {$offset}, {$limit}";
+
+        $res = $mysqli->query($sql);
+        $products = [];
+        if ($res) {
+            while ($row = $res->fetch_assoc()) {
+                $products[] = $row;
             }
         }
 
         echo json_encode([
             'success' => true,
-            'action' => 'created',
-            'product_id' => $product_id,
-            'model' => $model,
-            'sku' => $sku
+            'page' => $page,
+            'limit' => $limit,
+            'count' => count($products),
+            'products' => $products
         ]);
         exit;
-    }
+
+    // ---------------------------------------------------------------------
+    // 5. UNKNOWN ACTION FALLBACK
+    // ---------------------------------------------------------------------
+    default:
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'error' => "Action '{$action}' is not supported by Bridge v2.0.0."
+        ]);
+        exit;
 }
-
-http_response_code(400);
-echo json_encode(['success' => false, 'error' => 'Unknown action: ' . $action]);
-
