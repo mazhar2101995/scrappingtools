@@ -18,6 +18,8 @@ import {
 } from '@saas/database';
 import { eq, ilike, and, sql, inArray } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 
 export const productsRouter = Router();
 
@@ -710,20 +712,265 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Brand profile not found for this organization' });
     }
 
-    const queuedJobs = urls.map((rawUrl: string, idx: number) => ({
-      jobId: `bulk_job_${Date.now()}_${idx + 1}`,
-      url: String(rawUrl).trim(),
-      brandId,
-      brandName: brandProfile.name,
-      status: 'queued',
-      queuedAt: new Date().toISOString(),
-    }));
+    // 1. Insert tracking records into scraping_jobs for all URLs
+    const createdJobs: any[] = [];
+    for (let i = 0; i < urls.length; i++) {
+      const targetUrl = String(urls[i]).trim();
+      const [inserted] = await db
+        .insert(scrapingJobs)
+        .values({
+          organizationId: orgId,
+          brandProfileId: brandId,
+          targetUrl,
+          jobType: 'batch_scraping',
+          status: 'queued',
+          itemsExtracted: 0,
+        })
+        .returning();
+      createdJobs.push(inserted);
+    }
+
+    // 2. Process batch scraping asynchronously in background
+    (async () => {
+      // Find or create global brand
+      let globalBrandId: string;
+      const [existingBrand] = await db
+        .select()
+        .from(brands)
+        .where(eq(brands.normalizedName, brandProfile.normalizedName))
+        .limit(1);
+
+      if (existingBrand) {
+        globalBrandId = existingBrand.id;
+      } else {
+        const [nb] = await db
+          .insert(brands)
+          .values({
+            name: brandProfile.name,
+            normalizedName: brandProfile.normalizedName,
+            officialWebsite: brandProfile.officialWebsite,
+            organizationId: orgId,
+            isVerified: true,
+          })
+          .returning();
+        globalBrandId = nb.id;
+      }
+
+      const mappings = Array.isArray(brandProfile.fieldMappings) ? brandProfile.fieldMappings : [];
+
+      for (const job of createdJobs) {
+        try {
+          await db
+            .update(scrapingJobs)
+            .set({ status: 'running', startedAt: new Date() })
+            .where(eq(scrapingJobs.id, job.id));
+
+          // Fetch product page with anti-bot fallback
+          let pageHtml = '';
+          try {
+            const resp = await axios.get(job.targetUrl, {
+              headers: {
+                'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              },
+              timeout: 15000,
+            });
+            if (resp.data && typeof resp.data === 'string') {
+              pageHtml = resp.data;
+            }
+          } catch (directErr) {
+            // Anti-bot bypass fallback via stealth reader
+            const proxyResp = await axios.get(`https://r.jina.ai/${job.targetUrl}`, {
+              timeout: 20000,
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'X-Return-Format': 'html',
+              },
+            });
+            if (proxyResp.data && typeof proxyResp.data === 'string') {
+              pageHtml = proxyResp.data;
+            }
+          }
+
+          if (!pageHtml) {
+            throw new Error('Unable to retrieve HTML content from target URL');
+          }
+
+          const $ = cheerio.load(pageHtml);
+          const extracted: Record<string, any> = {};
+
+          for (const m of mappings) {
+            if (!m.enabled || !m.sourceValue) continue;
+            const selector = String(m.sourceValue).trim();
+            const targetField = String(m.targetField || '').toLowerCase();
+            const matched = $(selector);
+            if (matched.length === 0) continue;
+
+            const first = matched.first();
+            let val: any = '';
+
+            if (targetField === 'images' || targetField === 'image' || targetField === 'primaryimage') {
+              const imgs: string[] = [];
+              matched.each((_, el) => {
+                const s = $(el).attr('src') || $(el).attr('data-src') || $(el).attr('data-zoom-image');
+                if (s && !s.includes('placeholder')) {
+                  const full = s.startsWith('//') ? `https:${s}` : s.startsWith('/') && brandProfile.officialWebsite ? new URL(s, brandProfile.officialWebsite).href : s;
+                  if (!imgs.includes(full)) imgs.push(full);
+                }
+              });
+              val = imgs.length > 0 ? (targetField === 'images' ? imgs : imgs[0]) : '';
+            } else if (targetField === 'attributes' || targetField.includes('spec')) {
+              const specMap: Record<string, string> = {};
+              matched.find('tr').each((_, tr) => {
+                const cells = $(tr).find('th, td');
+                if (cells.length >= 2) {
+                  const k = $(cells[0]).text().trim().replace(/:$/, '');
+                  const v = $(cells[1]).text().trim();
+                  if (k && v) specMap[k] = v;
+                }
+              });
+              val = Object.keys(specMap).length > 0 ? specMap : first.text().trim();
+            } else {
+              val = first.text().trim();
+            }
+
+            if (m.transformation === 'trim' && typeof val === 'string') {
+              val = val.replace(/\s+/g, ' ').trim();
+            }
+
+            extracted[m.targetField] = val;
+          }
+
+          // Fallback title / model if not captured by selector
+          const title = extracted.title || extracted.canonicalTitle || $('h1').first().text().trim() || $('title').text().trim();
+          let model = extracted.model || extracted.modelNumber || extracted.mpn || extracted.sku || null;
+          if (!model) {
+            const urlMatch = job.targetUrl.match(/\/(\d{4,6}[a-zA-Z0-9-]*)/);
+            if (urlMatch) model = urlMatch[1];
+          }
+          const price = extracted.price || $('[data-price-type="finalPrice"], .price, .product-price').first().text().trim() || null;
+          const desc = extracted.description || $('.product-info-detailed, #description, meta[name="description"]').first().text().trim() || null;
+          const images = Array.isArray(extracted.images) ? extracted.images : extracted.primaryImage ? [extracted.primaryImage] : [];
+          const primaryImg = images[0] || $('meta[property="og:image"]').attr('content') || null;
+
+          if (title) {
+            // Save canonical global product
+            const cleanModel = model ? String(model).trim() : null;
+            const normModel = cleanModel ? cleanModel.toLowerCase().replace(/[^a-z0-9]/g, '') : null;
+
+            const [savedProduct] = await db
+              .insert(globalProducts)
+              .values({
+                brandId: globalBrandId,
+                canonicalTitle: title,
+                modelNumber: cleanModel,
+                normalizedModel: normModel,
+                standardizedDescription: desc,
+                primaryImageUrl: primaryImg,
+                confidenceScore: '1.00',
+                verificationStatus: 'verified',
+                sourcesCount: 1,
+              })
+              .returning();
+
+            // Map to tenant
+            await db
+              .insert(customerProductMappings)
+              .values({
+                organizationId: orgId,
+                globalProductId: savedProduct.id,
+                customerInternalSku: cleanModel,
+                syncStatus: 'active',
+              })
+              .onConflictDoUpdate({
+                target: [customerProductMappings.organizationId, customerProductMappings.globalProductId],
+                set: { customerInternalSku: cleanModel, updatedAt: new Date() },
+              });
+
+            // Overrides
+            await db
+              .insert(customerProductOverrides)
+              .values({
+                organizationId: orgId,
+                globalProductId: savedProduct.id,
+                customTitle: title,
+                customDescription: desc,
+                customAttributes: {
+                  price: price || null,
+                  extractedAttributes: extracted.attributes || {},
+                  productUrl: job.targetUrl,
+                },
+              })
+              .onConflictDoUpdate({
+                target: [customerProductOverrides.organizationId, customerProductOverrides.globalProductId],
+                set: {
+                  customTitle: title,
+                  customAttributes: {
+                    price: price || null,
+                    extractedAttributes: extracted.attributes || {},
+                    productUrl: job.targetUrl,
+                  },
+                },
+              });
+
+            // Save images
+            for (let imgIdx = 0; imgIdx < images.length; imgIdx++) {
+              const u = images[imgIdx];
+              if (typeof u === 'string' && u.startsWith('http')) {
+                await db
+                  .insert(productImages)
+                  .values({
+                    globalProductId: savedProduct.id,
+                    originUrl: u,
+                    storageUri: u,
+                    imageHash: `hash_${Date.now()}_${imgIdx}`,
+                    isPrimary: imgIdx === 0,
+                    sortOrder: imgIdx,
+                  })
+                  .catch(() => {});
+              }
+            }
+
+            // Mark job completed
+            await db
+              .update(scrapingJobs)
+              .set({
+                status: 'completed',
+                itemsExtracted: 1,
+                completedAt: new Date(),
+              })
+              .where(eq(scrapingJobs.id, job.id));
+          } else {
+            await db
+              .update(scrapingJobs)
+              .set({
+                status: 'failed',
+                errorMessage: 'Unable to extract valid product title',
+                completedAt: new Date(),
+              })
+              .where(eq(scrapingJobs.id, job.id));
+          }
+        } catch (jobErr: any) {
+          await db
+            .update(scrapingJobs)
+            .set({
+              status: 'failed',
+              errorMessage: jobErr.message || 'Scrape execution failure',
+              completedAt: new Date(),
+            })
+            .where(eq(scrapingJobs.id, job.id));
+        }
+      }
+    })().catch((err) => {
+      console.error('[Batch Scrape Background Worker Error]:', err);
+    });
 
     return res.status(202).json({
       success: true,
-      message: `Successfully queued ${queuedJobs.length} URLs for batch background scraping`,
-      count: queuedJobs.length,
-      jobs: queuedJobs,
+      message: `Successfully queued ${createdJobs.length} URLs for batch background scraping`,
+      count: createdJobs.length,
+      jobs: createdJobs,
     });
   } catch (err: any) {
     return res.status(500).json({ error: 'Failed to queue batch scrape jobs', details: err.message });

@@ -8,6 +8,34 @@ import crypto from 'crypto';
 export const jobsRouter = Router();
 jobsRouter.use(authMiddleware);
 
+// 0. List all scraping jobs for tenant organization
+jobsRouter.get('/', async (req: Request, res: Response) => {
+  const organizationId = req.user!.organizationId;
+
+  try {
+    const jobs = await db
+      .select({
+        id: scrapingJobs.id,
+        targetUrl: scrapingJobs.targetUrl,
+        jobType: scrapingJobs.jobType,
+        status: scrapingJobs.status,
+        itemsExtracted: scrapingJobs.itemsExtracted,
+        errorMessage: scrapingJobs.errorMessage,
+        startedAt: scrapingJobs.startedAt,
+        completedAt: scrapingJobs.completedAt,
+        createdAt: scrapingJobs.createdAt,
+      })
+      .from(scrapingJobs)
+      .where(organizationId ? eq(scrapingJobs.organizationId, organizationId) : undefined)
+      .orderBy(desc(scrapingJobs.createdAt))
+      .limit(100);
+
+    return res.json(jobs);
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to fetch jobs', details: err.message });
+  }
+});
+
 // 1. Submit a Scraping Ingestion Job
 jobsRouter.post('/', async (req: Request, res: Response) => {
   const organizationId = req.user!.organizationId;
@@ -103,8 +131,12 @@ jobsRouter.post('/:id/retry', async (req: Request, res: Response) => {
   // Reset status in DB
   await db.update(scrapingJobs).set({ status: 'queued', errorMessage: null }).where(eq(scrapingJobs.id, id));
 
-  // Fetch source website domain
-  const [website] = await db.select().from(sourceWebsites).where(eq(sourceWebsites.id, job.sourceWebsiteId)).limit(1);
+  // Fetch source website domain if present
+  let website: any = null;
+  if (job.sourceWebsiteId) {
+    const [w] = await db.select().from(sourceWebsites).where(eq(sourceWebsites.id, job.sourceWebsiteId)).limit(1);
+    website = w || null;
+  }
 
   // Re-queue
   const retryQueueId = `scrape_retry_${Date.now()}`;
@@ -113,7 +145,7 @@ jobsRouter.post('/:id/retry', async (req: Request, res: Response) => {
     {
       dbJobId: job.id,
       organizationId: job.organizationId || undefined,
-      sourceWebsiteId: job.sourceWebsiteId,
+      sourceWebsiteId: job.sourceWebsiteId || '00000000-0000-0000-0000-000000000000',
       targetUrl: job.targetUrl,
       domain: website ? website.domain : 'unknown',
       brandNormalized: 'retry-brand',

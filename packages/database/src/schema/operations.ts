@@ -1,14 +1,15 @@
 import { pgTable, uuid, varchar, text, integer, boolean, jsonb, timestamp, bigserial, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { organizations, users } from './tenants';
-import { brands, sourceWebsites, sourceProductListings } from './sources';
+import { brands, sourceWebsites, sourceProductListings, tenantBrandProfiles } from './sources';
 import { globalProducts } from './products';
 
 export const scrapingJobs = pgTable('scraping_jobs', {
   id: uuid('id').defaultRandom().primaryKey(),
   organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'set null' }),
   brandId: uuid('brand_id').references(() => brands.id, { onDelete: 'set null' }),
-  sourceWebsiteId: uuid('source_website_id').notNull().references(() => sourceWebsites.id, { onDelete: 'cascade' }),
+  brandProfileId: uuid('brand_profile_id').references(() => tenantBrandProfiles.id, { onDelete: 'set null' }),
+  sourceWebsiteId: uuid('source_website_id').references(() => sourceWebsites.id, { onDelete: 'cascade' }),
   targetUrl: text('target_url').notNull(),
   jobType: varchar('job_type', { length: 50 }).notNull(),
   status: varchar('status', { length: 50 }).notNull().default('queued'),
