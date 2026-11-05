@@ -828,6 +828,25 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
 
             if (targetField === 'images' || targetField === 'image' || targetField === 'primaryimage') {
               const imgs: string[] = [];
+
+              // Check for Magento / E-Commerce embedded gallery JSON in page HTML
+              if (pageHtml && (pageHtml.includes('"galleryData":') || pageHtml.includes('"mage/gallery/gallery"'))) {
+                try {
+                  const galleryMatches = pageHtml.match(/"img":\s*"([^"]+)"/g);
+                  if (galleryMatches) {
+                    for (const m of galleryMatches) {
+                      const urlMatch = m.match(/"img":\s*"([^"]+)"/);
+                      if (urlMatch && urlMatch[1]) {
+                        const cleanUrl = urlMatch[1].replace(/\\/g, '');
+                        if (!cleanUrl.includes('placeholder') && !imgs.includes(cleanUrl)) {
+                          imgs.push(cleanUrl);
+                        }
+                      }
+                    }
+                  }
+                } catch (_) {}
+              }
+
               matched.each((_, el) => {
                 const s = $(el).attr('src') || $(el).attr('data-src') || $(el).attr('data-zoom-image');
                 if (s && !s.includes('placeholder')) {
@@ -835,6 +854,13 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
                   if (!imgs.includes(full)) imgs.push(full);
                 }
               });
+
+              // Fallback to og:image if selector only returned empty/placeholder
+              if (imgs.length === 0) {
+                const og = $('meta[property="og:image"]').attr('content');
+                if (og && !og.includes('placeholder')) imgs.push(og);
+              }
+
               val = imgs.length > 0 ? (targetField === 'images' ? imgs : imgs[0]) : '';
             } else if (targetField === 'attributes' || targetField.includes('spec')) {
               const specMap: Record<string, string> = {};
@@ -859,16 +885,25 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
           }
 
           // Fallback title / model if not captured by selector
-          const title = extracted.title || extracted.canonicalTitle || $('h1').first().text().trim() || $('title').text().trim();
+          const title = extracted.name || extracted.title || extracted.canonicalTitle || $('h1').first().text().trim() || $('title').text().trim();
           let model = extracted.model || extracted.modelNumber || extracted.mpn || extracted.sku || null;
           if (!model) {
             const urlMatch = job.targetUrl.match(/\/(\d{4,6}[a-zA-Z0-9-]*)/);
             if (urlMatch) model = urlMatch[1];
           }
           const price = extracted.price || $('[data-price-type="finalPrice"], .price, .product-price').first().text().trim() || null;
-          const desc = extracted.description || $('.product-info-detailed, #description, meta[name="description"]').first().text().trim() || null;
+          const desc = extracted.description || $('.product-info-detailed, #description, .product.attribute.description .value, meta[name="description"]').first().text().trim() || null;
           const images = Array.isArray(extracted.images) ? extracted.images : extracted.primaryImage ? [extracted.primaryImage] : [];
           const primaryImg = images[0] || $('meta[property="og:image"]').attr('content') || null;
+
+          // Collect custom non-standard fields mapped for this brand (e.g. futured, compatible_models, etc.)
+          const customCollected: Record<string, any> = {};
+          const standardKeys = ['name', 'title', 'model', 'modelnumber', 'sku', 'price', 'description', 'images', 'image', 'primaryimage', 'attributes'];
+          for (const [k, val] of Object.entries(extracted)) {
+            if (!standardKeys.includes(k.toLowerCase()) && val) {
+              customCollected[k] = val;
+            }
+          }
 
           if (title) {
             // Save canonical global product
@@ -915,6 +950,7 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
                 customAttributes: {
                   price: price || null,
                   extractedAttributes: extracted.attributes || {},
+                  customFields: customCollected,
                   productUrl: job.targetUrl,
                 },
               })
@@ -922,9 +958,11 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
                 target: [customerProductOverrides.organizationId, customerProductOverrides.globalProductId],
                 set: {
                   customTitle: title,
+                  customDescription: desc,
                   customAttributes: {
                     price: price || null,
                     extractedAttributes: extracted.attributes || {},
+                    customFields: customCollected,
                     productUrl: job.targetUrl,
                   },
                 },
