@@ -5,6 +5,7 @@ import { db, connectedStores, storeSyncHistory, storeProductMappings, storeConfl
 import { eq, and, desc } from 'drizzle-orm';
 import { SynchronizationEngine, CredentialSecurity, OpenCartConnector, ShopifyConnector, WooCommerceConnector } from '@saas/connectors';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { quotaMiddleware } from '../middleware/quota.middleware';
 
 export const storeRouter = Router();
 
@@ -56,8 +57,11 @@ storeRouter.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/v1/stores - Connect a new e-commerce store
-storeRouter.post('/', async (req: Request, res: Response) => {
+// POST /api/v1/stores - Connect a new e-commerce store (with quota check)
+storeRouter.post('/', async (req: Request, res: Response, next) => {
+  const check = await quotaMiddleware('store');
+  return check(req, res, next);
+}, async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
     if (!orgId) {

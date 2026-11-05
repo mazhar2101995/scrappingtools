@@ -18,6 +18,7 @@ import {
 } from '@saas/database';
 import { eq, ilike, and, sql, inArray } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { quotaMiddleware } from '../middleware/quota.middleware';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
@@ -31,8 +32,11 @@ function getOrgId(req: Request): string | null {
 // Apply Auth Middleware to all product routes
 productsRouter.use(authMiddleware);
 
-// 0. CREATE / SAVE PRODUCT (Client Tenant Scoped from Extraction)
-productsRouter.post('/', async (req: Request, res: Response) => {
+// 0. CREATE / SAVE PRODUCT (Client Tenant Scoped from Extraction with Quota Limit Check)
+productsRouter.post('/', async (req: Request, res: Response, next) => {
+  const check = await quotaMiddleware('product');
+  return check(req, res, next);
+}, async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
   if (!orgId) {
     return res.status(403).json({ error: 'Unauthorized: Missing organization context' });

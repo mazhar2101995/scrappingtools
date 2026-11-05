@@ -51,3 +51,4 @@ export const invoices = pgTable('invoices', {
 }, (table) => [
   index('idx_invoices_org').on(table.organizationId),
 ]);
+

@@ -249,7 +249,7 @@ export class DashboardApiClient {
 
   private async fetchJson<T>(path: string, options: RequestInit = {}, rolePreference?: 'client' | 'admin'): Promise<T> {
     const url = `${this.baseUrl}${path}`;
-    
+
     // Auto-detect role from path if not explicitly provided
     const targetRole = rolePreference || (path.includes('/admin') || path.includes('/organizations') ? 'admin' : 'client');
     let token = typeof window !== 'undefined' ? localStorage.getItem('saas_token') || localStorage.getItem(`saas_token_${targetRole}`) : null;
@@ -290,7 +290,7 @@ export class DashboardApiClient {
       try {
         const j = JSON.parse(errText);
         parsedMsg = j.details || j.error || j.message || errText;
-      } catch (_) {}
+      } catch (_) { }
       throw new Error(parsedMsg);
     }
 
