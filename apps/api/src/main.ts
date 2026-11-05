@@ -14,6 +14,7 @@ import { aiRouter } from './routes/ai.routes';
 import { reviewRouter } from './routes/review.routes';
 import { organizationRouter } from './routes/organization.routes';
 import { billingRouter } from './routes/billing.routes';
+import { feedbackRouter } from './routes/feedback.routes';
 import { ServiceHealth } from '@saas/shared-types';
 
 const app = express();
@@ -60,6 +61,7 @@ app.use('/api/v1/ai', aiRouter);
 app.use('/api/v1/review', reviewRouter);
 app.use('/api/v1/organizations', organizationRouter);
 app.use('/api/v1/billing', billingRouter);
+app.use('/api/v1/feedback', feedbackRouter);
 
 // 4. Start Server
 if (process.env.NODE_ENV !== 'test') {

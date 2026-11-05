@@ -83,3 +83,23 @@ export const auditLogs = pgTable('audit_logs', {
   index('idx_audit_logs_org').on(table.organizationId, table.createdAt),
 ]);
 
+export const communityFeedback = pgTable('community_feedback', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'set null' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  userEmail: varchar('user_email', { length: 255 }),
+  type: varchar('type', { length: 50 }).notNull().default('bug_report'), // 'bug_report', 'feature_feedback', 'general_feedback'
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description').notNull(),
+  pageUrl: text('page_url'),
+  errorReferenceId: varchar('error_reference_id', { length: 100 }),
+  browserInfo: text('browser_info'),
+  status: varchar('status', { length: 50 }).notNull().default('open'), // 'open', 'reviewed', 'resolved'
+  metadata: jsonb('metadata').default(sql`'{}'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_feedback_org').on(table.organizationId, table.createdAt),
+  index('idx_feedback_status').on(table.status),
+]);
+
+
