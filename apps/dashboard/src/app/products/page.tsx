@@ -25,7 +25,8 @@ import {
   Package,
   Download,
   UploadCloud,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ShoppingBag
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -549,6 +550,7 @@ export default function ProductsPage() {
               <th className="py-3.5 px-4">Brand</th>
               <th className="py-3.5 px-4">Identifiers</th>
               <th className="py-3.5 px-4">Sources / Variants</th>
+              <th className="py-3.5 px-4">Store Sync</th>
               <th className="py-3.5 px-4">Price Est.</th>
               <th className="py-3.5 px-5 text-right">Actions</th>
             </tr>
@@ -556,13 +558,13 @@ export default function ProductsPage() {
           <tbody className="divide-y divide-slate-100 font-medium">
             {loading ? (
               <tr>
-                <td colSpan={6} className="py-12 text-center text-slate-400">
+                <td colSpan={7} className="py-12 text-center text-slate-400">
                   Loading catalog entries from database...
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-16 text-center">
+                <td colSpan={7} className="py-16 text-center">
                   <div className="max-w-md mx-auto space-y-3">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
                       <Package className="w-6 h-6" />
@@ -612,6 +614,31 @@ export default function ProductsPage() {
                   <td className="py-4 px-4 text-[11px] text-slate-600">
                     <div>{prod.sourcesCount || 1} domains</div>
                     <div className="text-slate-400 font-medium">{prod.variantsCount || 1} variants</div>
+                  </td>
+
+                  {/* Store Sync Status Badge */}
+                  <td className="py-4 px-4">
+                    {Array.isArray(prod.syncedStores) && prod.syncedStores.length > 0 ? (
+                      <div className="flex flex-col gap-1 items-start">
+                        {prod.syncedStores.map((s: any, idx: number) => (
+                          <span
+                            key={idx}
+                            title={`External ID: ${s.externalProductId || 'N/A'}${s.lastPushedAt ? ` • Last Synced: ${new Date(s.lastPushedAt).toLocaleString()}` : ''}`}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-2xs"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <ShoppingBag className="w-3 h-3 text-emerald-600" />
+                            <span>
+                              Synced to {s.storeName} ({String(s.platformType || '').toUpperCase()})
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                        Not Pushed
+                      </span>
+                    )}
                   </td>
 
                   <td className="py-4 px-4 font-bold text-slate-900">{prod.priceEstimate || '—'}</td>

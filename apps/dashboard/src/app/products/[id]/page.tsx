@@ -43,27 +43,27 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [savingMonitoring, setSavingMonitoring] = useState(false);
   const [monitoringSuccess, setMonitoringSuccess] = useState(false);
 
-  useEffect(() => {
-    async function fetchProduct() {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await apiClient.getProductById(params.id);
-        setData(res);
-        if (res?.images && res.images.length > 0) {
-          const primary = res.images.find((img: any) => img.isPrimary) || res.images[0];
-          setSelectedImage(primary.originUrl || primary.storageUri);
-        } else if (res?.product?.primaryImageUrl) {
-          setSelectedImage(res.product.primaryImageUrl);
-        }
-      } catch (err: any) {
-        console.error('Failed to load product details:', err);
-        setError(err.message || 'Failed to load product details');
-      } finally {
-        setLoading(false);
+  const fetchProduct = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await apiClient.getProductById(params.id);
+      setData(res);
+      if (res?.images && res.images.length > 0) {
+        const primary = res.images.find((img: any) => img.isPrimary) || res.images[0];
+        setSelectedImage(primary.originUrl || primary.storageUri);
+      } else if (res?.product?.primaryImageUrl) {
+        setSelectedImage(res.product.primaryImageUrl);
       }
+    } catch (err: any) {
+      console.error('Failed to load product details:', err);
+      setError(err.message || 'Failed to load product details');
+    } finally {
+      setLoading(false);
     }
+  }, [params.id]);
 
+  useEffect(() => {
     if (params.id) {
       fetchProduct();
       apiClient.getStores().then((res) => {
@@ -76,7 +76,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         }
       }).catch(() => {});
     }
-  }, [params.id]);
+  }, [params.id, fetchProduct]);
 
   async function handleSaveMonitoring() {
     if (!data?.product?.id) return;
@@ -111,6 +111,8 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       });
       setPushSuccessMsg(res.message || 'Product pushed to store successfully!');
       setTimeout(() => setPushSuccessMsg(null), 4000);
+      // Reload product data to immediately reflect the new store sync status badge
+      await fetchProduct();
     } catch (err: any) {
       setPushErrorMsg(err.message || 'Failed to push product to store');
     } finally {
@@ -298,22 +300,51 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   </Link>
                 </div>
               ) : (
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  {stores.map((s) => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      disabled={Boolean(pushingStoreId)}
-                      onClick={() => handlePushToStore(s.id)}
-                      className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold shadow-2xs transition disabled:opacity-50"
-                    >
-                      <ShoppingBag className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>
-                        {pushingStoreId === s.id ? 'Publishing...' : `Push to ${s.storeName} (${s.platformType.toUpperCase()})`}
-                      </span>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
-                    </button>
-                  ))}
+                <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                  {stores.map((s) => {
+                    const syncedMapping = Array.isArray(data?.syncedStores)
+                      ? data.syncedStores.find((sm: any) => sm.storeId === s.id)
+                      : null;
+
+                    return (
+                      <div key={s.id} className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={Boolean(pushingStoreId)}
+                          onClick={() => handlePushToStore(s.id)}
+                          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-bold shadow-2xs transition disabled:opacity-50 ${
+                            syncedMapping
+                              ? 'bg-emerald-50/50 hover:bg-emerald-50 border-emerald-300 text-emerald-950'
+                              : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-900'
+                          }`}
+                        >
+                          <ShoppingBag className={`w-3.5 h-3.5 ${syncedMapping ? 'text-emerald-700' : 'text-slate-600'}`} />
+                          <span>
+                            {pushingStoreId === s.id
+                              ? 'Publishing...'
+                              : syncedMapping
+                              ? `Re-Push to ${s.storeName}`
+                              : `Push to ${s.storeName} (${s.platformType.toUpperCase()})`}
+                          </span>
+                          <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
+                        </button>
+
+                        {syncedMapping && (
+                          <span
+                            title={`External Store Product ID: ${syncedMapping.externalProductId || 'N/A'}${
+                              syncedMapping.lastPushedAt
+                                ? `\nSynced: ${new Date(syncedMapping.lastPushedAt).toLocaleString()}`
+                                : ''
+                            }`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-300"
+                          >
+                            <Check className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>Live on {s.storeName}</span>
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -13,8 +13,10 @@ import {
   customerProductMappings,
   customerProductOverrides,
   scrapingJobs,
+  storeProductMappings,
+  connectedStores,
 } from '@saas/database';
-import { eq, ilike, and, sql } from 'drizzle-orm';
+import { eq, ilike, and, sql, inArray } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
 
 export const productsRouter = Router();
@@ -263,10 +265,50 @@ productsRouter.get('/', async (req: Request, res: Response) => {
       .limit(limit)
       .offset(offset);
 
-    // Format for client UI with clean non-hardcoded values
+    // Query connected store sync status for these products
+    const productIds = items.map((i) => i.id);
+    let storeMappingsByProduct: Record<string, Array<{ storeId: string; storeName: string; platformType: string; syncStatus: string; externalProductId: string; lastPushedAt: any }>> = {};
+
+    if (productIds.length > 0) {
+      const mappings = await db
+        .select({
+          productId: storeProductMappings.globalProductId,
+          storeId: storeProductMappings.connectedStoreId,
+          storeName: connectedStores.storeName,
+          platformType: connectedStores.platformType,
+          syncStatus: storeProductMappings.syncStatus,
+          externalProductId: storeProductMappings.externalProductId,
+          lastPushedAt: storeProductMappings.lastPushedAt,
+        })
+        .from(storeProductMappings)
+        .innerJoin(connectedStores, eq(storeProductMappings.connectedStoreId, connectedStores.id))
+        .where(
+          and(
+            eq(connectedStores.organizationId, orgId),
+            inArray(storeProductMappings.globalProductId, productIds)
+          )
+        );
+
+      mappings.forEach((m) => {
+        if (!storeMappingsByProduct[m.productId]) {
+          storeMappingsByProduct[m.productId] = [];
+        }
+        storeMappingsByProduct[m.productId].push({
+          storeId: m.storeId,
+          storeName: m.storeName,
+          platformType: m.platformType,
+          syncStatus: m.syncStatus,
+          externalProductId: m.externalProductId,
+          lastPushedAt: m.lastPushedAt,
+        });
+      });
+    }
+
+    // Format for client UI with clean non-hardcoded values and store sync status
     const formatted = items.map((item) => {
       const customAttrs = (item.customAttributes as any) || {};
       const priceVal = customAttrs.price ? (String(customAttrs.price).startsWith('$') ? String(customAttrs.price) : `$${customAttrs.price}`) : null;
+      const syncedStores = storeMappingsByProduct[item.id] || [];
 
       return {
         id: item.id,
@@ -281,6 +323,7 @@ productsRouter.get('/', async (req: Request, res: Response) => {
         sourcesCount: item.sourcesCount || 1,
         variantsCount: 1,
         createdAt: item.createdAt,
+        syncedStores,
       };
     });
 
@@ -401,11 +444,30 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
     mapping = mp || null;
   }
 
-  const [variants, identifiers, rawAttributes, images] = await Promise.all([
+  const [variants, identifiers, rawAttributes, images, syncedStores] = await Promise.all([
     db.select().from(productVariants).where(eq(productVariants.globalProductId, id)),
     db.select().from(productIdentifiers).where(eq(productIdentifiers.globalProductId, id)),
     db.select().from(productAttributes).where(eq(productAttributes.globalProductId, id)),
     db.select().from(productImages).where(eq(productImages.globalProductId, id)),
+    orgId
+      ? db
+          .select({
+            storeId: storeProductMappings.connectedStoreId,
+            storeName: connectedStores.storeName,
+            platformType: connectedStores.platformType,
+            syncStatus: storeProductMappings.syncStatus,
+            externalProductId: storeProductMappings.externalProductId,
+            lastPushedAt: storeProductMappings.lastPushedAt,
+          })
+          .from(storeProductMappings)
+          .innerJoin(connectedStores, eq(storeProductMappings.connectedStoreId, connectedStores.id))
+          .where(
+            and(
+              eq(connectedStores.organizationId, orgId),
+              eq(storeProductMappings.globalProductId, id)
+            )
+          )
+      : Promise.resolve([]),
   ]);
 
   // Merge tenant overrides with canonical data
@@ -427,6 +489,7 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
     mapping,
     variants,
     identifiers,
+    syncedStores,
     attributes: Object.keys(extractedSpecs).length > 0 ? extractedSpecs : rawAttributes,
     customFields,
     images: images.length > 0 ? images : (product.primaryImageUrl ? [{ originUrl: product.primaryImageUrl, storageUri: product.primaryImageUrl, isPrimary: true }] : []),
