@@ -47,6 +47,7 @@ const ADMIN_SUBSYSTEM_ITEMS = [
   { name: 'BullMQ Engine & Queues', href: '/admin/jobs', icon: Activity },
   { name: 'Telemetry & Cluster Logs', href: '/admin/telemetry', icon: BarChart3 },
   { name: 'Store Connectors & Bridges', href: '/admin/stores', icon: RefreshCw },
+  { name: 'Integration API Traffic', href: '/admin/integrations', icon: Radio },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

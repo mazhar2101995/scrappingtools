@@ -567,10 +567,27 @@ export class DashboardApiClient {
     return res.keys || [];
   }
 
-  async generateApiKey(name: string): Promise<any> {
+  async generateApiKey(name: string, scopes?: string[]): Promise<any> {
     return this.fetchJson('/keys', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, scopes }),
+    });
+  }
+
+  async revokeApiKey(keyId: string): Promise<any> {
+    return this.fetchJson(`/keys/${keyId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getWebhookSubscriptions(): Promise<any> {
+    return this.fetchJson('/integrations/webhooks/subscriptions');
+  }
+
+  async createWebhookSubscription(targetUrl: string, events: string[]): Promise<any> {
+    return this.fetchJson('/integrations/webhooks/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify({ targetUrl, events }),
     });
   }
 

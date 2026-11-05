@@ -15,6 +15,9 @@ import {
   identityReviewQueue,
   aiProcessingHistory,
   fieldProvenance,
+  apiKeys,
+  webhookSubscriptions,
+  webhookEvents,
 } from '@saas/database';
 import { eq, and, sql, desc } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -428,5 +431,76 @@ metricsRouter.get('/admin-overview', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     return res.status(500).json({ error: 'Failed to fetch platform admin overview', details: err.message });
+  }
+});
+
+// --- Platform Admin: Integration Traffic & Webhook Activity ---
+metricsRouter.get('/admin/integrations', async (req: Request, res: Response) => {
+  try {
+    const [allKeysCount] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(apiKeys);
+
+    const [activeKeysCount] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(apiKeys)
+      .where(sql`${apiKeys.lastUsedAt} >= NOW() - INTERVAL '7 days'`);
+
+    const [allWebhooksCount] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(webhookSubscriptions);
+
+    const [deliveredWebhooksCount] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(webhookEvents)
+      .where(sql`${webhookEvents.status} = 'delivered'`);
+
+    const [failedWebhooksCount] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(webhookEvents)
+      .where(sql`${webhookEvents.status} = 'failed'`);
+
+    const recentKeys = await db
+      .select({
+        id: apiKeys.id,
+        name: apiKeys.name,
+        keyPrefix: apiKeys.keyPrefix,
+        permissions: apiKeys.permissions,
+        createdAt: apiKeys.createdAt,
+        lastUsedAt: apiKeys.lastUsedAt,
+        organizationId: apiKeys.organizationId,
+      })
+      .from(apiKeys)
+      .orderBy(desc(apiKeys.createdAt))
+      .limit(10);
+
+    const recentWebhookEvents = await db
+      .select({
+        id: webhookEvents.id,
+        organizationId: webhookEvents.organizationId,
+        eventType: webhookEvents.eventType,
+        status: webhookEvents.status,
+        attemptCount: webhookEvents.attemptCount,
+        lastError: webhookEvents.lastError,
+        createdAt: webhookEvents.createdAt,
+      })
+      .from(webhookEvents)
+      .orderBy(desc(webhookEvents.createdAt))
+      .limit(10);
+
+    return res.json({
+      success: true,
+      stats: {
+        totalApiKeys: allKeysCount?.count || 0,
+        activeApiKeys: activeKeysCount?.count || 0,
+        totalWebhooks: allWebhooksCount?.count || 0,
+        deliveredEvents: deliveredWebhooksCount?.count || 0,
+        failedEvents: failedWebhooksCount?.count || 0,
+      },
+      recentKeys,
+      recentWebhookEvents,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to fetch admin integration metrics', details: err.message });
   }
 });

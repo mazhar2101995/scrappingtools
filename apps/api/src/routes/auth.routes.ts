@@ -241,7 +241,7 @@ authRouter.get('/session', async (req: Request, res: Response) => {
 export const keysRouter = Router();
 
 keysRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
-  const { name } = req.body;
+  const { name, scopes } = req.body;
   const organizationId = req.user!.organizationId;
 
   const rawSecret = crypto.randomBytes(24).toString('hex');
@@ -249,12 +249,16 @@ keysRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
   const fullApiKey = `${keyPrefix}_${rawSecret}`;
   const keyHash = crypto.createHash('sha256').update(fullApiKey).digest('hex');
 
+  const assignedPermissions = Array.isArray(scopes) && scopes.length > 0 
+    ? scopes 
+    : ['products:read', 'products:discover', 'products:quality:read', 'products:write'];
+
   const [apiKey] = await db.insert(apiKeys).values({
     organizationId,
-    name: name || 'Default API Key',
+    name: name || 'Integration Key',
     keyPrefix,
     keyHash,
-    permissions: ['read', 'write'],
+    permissions: assignedPermissions,
   }).returning();
 
   return res.status(201).json({
@@ -262,6 +266,7 @@ keysRouter.post('/', authMiddleware, async (req: Request, res: Response) => {
     apiKey: fullApiKey,
     keyPrefix: apiKey.keyPrefix,
     name: apiKey.name,
+    permissions: apiKey.permissions,
     createdAt: apiKey.createdAt,
   });
 });
@@ -273,6 +278,7 @@ keysRouter.get('/', authMiddleware, async (req: Request, res: Response) => {
       id: apiKeys.id,
       name: apiKeys.name,
       keyPrefix: apiKeys.keyPrefix,
+      permissions: apiKeys.permissions,
       createdAt: apiKeys.createdAt,
       lastUsedAt: apiKeys.lastUsedAt,
     })
@@ -280,5 +286,21 @@ keysRouter.get('/', authMiddleware, async (req: Request, res: Response) => {
     .where(eq(apiKeys.organizationId, organizationId));
 
   return res.json({ keys: list });
+});
+
+keysRouter.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
+  const organizationId = req.user!.organizationId;
+  const keyId = req.params.id as string;
+
+  const result = await db
+    .delete(apiKeys)
+    .where(and(eq(apiKeys.id, keyId), eq(apiKeys.organizationId, organizationId)))
+    .returning();
+
+  if (result.length === 0) {
+    return res.status(404).json({ error: 'API Key not found or does not belong to your organization' });
+  }
+
+  return res.json({ success: true, message: 'API Key revoked successfully' });
 });
 

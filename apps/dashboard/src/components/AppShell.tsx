@@ -48,7 +48,7 @@ const MAIN_NAV_ITEMS = [
 const SECONDARY_NAV_ITEMS = [
   { name: 'Plan & Billing', href: '/settings/billing', icon: KeyRound },
   { name: 'Team & Permissions', href: '/team', icon: Users },
-  { name: 'API Access', href: '/settings', icon: Settings },
+  { name: 'Integrations & API', href: '/settings/integrations', icon: KeyRound, badge: 'v1' },
   { name: 'Settings', href: '/settings/workspace', icon: Settings },
 ];
 

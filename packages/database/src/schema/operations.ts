@@ -58,15 +58,34 @@ export const dataValidationResults = pgTable('data_validation_results', {
   index('idx_dvr_listing').on(table.sourceProductListingId),
 ]);
 
+export const webhookSubscriptions = pgTable('webhook_subscriptions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  targetUrl: text('target_url').notNull(),
+  secret: varchar('secret', { length: 255 }).notNull(),
+  events: jsonb('events').notNull().default(sql`'["*"]'::jsonb`),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_webhook_subs_org').on(table.organizationId),
+]);
+
 export const webhookEvents = pgTable('webhook_events', {
   id: uuid('id').defaultRandom().primaryKey(),
   organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  subscriptionId: uuid('subscription_id').references(() => webhookSubscriptions.id, { onDelete: 'set null' }),
   eventType: varchar('event_type', { length: 100 }).notNull(),
   payload: jsonb('payload').notNull(),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
   attemptCount: integer('attempt_count').notNull().default(0),
+  lastError: text('last_error'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+  deliveredAt: timestamp('delivered_at', { withTimezone: true }),
+}, (table) => [
+  index('idx_webhook_events_org').on(table.organizationId, table.createdAt),
+  index('idx_webhook_events_status').on(table.status),
+]);
 
 export const auditLogs = pgTable('audit_logs', {
   id: bigserial('id', { mode: 'number' }).primaryKey(),

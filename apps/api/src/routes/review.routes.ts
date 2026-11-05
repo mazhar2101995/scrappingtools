@@ -15,6 +15,7 @@ import {
 import { eq, desc, and, sql, or } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { ProductIdentityService } from '../services/product-identity.service';
+import { ProductDataQualityService } from '../services/product-quality.service';
 
 export const reviewRouter = Router();
 
@@ -24,6 +25,40 @@ reviewRouter.use(authMiddleware);
 function getOrgId(req: Request): string | null {
   return (req as any).user?.organizationId || (req.headers['x-organization-id'] as string) || null;
 }
+
+// --- Phase 6: Product Quality Evaluation Endpoint ---
+reviewRouter.get('/quality/:productId', async (req: Request, res: Response) => {
+  const productId = req.params.productId as string;
+  try {
+    const report = await ProductDataQualityService.evaluateProductQuality(productId);
+    return res.json({ success: true, report });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to evaluate product quality', details: err.message });
+  }
+});
+
+// --- Phase 6: Human Review Correction with Provenance ---
+reviewRouter.post('/quality/:productId/correct', async (req: Request, res: Response) => {
+  const productId = req.params.productId as string;
+  const userId = (req as any).user?.userId;
+  const { corrections, correctionReason } = req.body;
+
+  if (!corrections || !correctionReason) {
+    return res.status(400).json({ error: 'corrections object and correctionReason are required' });
+  }
+
+  try {
+    const result = await ProductDataQualityService.applyHumanCorrection({
+      productId,
+      userId,
+      corrections,
+      correctionReason,
+    });
+    return res.json({ success: true, result });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to apply human correction', details: err.message });
+  }
+});
 
 // 0. POST /api/v1/review/analyze-identity - Real Multi-Evidence Identity Resolution (Phase 2)
 reviewRouter.post('/analyze-identity', async (req: Request, res: Response) => {
