@@ -20,7 +20,11 @@ import {
   AlertCircle,
   Check,
   Download,
-  FileCode
+  FileCode,
+  HelpCircle,
+  FolderTree,
+  Terminal,
+  UploadCloud
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -44,6 +48,9 @@ export default function StoresPage() {
   const [wooConsumerSecret, setWooConsumerSecret] = useState('');
   const [openCartUsername, setOpenCartUsername] = useState('');
   const [openCartApiKey, setOpenCartApiKey] = useState('');
+
+  // OpenCart Guide Modal
+  const [showGuideModal, setShowGuideModal] = useState(false);
 
   async function loadStores() {
     try {
@@ -146,6 +153,14 @@ export default function StoresPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => setShowGuideModal(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs rounded-xl border border-emerald-200 transition"
+          >
+            <HelpCircle className="w-4 h-4 text-emerald-700" />
+            <span>OpenCart Setup Guide</span>
+          </button>
+
           <a
             href="http://localhost:4000/api/v1/stores/download-bridge"
             download="saas_bridge.php"
@@ -153,7 +168,7 @@ export default function StoresPage() {
             title="Download PHP bridge for OpenCart stores"
           >
             <Download className="w-4 h-4 text-[#0d2a2c]" />
-            <span>Download OpenCart Bridge</span>
+            <span>Download saas_bridge.php</span>
           </a>
 
           <button
@@ -352,6 +367,101 @@ export default function StoresPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* OpenCart Setup Help Modal */}
+      {showGuideModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 sm:p-7 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                  <FileCode className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 text-base">OpenCart Bridge Setup Guide</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">Follow these 3 easy steps to connect OpenCart catalog live</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGuideModal(false)}
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 text-xs text-slate-700">
+              {/* Step 1 */}
+              <div className="flex items-start gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                <div className="w-6 h-6 rounded-full bg-[#0d2a2c] text-[#fad982] flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                  1
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-slate-900">Download Bridge File</h4>
+                  <p className="text-slate-600">
+                    Click the button below to download the official OpenCart connector script:
+                  </p>
+                  <div className="pt-1.5">
+                    <a
+                      href="http://localhost:4000/api/v1/stores/download-bridge"
+                      download="saas_bridge.php"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold rounded-lg transition"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download saas_bridge.php</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="flex items-start gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                <div className="w-6 h-6 rounded-full bg-[#0d2a2c] text-[#fad982] flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                  2
+                </div>
+                <div className="space-y-2">
+                  <h4 className="font-bold text-slate-900">Upload to OpenCart Root Folder (cPanel / FTP)</h4>
+                  <p className="text-slate-600">
+                    Log in to your hosting cPanel File Manager or FTP (FileZilla) and upload <code className="bg-slate-200 px-1 py-0.5 rounded font-mono text-[11px]">saas_bridge.php</code> directly into your OpenCart root directory (right next to <code className="font-mono text-[11px]">config.php</code> and <code className="font-mono text-[11px]">index.php</code>).
+                  </p>
+                  <div className="p-3 bg-slate-900 text-slate-200 rounded-xl font-mono text-[11px] space-y-1">
+                    <div className="text-slate-400">// Your OpenCart root directory should look like this:</div>
+                    <div>📁 public_html/ (or store root folder)</div>
+                    <div>&nbsp;&nbsp;├── 📄 config.php</div>
+                    <div>&nbsp;&nbsp;├── 📄 index.php</div>
+                    <div className="text-emerald-400 font-bold">&nbsp;&nbsp;├── 📄 saas_bridge.php &nbsp;&nbsp;&lt;-- Paste here</div>
+                    <div>&nbsp;&nbsp;├── 📁 catalog/</div>
+                    <div>&nbsp;&nbsp;└── 📁 system/</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="flex items-start gap-3 p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                <div className="w-6 h-6 rounded-full bg-[#0d2a2c] text-[#fad982] flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                  3
+                </div>
+                <div className="space-y-1">
+                  <h4 className="font-bold text-slate-900">Verify & Push Products</h4>
+                  <p className="text-slate-600">
+                    Once uploaded, go to any product on SaaS and click <strong>"Push to OpenCart"</strong>. The bridge will automatically receive the canonical product title, pricing, model, and images, and insert them directly into your live OpenCart store!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowGuideModal(false)}
+                className="px-5 py-2.5 text-xs font-bold bg-[#0d2a2c] hover:bg-[#143d40] text-white rounded-xl shadow-sm transition"
+              >
+                Got It, Thanks!
+              </button>
+            </div>
           </div>
         </div>
       )}
