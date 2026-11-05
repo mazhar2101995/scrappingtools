@@ -403,12 +403,15 @@ export default function ProductsPage() {
     try {
       setLoadingBrands(true);
       const list = await apiClient.getBrands();
-      setBrandsList(Array.isArray(list) ? list : []);
-      if (Array.isArray(list) && list.length > 0 && !batchBrandId) {
-        setBatchBrandId(list[0].id);
+      const cleanList = Array.isArray(list) ? list : [];
+      setBrandsList(cleanList);
+      if (cleanList.length > 0) {
+        setBatchBrandId(cleanList[0].id);
+      } else {
+        setBatchBrandId('');
       }
     } catch (e) {
-      console.error(e);
+      console.error('Failed to load brands for batch modal:', e);
     } finally {
       setLoadingBrands(false);
     }
@@ -1159,18 +1162,31 @@ export default function ProductsPage() {
                   <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
                     Select Target Brand Profile
                   </label>
-                  <select
-                    required
-                    value={batchBrandId}
-                    onChange={(e) => setBatchBrandId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
-                  >
-                    {brandsList.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name} ({b.officialWebsite || 'No website'})
-                      </option>
-                    ))}
-                  </select>
+                  {loadingBrands ? (
+                    <div className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-400">
+                      Loading configured brand profiles...
+                    </div>
+                  ) : brandsList.length === 0 ? (
+                    <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center justify-between">
+                      <span>No Brand Profiles found. Please create one first in Brand Profiles.</span>
+                      <Link href="/brands" className="underline font-bold ml-2">
+                        Create Brand
+                      </Link>
+                    </div>
+                  ) : (
+                    <select
+                      required
+                      value={batchBrandId}
+                      onChange={(e) => setBatchBrandId(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                    >
+                      {brandsList.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.officialWebsite || 'No website'})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
 
                 <div>
