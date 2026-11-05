@@ -26,7 +26,9 @@ import {
   TrendingUp,
   BarChart3,
   Check,
-  Sparkles
+  Sparkles,
+  KeyRound,
+  Webhook
 } from 'lucide-react';
 import { apiClient, PlatformAdminData } from '@/lib/api-client';
 
@@ -97,26 +99,25 @@ export default function PlatformAdminControlCenter() {
   const successRate = totalJobs > 0 ? ((successJobs / totalJobs) * 100).toFixed(1) : '100.0';
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto font-sans">
-      {/* Platform Status Header (White & Gold Luxury Card) */}
-      <div className="p-7 rounded-3xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
+      {/* Platform Banner */}
+      <div className="p-7 rounded-3xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#fad982]/50 text-[#7a5e12] border border-[#ebd085] uppercase tracking-wider font-mono">
-              MASTER TELEMETRY
+              GLOBAL PLATFORM TELEMETRY
             </span>
-            <span className="text-xs text-slate-500 font-mono">Platform Admin Privileges Active</span>
+            <span className="text-xs text-slate-500 font-mono">Phase 1 to Phase 7 Live Engine</span>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">
-            SaaS Platform Command & Intelligence Center
+            Platform Operations &amp; Intelligence Gateway
           </h1>
-          <p className="text-xs text-slate-500 mt-1 max-w-2xl font-medium">
-            Global cross-tenant data lake monitoring, BullMQ cluster queues, multi-tenant brand isolation, and LLM token economics.
+          <p className="text-xs text-slate-500 mt-1 font-medium">
+            Cross-tenant intelligence deduplication, data quality scores, human review queue, and integration traffic.
           </p>
         </div>
 
-        {/* Quick Action Badges */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <Link
             href="/admin/organizations"
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-[#fff9e6] border border-[#e5d8b5] text-[#7a5e12] text-xs font-bold transition shadow-xs"
@@ -179,16 +180,17 @@ export default function PlatformAdminControlCenter() {
             </div>
             <span className="text-xs text-slate-700 font-bold">BullMQ Workers</span>
           </div>
-          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${systemStatus.workers === 'healthy'
+          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${
+            systemStatus.workers === 'healthy'
               ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
               : 'bg-amber-100 text-amber-900 border border-amber-200'
-            }`}>
+          }`}>
             {systemStatus.workers}
           </span>
         </div>
       </div>
 
-      {/* Phase 1: Smart Data Reuse & Deduplication Telemetry Banner */}
+      {/* Phase 1 & 2: Smart Data Reuse & Deduplication Telemetry Banner */}
       <div className="p-5 rounded-3xl bg-gradient-to-r from-emerald-50 via-amber-50 to-white border border-[#ebdcb9] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-sm">
@@ -196,13 +198,13 @@ export default function PlatformAdminControlCenter() {
           </div>
           <div>
             <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
-              <span>Global Product Intelligence & Smart Data Reuse</span>
+              <span>Global Product Intelligence &amp; Smart Data Reuse</span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 uppercase font-mono">
                 {globalMetrics.dataReuseRatePercent ?? 0}% Reuse Rate
               </span>
             </h3>
             <p className="text-xs text-slate-600 mt-0.5">
-              Across {globalMetrics.totalOrganizations} tenant organizations, <strong className="text-slate-900 font-mono">{globalMetrics.duplicateScrapesPrevented ?? 0} duplicate scrape jobs</strong> and unnecessary AI inference calls have been completely eliminated through canonical identity reuse.
+              Across {globalMetrics.totalOrganizations} tenant organizations, <strong className="text-slate-900 font-mono">{globalMetrics.duplicateScrapesPrevented ?? 0} duplicate scrape jobs</strong> and redundant AI token executions have been prevented through canonical identity resolution.
             </p>
           </div>
         </div>
@@ -218,7 +220,7 @@ export default function PlatformAdminControlCenter() {
         </div>
       </div>
 
-      {/* 4 Primary Visual KPI Cards with Micro-Graphs */}
+      {/* 4 Primary Visual KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Tenants */}
         <Link href="/admin/organizations" className="block group">
@@ -272,39 +274,86 @@ export default function PlatformAdminControlCenter() {
             </div>
             <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
               <span>{globalMetrics.aiExecutions} inference calls</span>
-              <span className="text-purple-600 font-bold font-mono">Gemini & GPT</span>
+              <span className="text-purple-600 font-bold font-mono">Gemini &amp; GPT</span>
             </div>
           </div>
         </Link>
 
-        {/* Metric 4: Platform Scraping Engine */}
-        <Link href="/admin/jobs" className="block group">
+        {/* Metric 4: Human Review Center (Phase 6) */}
+        <Link href="/admin/review" className="block group">
           <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] hover:border-[#d4af37] transition shadow-xs">
             <div className="flex items-center justify-between text-slate-500 mb-2 font-medium">
-              <span className="text-xs uppercase tracking-wider font-bold">Pipeline Reliability</span>
-              <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
-                <Activity className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              <span className="text-xs uppercase tracking-wider font-bold">Review Center Queue</span>
+              <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                <ShieldAlert className="w-4 h-4 group-hover:scale-110 transition-transform" />
               </div>
             </div>
-            <div className="text-3xl font-black text-emerald-700 font-mono">
-              {successRate}%
+            <div className="text-3xl font-black text-amber-700 font-mono">
+              {data.globalMetrics.pendingReviewCount ?? 0}
             </div>
             <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
-              <span>{successJobs} completed / {totalJobs} total</span>
-              <span className="text-emerald-600 font-bold">BullMQ</span>
+              <span>Identity &amp; Checksum Issues</span>
+              <span className="text-amber-700 font-bold">Phase 6 Active</span>
             </div>
           </div>
         </Link>
       </div>
 
-      {/* Visual Analytics & Breakdown Section (Graph Simulation) */}
+      {/* Integration Gateway Quick Stats (Phase 7) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link href="/admin/integrations" className="p-4 bg-white border border-[#ebdcb9] rounded-2xl shadow-xs flex items-center justify-between hover:border-amber-400 transition">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
+              <KeyRound className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900">Integration API Keys</div>
+              <div className="text-[10px] text-slate-500">Active tenant external credentials</div>
+            </div>
+          </div>
+          <ArrowUpRight className="w-4 h-4 text-slate-400" />
+        </Link>
+
+        <Link href="/admin/integrations" className="p-4 bg-white border border-[#ebdcb9] rounded-2xl shadow-xs flex items-center justify-between hover:border-amber-400 transition">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
+              <Webhook className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-slate-900">Signed HMAC Webhooks</div>
+              <div className="text-[10px] text-slate-500">Real-time catalog event subscriptions</div>
+            </div>
+          </div>
+          <ArrowUpRight className="w-4 h-4 text-slate-400" />
+        </Link>
+
+        <a
+          href="http://localhost:4000/api/docs"
+          target="_blank"
+          rel="noreferrer"
+          className="p-4 bg-slate-900 text-white rounded-2xl shadow-xs flex items-center justify-between hover:bg-slate-800 transition"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold">
+              API
+            </div>
+            <div>
+              <div className="text-xs font-bold">Interactive OpenAPI Docs</div>
+              <div className="text-[10px] text-slate-400">Swagger UI at /api/docs</div>
+            </div>
+          </div>
+          <ExternalLink className="w-4 h-4 text-amber-400" />
+        </a>
+      </div>
+
+      {/* Visual Analytics & Breakdown Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 2 Cols: Ingestion & Scraping Activity Stream */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <Activity className="w-4 h-4 text-[#9c7f23]" />
-              <span>Real-Time Ingestion & Extraction Stream</span>
+              <span>Real-Time Ingestion &amp; Extraction Stream</span>
             </h3>
             <span className="text-xs text-slate-400 font-mono">Live Redis Queue Stream</span>
           </div>
@@ -336,12 +385,13 @@ export default function PlatformAdminControlCenter() {
                         {a.jobType}
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${a.status === 'completed'
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                          a.status === 'completed'
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                             : a.status === 'failed'
-                              ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                              : 'bg-sky-100 text-sky-800 border border-sky-200 animate-pulse'
-                          }`}>
+                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                            : 'bg-sky-100 text-sky-800 border border-sky-200 animate-pulse'
+                        }`}>
                           {a.status}
                         </span>
                       </td>
@@ -365,38 +415,38 @@ export default function PlatformAdminControlCenter() {
 
           <div className="p-5 rounded-3xl border border-[#ebdcb9] bg-white space-y-3.5 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-900">Tenant Organizations</span>
-              <span className="text-xs font-mono font-bold text-[#9c7f23] bg-[#faf4e1] px-2 py-0.5 rounded-full">
-                {globalMetrics.totalOrganizations} Active
+              <span className="text-xs font-bold text-slate-900">Human Review Center</span>
+              <span className="text-xs font-mono font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                Phase 6 Verified
               </span>
             </div>
             <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-              Inspect individual merchant scraping jobs, mapped brand profiles, and catalog exports.
+              Inspect GTIN checksum collisions, review priority conflicts, and approve canonical merges.
             </p>
             <Link
-              href="/admin/organizations"
+              href="/admin/review"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8a6e19] hover:text-[#5c4709] transition"
             >
-              <span>Inspect Tenants & Log in As</span>
+              <span>Open Review Center</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           <div className="p-5 rounded-3xl border border-[#ebdcb9] bg-white space-y-3.5 shadow-xs">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-900">Global Brand Profiles</span>
-              <span className="text-xs font-mono font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-full">
-                Repository
+              <span className="text-xs font-bold text-slate-900">Integration Traffic Gateway</span>
+              <span className="text-xs font-mono font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
+                Phase 7 Active
               </span>
             </div>
             <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-              Explore global click-to-map CSS selectors and field configurations across all brands.
+              Monitor active tenant API keys, external rate limits, and webhook dispatch audits.
             </p>
             <Link
-              href="/admin/brands"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-sky-700 hover:text-sky-900 transition"
+              href="/admin/integrations"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 hover:text-teal-900 transition"
             >
-              <span>Explore Global Brand Matrix</span>
+              <span>View Integration Gateway</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
           </div>

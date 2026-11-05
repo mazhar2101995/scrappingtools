@@ -16,6 +16,20 @@ export interface ClientWorkspaceData {
     connectedStoresCount: number;
     failedSyncsCount: number;
     dataQualityScore: number;
+    qualityDistribution?: {
+      verified: number;
+      highConfidence: number;
+      needsReview: number;
+      incomplete: number;
+      conflict: number;
+      stale: number;
+    };
+    intelligenceValue?: {
+      reusedFromIntelligence: number;
+      discoveredFromTrusted: number;
+      enrichedWithAi: number;
+      duplicateMergesPrevented: number;
+    };
   };
   needsAttention: Array<{
     id: string;
@@ -671,6 +685,33 @@ export class DashboardApiClient {
   }
 
   // --- Price & Stock Monitoring ---
+  async getProductQuality(productId: string): Promise<any> {
+    return this.fetchJson(`/review/quality/${productId}`, {}, 'client');
+  }
+
+  async applyProductCorrection(productId: string, payload: {
+    canonicalTitle?: string;
+    modelNumber?: string;
+    standardizedDescription?: string;
+    reason: string;
+  }): Promise<any> {
+    return this.fetchJson(`/review/quality/${productId}/correct`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async discoverProduct(payload: {
+    type?: 'URL' | 'IDENTIFIER';
+    value: string;
+    brandHint?: string;
+  }): Promise<any> {
+    return this.fetchJson('/products/discover', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
   async getProductMonitoring(productId: string): Promise<any> {
     return this.fetchJson(`/products/${productId}/monitoring`, {}, 'client');
   }

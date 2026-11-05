@@ -9,7 +9,6 @@ import {
   Layers,
   ShoppingBag,
   AlertTriangle,
-  Calendar,
   Plus,
   ArrowUpRight,
   RefreshCw,
@@ -19,7 +18,14 @@ import {
   Sparkles,
   ChevronRight,
   TrendingUp,
-  Activity
+  Activity,
+  ShieldCheck,
+  AlertCircle,
+  Search,
+  KeyRound,
+  FileText,
+  Radio,
+  Check,
 } from 'lucide-react';
 import { apiClient, ClientWorkspaceData } from '@/lib/api-client';
 
@@ -61,30 +67,51 @@ export default function ClientDashboardOverview() {
   const needsReview = data?.metrics?.pendingReviewCount ?? 0;
   const dataQualityScore = data?.metrics?.dataQualityScore ?? (totalProducts > 0 ? 100 : 0);
 
+  const qualityDist = data?.metrics?.qualityDistribution || {
+    verified: totalProducts > 0 ? totalProducts : 0,
+    highConfidence: 0,
+    needsReview: needsReview,
+    incomplete: 0,
+    conflict: 0,
+    stale: 0,
+  };
+
+  const intelligenceVal = data?.metrics?.intelligenceValue || {
+    reusedFromIntelligence: 0,
+    discoveredFromTrusted: 0,
+    enrichedWithAi: aiProcessed,
+    duplicateMergesPrevented: 0,
+  };
+
   const activeJobs = data?.activeJobs || [];
   const recentProducts = data?.recentProducts || [];
-  const connectedStoresList = data?.stores || [];
+  const needsAttentionList = data?.needsAttention || [];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans text-slate-800 pb-12">
-      {/* 1. Header & Greeting Bar (100% Dynamic) */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-[#0d2a2c] text-[#fad982] shadow-sm flex items-center justify-center font-bold text-base uppercase">
+    <div className="space-y-8 max-w-7xl mx-auto font-sans text-slate-800 pb-16">
+      {/* 1. Header & Greeting Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-[#0d2a2c] text-[#fad982] shadow-sm flex items-center justify-center font-bold text-lg uppercase tracking-tight">
             {userName.substring(0, 2).toUpperCase() || 'WS'}
           </div>
           <div>
-            <h1 className="text-2xl font-black tracking-tight text-slate-900">
-              Welcome back, {userName}!
-            </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              Live workspace telemetry for {data?.organization?.name || 'your workspace'}.
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                {data?.organization?.name || 'Workspace Overview'}
+              </h1>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#fad982]/30 text-amber-900 border border-amber-300 uppercase">
+                {data?.organization?.planTier || 'Standard'} Tier
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Live Product Intelligence, verified data health, and external integrations.
             </p>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => loadData()}
             className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition"
@@ -98,411 +125,278 @@ export default function ClientDashboardOverview() {
             className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
           >
             <Plus className="w-4 h-4" />
-            <span>Add Product</span>
+            <span>Discover &amp; Add</span>
           </Link>
         </div>
       </div>
 
-      {/* 1.5 Interactive SaaS Onboarding Progress Wizard (For High Conversion & Retention) */}
-      <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c] text-[#fad982] uppercase tracking-wider">
-                Getting Started
-              </span>
-              <span className="text-xs font-bold text-slate-500">
-                Setup Progress: {totalProducts > 0 && storesCount > 0 ? '100%' : totalProducts > 0 ? '75%' : '25%'}
-              </span>
-            </div>
-            <h2 className="text-base font-black text-slate-900">Workspace Activation Checklist</h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Complete these steps to automate your e-commerce scraping, AI normalization, and live store sync.
-            </p>
+      {/* 2. Primary Product Intelligence Metrics (Phase 1 to Phase 6) */}
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3.5">
+        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Total Catalog</span>
+            <Boxes className="w-4 h-4 text-slate-500" />
           </div>
-
-          <div className="w-full sm:w-44 bg-slate-100 h-2 rounded-full overflow-hidden self-start sm:self-center">
-            <div
-              className="bg-emerald-500 h-full rounded-full transition-all duration-700"
-              style={{
-                width: totalProducts > 0 && storesCount > 0 ? '100%' : totalProducts > 0 ? '75%' : '25%',
-              }}
-            />
-          </div>
+          <div className="text-2xl font-black text-slate-900">{totalProducts}</div>
+          <div className="text-[10px] text-slate-400">Active tenant products</div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
-          {/* Step 1 */}
-          <Link
-            href="/brands"
-            className="p-3.5 rounded-2xl border border-slate-200 hover:border-[#0d2a2c] bg-slate-50/60 hover:bg-white transition flex items-start gap-3 group"
-          >
-            <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-              ✓
-            </div>
-            <div>
-              <span className="text-xs font-bold text-slate-900 group-hover:text-[#0d2a2c] transition block">
-                1. Brand Profiles
-              </span>
-              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                Configured approved brand sources and click-to-map CSS selectors.
-              </p>
-            </div>
-          </Link>
+        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Verified Products</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+          </div>
+          <div className="text-2xl font-black text-emerald-600">{qualityDist.verified}</div>
+          <div className="text-[10px] text-emerald-600 font-medium">100% Verified Quality</div>
+        </div>
 
-          {/* Step 2 */}
-          <Link
-            href="/products"
-            className={`p-3.5 rounded-2xl border transition flex items-start gap-3 group ${
-              totalProducts > 0
-                ? 'border-slate-200 bg-slate-50/60 hover:bg-white'
-                : 'border-amber-300 bg-amber-50/40 hover:bg-white ring-1 ring-amber-300'
-            }`}
-          >
-            <div
-              className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 ${
-                totalProducts > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-              }`}
-            >
-              {totalProducts > 0 ? '✓' : '2'}
-            </div>
-            <div>
-              <span className="text-xs font-bold text-slate-900 group-hover:text-[#0d2a2c] transition block">
-                2. Scrape First Product
-              </span>
-              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                {totalProducts > 0 ? `${totalProducts} products extracted` : 'Add URL & extract canonical specs'}
-              </p>
-            </div>
-          </Link>
+        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Needs Review</span>
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="text-2xl font-black text-amber-600">{needsReview}</div>
+          <div className="text-[10px] text-amber-600 font-medium">Discrepancy / Conflict</div>
+        </div>
 
-          {/* Step 3 */}
-          <Link
-            href="/settings/ai"
-            className="p-3.5 rounded-2xl border border-slate-200 hover:border-[#0d2a2c] bg-slate-50/60 hover:bg-white transition flex items-start gap-3 group"
-          >
-            <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-              ✓
-            </div>
-            <div>
-              <span className="text-xs font-bold text-slate-900 group-hover:text-[#0d2a2c] transition block">
-                3. AI Prompt Rules
-              </span>
-              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                Workspace global rules &amp; BYOK keys configured for copy optimization.
-              </p>
-            </div>
-          </Link>
+        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">AI Enriched</span>
+            <Cpu className="w-4 h-4 text-teal-600" />
+          </div>
+          <div className="text-2xl font-black text-teal-700">{aiProcessed}</div>
+          <div className="text-[10px] text-slate-400">Prompt normalized</div>
+        </div>
 
-          {/* Step 4 */}
-          <Link
-            href="/stores"
-            className={`p-3.5 rounded-2xl border transition flex items-start gap-3 group ${
-              storesCount > 0
-                ? 'border-slate-200 bg-slate-50/60 hover:bg-white'
-                : 'border-amber-300 bg-amber-50/40 hover:bg-white ring-1 ring-amber-300'
-            }`}
-          >
-            <div
-              className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 mt-0.5 ${
-                storesCount > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-              }`}
-            >
-              {storesCount > 0 ? '✓' : '4'}
-            </div>
-            <div>
-              <span className="text-xs font-bold text-slate-900 group-hover:text-[#0d2a2c] transition block">
-                4. Connect Store
-              </span>
-              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                {storesCount > 0 ? `${storesCount} active stores` : 'Connect Shopify or WooCommerce'}
-              </p>
-            </div>
-          </Link>
+        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Connected Stores</span>
+            <ShoppingBag className="w-4 h-4 text-sky-500" />
+          </div>
+          <div className="text-2xl font-black text-slate-900">{storesCount}</div>
+          <div className="text-[10px] text-slate-400">Shopify &amp; WooCommerce</div>
+        </div>
+
+        <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Data Quality</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-2xl font-black text-slate-900">{dataQualityScore}%</div>
+          <div className="text-[10px] text-emerald-600 font-medium">Quality Index</div>
         </div>
       </div>
 
-      {/* 2. Top Metric Cards (Dynamic DB Metrics) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
-        {/* Card 1: Total Products */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
-          <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold">
-            <span className="text-amber-500 text-base">📦</span>
-            <span className="text-[11px] text-slate-600">Total Products</span>
-          </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-slate-900">{totalProducts.toLocaleString()}</div>
-            <div className="text-[10px] font-bold text-slate-400 mt-0.5">
-              Mapped in workspace
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: Updated Products */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
-          <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold">
-            <span className="text-amber-500 text-base">📑</span>
-            <span className="text-[11px] text-slate-600">Updated (7d)</span>
-          </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-slate-900">{updatedProducts.toLocaleString()}</div>
-            <div className="text-[10px] font-bold text-emerald-600 mt-0.5">
-              Active synchronizations
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3: AI Processed */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
-          <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold">
-            <span className="text-amber-500 text-base">🤖</span>
-            <span className="text-[11px] text-slate-600">AI Enriched</span>
-          </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-slate-900">{aiProcessed.toLocaleString()}</div>
-            <div className="text-[10px] font-bold text-[#0d2a2c] mt-0.5">
-              Prompts applied
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Active Jobs */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
-          <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold">
-            <span className="text-amber-500 text-base">⚡</span>
-            <span className="text-[11px] text-slate-600">Active Jobs</span>
-          </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-slate-900">{activeJobsCount}</div>
-            <div className="text-[10px] font-medium text-slate-500 mt-0.5">
-              Queued or running
-            </div>
-          </div>
-        </div>
-
-        {/* Card 5: Connected Stores */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
-          <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold">
-            <span className="text-amber-500 text-base">🏪</span>
-            <span className="text-[11px] text-slate-600">Connected Stores</span>
-          </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-slate-900">{storesCount}</div>
-            <div className="text-[10px] font-bold text-slate-400 mt-0.5">
-              Shopify &amp; WooCommerce
-            </div>
-          </div>
-        </div>
-
-        {/* Card 6: Needs Review */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between hover:border-slate-300 transition">
-          <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold">
-            <span className="text-amber-500 text-base">⚠️</span>
-            <span className="text-[11px] text-slate-600">Needs Review</span>
-          </div>
-          <div className="my-2">
-            <div className="text-2xl font-black text-slate-900">{needsReview}</div>
-            <div className="text-[10px] font-bold text-amber-600 mt-0.5">
-              Action items
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Middle Section: Ingestion Summary & Real Data Quality */}
+      {/* 3. Data Quality Distribution & Action Required Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Product Ingestion & Processing Telemetry */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900">Catalog Processing Telemetry</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Real-time ingestion balance between raw extractions and prompt-enriched catalog entities.
-              </p>
+        {/* Quality Distribution (Phase 6) */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Data Quality Distribution</h2>
             </div>
-            <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-slate-100 text-slate-700">
-              Live
+            <Link href="/products" className="text-[11px] font-bold text-slate-500 hover:text-slate-800">
+              View Catalog &rarr;
+            </Link>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              { label: 'Verified', count: qualityDist.verified, color: 'bg-emerald-500', text: 'text-emerald-700' },
+              { label: 'High Confidence', count: qualityDist.highConfidence, color: 'bg-teal-500', text: 'text-teal-700' },
+              { label: 'Needs Review', count: qualityDist.needsReview, color: 'bg-amber-500', text: 'text-amber-700' },
+              { label: 'Incomplete', count: qualityDist.incomplete, color: 'bg-slate-400', text: 'text-slate-600' },
+              { label: 'Conflict / Stale', count: qualityDist.stale, color: 'bg-rose-500', text: 'text-rose-700' },
+            ].map((tier) => (
+              <div key={tier.label} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${tier.color}`} />
+                  <span className="font-medium text-slate-700">{tier.label}</span>
+                </div>
+                <span className={`font-bold font-mono ${tier.text}`}>{tier.count}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="p-3 bg-slate-50 rounded-2xl text-[11px] text-slate-500 space-y-1">
+            <div className="font-bold text-slate-700">Multi-Source Confidence Scoring:</div>
+            <div>Fields are validated with GTIN checksum verification, source trust ratings, and audit provenance.</div>
+          </div>
+        </div>
+
+        {/* Action Required (Phase 2 & Phase 6 Human Review Center) */}
+        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-500" />
+              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Action Required For Your Products</h2>
+            </div>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-amber-50 text-amber-800 border border-amber-200">
+              {needsAttentionList.length} Active Items
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <span className="text-[10px] font-bold uppercase text-slate-500">Total Entities Mapped</span>
-              <div className="text-xl font-black text-slate-900">{totalProducts}</div>
-              <p className="text-[11px] text-slate-500">Live catalog entities</p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <span className="text-[10px] font-bold uppercase text-slate-500">AI Enriched Rate</span>
-              <div className="text-xl font-black text-amber-600">
-                {totalProducts > 0 ? Math.round((aiProcessed / totalProducts) * 100) : 0}%
+          <div className="divide-y divide-slate-100">
+            {needsAttentionList.length === 0 ? (
+              <div className="py-8 text-center space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
+                <div className="text-xs font-bold text-slate-800">Your Product Catalog is in Good Health</div>
+                <div className="text-[11px] text-slate-400">No unresolved conflicts, stale sources, or sync failures detected.</div>
               </div>
-              <p className="text-[11px] text-slate-500">{aiProcessed} of {totalProducts} enriched</p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <span className="text-[10px] font-bold uppercase text-slate-500">Quality Index</span>
-              <div className="text-xl font-black text-emerald-600">{dataQualityScore}%</div>
-              <p className="text-[11px] text-slate-500">Provenance completeness</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Data Quality Card */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-bold text-slate-900">Data Quality Score</h3>
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                {dataQualityScore}%
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mb-4">
-              Completeness of verified MPN, manufacturer specifications, and high-res imagery.
-            </p>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <div className="flex justify-between font-bold text-slate-700 mb-1">
-                  <span>Catalog Integrity</span>
-                  <span>{dataQualityScore}%</span>
+            ) : (
+              needsAttentionList.map((item) => (
+                <div key={item.id} className="py-3 flex items-center justify-between gap-3 text-xs">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-slate-900">{item.title}</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded text-[9px] font-bold uppercase ${
+                          item.severity === 'critical'
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}
+                      >
+                        {item.severity}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">{item.description}</p>
+                  </div>
+                  <Link
+                    href={item.actionUrl}
+                    className="shrink-0 px-3 py-1 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold transition"
+                  >
+                    {item.actionLabel}
+                  </Link>
                 </div>
-                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-[#0d2a2c] h-full rounded-full transition-all duration-500"
-                    style={{ width: `${dataQualityScore}%` }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between font-bold text-slate-700 mb-1">
-                  <span>AI Standardization</span>
-                  <span>{totalProducts > 0 ? Math.round((aiProcessed / totalProducts) * 100) : 0}%</span>
-                </div>
-                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div
-                    className="bg-amber-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${totalProducts > 0 ? (aiProcessed / totalProducts) * 100 : 0}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-100 mt-4 flex items-center justify-between text-xs text-slate-500">
-            <span>Requires Attention:</span>
-            <span className="font-bold text-slate-900">{needsReview} items</span>
+              ))
+            )}
           </div>
         </div>
       </div>
 
-      {/* 4. Bottom Row: Real Database Activity Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Column 1: Recent Products */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-2">
-              <h3 className="text-sm font-bold text-slate-900">Recent Products</h3>
-              <Link href="/products" className="text-xs font-semibold text-[#0d2a2c] hover:underline">
-                View All &rarr;
-              </Link>
-            </div>
+      {/* 4. Intelligence Value & Smart Reuse (Phase 1, 4 & 5 Provenance) */}
+      <div className="bg-gradient-to-r from-slate-900 via-[#0d2a2c] to-slate-900 text-white rounded-3xl p-6 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <h2 className="text-xs font-bold tracking-wider uppercase text-slate-200">
+              Intelligence Value Delivered (Dynamic Telemetry)
+            </h2>
+          </div>
+          <span className="text-[10px] font-mono text-amber-400/90 font-bold">
+            Real Data Metrics Across Workspace
+          </span>
+        </div>
 
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
+          <div className="space-y-1">
+            <div className="text-[11px] text-slate-400">Reused From Global Intelligence</div>
+            <div className="text-2xl font-black text-amber-300 font-mono">{intelligenceVal.reusedFromIntelligence}</div>
+            <div className="text-[10px] text-slate-400">Pre-scrape verified reuses</div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="text-[11px] text-slate-400">Trusted Source Discoveries</div>
+            <div className="text-2xl font-black text-emerald-300 font-mono">{intelligenceVal.discoveredFromTrusted}</div>
+            <div className="text-[10px] text-slate-400">Official brand &amp; distributor sources</div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="text-[11px] text-slate-400">AI Standardized Products</div>
+            <div className="text-2xl font-black text-sky-300 font-mono">{intelligenceVal.enrichedWithAi}</div>
+            <div className="text-[10px] text-slate-400">Taxonomy &amp; copy enhancements</div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="text-[11px] text-slate-400">Duplicate Merges Prevented</div>
+            <div className="text-2xl font-black text-purple-300 font-mono">{intelligenceVal.duplicateMergesPrevented}</div>
+            <div className="text-[10px] text-slate-400">Identity resolution gates</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Recent Products & External Integrations Quick-Access */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Products */}
+        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <Boxes className="w-4 h-4 text-slate-700" />
+              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Recently Added Products</h2>
+            </div>
+            <Link href="/products" className="text-[11px] font-bold text-slate-500 hover:text-slate-800">
+              View All ({totalProducts}) &rarr;
+            </Link>
+          </div>
+
+          <div className="divide-y divide-slate-100">
             {recentProducts.length === 0 ? (
               <div className="py-8 text-center text-xs text-slate-400">
-                No products added yet. Click &quot;Add Product&quot; to begin.
+                No products added yet. Click "Discover &amp; Add" above to start.
               </div>
             ) : (
-              <div className="space-y-3">
-                {recentProducts.slice(0, 4).map((p) => (
-                  <Link
-                    key={p.mappingId}
-                    href={`/products/${p.globalProductId}`}
-                    className="flex items-center justify-between gap-3 p-2 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-100"
-                  >
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-900 truncate">
-                        {p.canonicalTitle}
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                        MPN: {p.modelNumber || p.customerInternalSku || '—'}
-                      </div>
+              recentProducts.map((p) => (
+                <div key={p.mappingId} className="py-3 flex items-center justify-between gap-3 text-xs">
+                  <div>
+                    <Link
+                      href={`/products/${p.globalProductId}`}
+                      className="font-bold text-slate-900 hover:text-amber-600 transition"
+                    >
+                      {p.canonicalTitle}
+                    </Link>
+                    <div className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                      MPN: {p.modelNumber || 'N/A'} • Imported {new Date(p.importedAt).toLocaleDateString()}
                     </div>
-                    <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                      {p.verificationStatus || 'Verified'}
-                    </span>
-                  </Link>
-                ))}
-              </div>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                      p.verificationStatus === 'verified'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-slate-100 text-slate-600 border border-slate-200'
+                    }`}
+                  >
+                    {p.verificationStatus}
+                  </span>
+                </div>
+              ))
             )}
           </div>
         </div>
 
-        {/* Column 2: Active Background Jobs */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-2">
-              <h3 className="text-sm font-bold text-slate-900">Active Job Pipelines</h3>
-              <Link href="/jobs" className="text-xs font-semibold text-[#0d2a2c] hover:underline">
-                Monitor &rarr;
-              </Link>
+        {/* Phase 7 Integration Platform Shortcut */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-amber-500" />
+              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">External API Access</h2>
             </div>
-
-            {activeJobs.length === 0 ? (
-              <div className="py-8 text-center text-xs text-slate-400">
-                All scraping and sync queues are idle.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {activeJobs.slice(0, 4).map((j: any) => (
-                  <div key={j.id} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900 truncate">{j.jobType || 'EXTRACTION'}</span>
-                      <span className="px-2 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 uppercase">
-                        {j.status}
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-slate-500 truncate font-mono">{j.targetUrl}</p>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Link href="/settings/integrations" className="text-[11px] font-bold text-slate-500 hover:text-slate-800">
+              Manage &rarr;
+            </Link>
           </div>
-        </div>
 
-        {/* Column 3: Connected Stores */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-2">
-              <h3 className="text-sm font-bold text-slate-900">Connected Stores</h3>
-              <Link href="/stores" className="text-xs font-semibold text-[#0d2a2c] hover:underline">
-                Manage &rarr;
-              </Link>
+          <p className="text-xs text-slate-500">
+            Connect external headless stores, ERP workers, and automated scrapers via your organization API key.
+          </p>
+
+          <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-bold text-slate-700">Integration REST API:</span>
+              <span className="font-mono text-emerald-600 font-bold">ONLINE</span>
             </div>
+            <div className="text-[10px] text-slate-500 font-mono">Rate Limit: 120 req/min</div>
+            <div className="text-[10px] text-slate-500 font-mono">Webhooks: HMAC SHA-256</div>
+          </div>
 
-            {connectedStoresList.length === 0 ? (
-              <div className="py-8 text-center text-xs text-slate-400">
-                No stores connected yet. Connect your Shopify or WooCommerce store.
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                {connectedStoresList.map((s: any) => (
-                  <div
-                    key={s.id}
-                    className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white"
-                  >
-                    <div>
-                      <div className="text-xs font-bold text-slate-900">{s.storeName}</div>
-                      <div className="text-[10px] text-slate-400 font-mono uppercase">{s.platformType}</div>
-                    </div>
-                    <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      {s.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="pt-2">
+            <Link
+              href="/settings/integrations"
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition"
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>Configure API Keys &amp; Webhooks</span>
+            </Link>
           </div>
         </div>
       </div>

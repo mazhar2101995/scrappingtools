@@ -196,3 +196,4 @@ integrationsRouter.post('/webhooks/test-dispatch', requireScope('products:write'
     return res.status(500).json({ error: 'Failed to dispatch webhook event', details: err.message });
   }
 });
+

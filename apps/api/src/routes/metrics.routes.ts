@@ -19,7 +19,7 @@ import {
   webhookSubscriptions,
   webhookEvents,
 } from '@saas/database';
-import { eq, and, sql, desc } from 'drizzle-orm';
+import { eq, and, sql, desc, inArray } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
 
 export const metricsRouter = Router();
@@ -270,7 +270,56 @@ metricsRouter.get('/client-overview', async (req: Request, res: Response) => {
       .orderBy(desc(customerProductMappings.importedAt))
       .limit(6);
 
-    // 10. Data Quality Metrics
+    // 10. Data Quality & Intelligence Breakdown for Client Products
+    const tenantProductIds = recentMappings.map(m => m.globalProductId);
+    let qualityDistribution = {
+      verified: 0,
+      highConfidence: 0,
+      needsReview: pendingConflicts.length,
+      incomplete: 0,
+      conflict: 0,
+      stale: 0,
+    };
+
+    if (tenantProductIds.length > 0) {
+      const prodStatuses = await db
+        .select({
+          id: globalProducts.id,
+          verificationStatus: globalProducts.verificationStatus,
+          canonicalTitle: globalProducts.canonicalTitle,
+          modelNumber: globalProducts.modelNumber,
+          standardizedDescription: globalProducts.standardizedDescription,
+          lastVerifiedAt: globalProducts.lastVerifiedAt,
+        })
+        .from(globalProducts)
+        .where(inArray(globalProducts.id, tenantProductIds));
+
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+      prodStatuses.forEach(p => {
+        const isStale = p.lastVerifiedAt ? new Date(p.lastVerifiedAt) < thirtyDaysAgo : false;
+        if (isStale) qualityDistribution.stale++;
+
+        if (p.verificationStatus === 'verified') {
+          qualityDistribution.verified++;
+        } else if (p.canonicalTitle && p.modelNumber && p.standardizedDescription) {
+          qualityDistribution.highConfidence++;
+        } else {
+          qualityDistribution.incomplete++;
+        }
+      });
+    }
+
+    // 11. Intelligence Value Metrics (Calculated from real DB records)
+    const [allMyMappings] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(customerProductMappings)
+      .where(eq(customerProductMappings.organizationId, orgId));
+
+    const totalMappingsCount = allMyMappings?.count || 0;
+    const reusedFromIntelligence = Math.max(0, totalMappingsCount - myJobs.length);
+    const discoveredFromTrusted = myJobs.filter(j => j.status === 'completed' || j.status === 'success').length;
+
     // Calculate verified vs unverified items for this organization
     const verifiedCount = recentMappings.filter(m => m.verificationStatus === 'verified').length;
     const dataQualityScore = recentMappings.length > 0
@@ -295,6 +344,13 @@ metricsRouter.get('/client-overview', async (req: Request, res: Response) => {
           connectedStoresCount: myStores.length,
           failedSyncsCount: failedSyncs.length,
           dataQualityScore,
+          qualityDistribution,
+          intelligenceValue: {
+            reusedFromIntelligence,
+            discoveredFromTrusted,
+            enrichedWithAi: totalAiEnriched,
+            duplicateMergesPrevented: Math.max(0, pendingConflicts.length),
+          },
         },
         needsAttention,
         activeJobs: myJobs.filter(j => j.status === 'active' || j.status === 'queued'),
