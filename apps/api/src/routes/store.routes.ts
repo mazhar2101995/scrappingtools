@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { db, connectedStores, storeSyncHistory, storeProductMappings, storeConflictLogs, globalProducts } from '@saas/database';
+import { db, connectedStores, storeSyncHistory, storeProductMappings, storeConflictLogs, globalProducts, customerProductOverrides, productImages, tenantBrandProfiles } from '@saas/database';
 import { eq, and, desc } from 'drizzle-orm';
 import { SynchronizationEngine, CredentialSecurity, OpenCartConnector, ShopifyConnector, WooCommerceConnector } from '@saas/connectors';
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -198,7 +198,7 @@ storeRouter.post('/push-product', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Store not found or does not belong to your organization' });
     }
 
-    // Verify product exists in tenant catalog
+    // Verify product exists in tenant catalog with overrides and brand profile
     const [product] = await db
       .select()
       .from(globalProducts)
@@ -209,23 +209,85 @@ storeRouter.post('/push-product', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Product not found in catalog' });
     }
 
+    // Retrieve tenant overrides (customDescription, customAttributes, price, etc.)
+    const [override] = await db
+      .select()
+      .from(customerProductOverrides)
+      .where(and(eq(customerProductOverrides.organizationId, orgId), eq(customerProductOverrides.globalProductId, productId)))
+      .limit(1);
+
+    // Retrieve full gallery images
+    const dbImages = await db
+      .select()
+      .from(productImages)
+      .where(eq(productImages.globalProductId, productId))
+      .orderBy(productImages.sortOrder);
+
+    // Determine final description: check override, standardized, or construct from field groups
+    let finalDescription = override?.customDescription || product.standardizedDescription || '';
+
+    // If description is empty or user created a description field group, combine grouped fields (e.g. futured, specs, compatible_models)
+    const customAttrs = (override?.customAttributes as any) || {};
+    const customFields = customAttrs.customFields || {};
+    const extractedAttributes = customAttrs.extractedAttributes || {};
+
+    if (!finalDescription.trim()) {
+      const descParts: string[] = [];
+      if (customFields.futured) {
+        descParts.push(`<h3>Features</h3>\n<p>${String(customFields.futured).replace(/\n/g, '<br/>')}</p>`);
+      }
+      if (customFields.compatible_models) {
+        descParts.push(`<h3>Compatible Models</h3>\n<p>${String(customFields.compatible_models).replace(/\n/g, '<br/>')}</p>`);
+      }
+      if (Object.keys(extractedAttributes).length > 0) {
+        let specTable = '<h3>Technical Specifications</h3>\n<table class="table table-bordered">\n<tbody>';
+        for (const [k, v] of Object.entries(extractedAttributes)) {
+          specTable += `<tr><td><strong>${k}</strong></td><td>${v}</td></tr>`;
+        }
+        specTable += '</tbody>\n</table>';
+        descParts.push(specTable);
+      }
+      finalDescription = descParts.join('\n\n');
+    }
+
+    // Determine images list
+    const imagesList: Array<{ url: string; isPrimary: boolean; sortOrder: number }> = [];
+    if (dbImages.length > 0) {
+      dbImages.forEach((img, idx) => {
+        imagesList.push({
+          url: img.originUrl || img.storageUri,
+          isPrimary: img.isPrimary || idx === 0,
+          sortOrder: img.sortOrder || idx,
+        });
+      });
+    } else if (product.primaryImageUrl) {
+      imagesList.push({
+        url: product.primaryImageUrl,
+        isPrimary: true,
+        sortOrder: 0,
+      });
+    }
+
+    // Determine price
+    const finalPrice = customAttrs.price ? parseFloat(String(customAttrs.price).replace(/[^0-9.]/g, '')) || 199.99 : 199.99;
+
     // Dispatch via Connector
     const connector = SynchronizationEngine.createConnector(store);
     const canonicalModel: any = {
       externalId: product.id,
       sku: product.modelNumber || `SKU-${Date.now().toString().slice(-6)}`,
-      name: { en: product.canonicalTitle },
-      description: { en: product.standardizedDescription || '' },
-      brand: 'Catalog Brand',
+      name: { en: override?.customTitle || product.canonicalTitle },
+      description: { en: finalDescription },
+      brand: 'Traxxas',
       modelNumber: product.modelNumber || undefined,
-      price: 199.99,
+      price: finalPrice,
       currency: 'USD',
       stockQuantity: 10,
       stockStatus: 'IN_STOCK',
       productStatus: 'ACTIVE',
-      categories: [product.categoryPath || 'General'],
-      images: product.primaryImageUrl ? [{ url: product.primaryImageUrl, isPrimary: true, sortOrder: 0 }] : [],
-      attributes: {},
+      categories: [override?.customCategory || product.categoryPath || 'General'],
+      images: imagesList,
+      attributes: extractedAttributes,
       variants: [],
     };
 

@@ -89,9 +89,47 @@ if (!$api_query || $api_query->num_rows === 0) {
     exit;
 }
 
-// Helper: Get Active Language ID
-$lang_res = $mysqli->query("SELECT language_id FROM `{$prefix}language` WHERE `status` = 1 ORDER BY `sort_order` ASC LIMIT 1");
-$language_id = ($lang_res && $row = $lang_res->fetch_assoc()) ? (int)$row['language_id'] : 1;
+// Helper: Download remote image to OpenCart image/catalog folder so OpenCart can render it locally
+function download_opencart_image($remote_url, $sku) {
+    if (empty($remote_url) || !filter_var($remote_url, FILTER_VALIDATE_URL)) {
+        return $remote_url;
+    }
+
+    $image_dir = defined('DIR_IMAGE') ? DIR_IMAGE : 'image/';
+    $target_rel_dir = 'catalog/products/';
+    $target_full_dir = rtrim($image_dir, '/') . '/' . $target_rel_dir;
+
+    if (!is_dir($target_full_dir)) {
+        @mkdir($target_full_dir, 0755, true);
+    }
+
+    $ext = pathinfo(parse_url($remote_url, PHP_URL_PATH), PATHINFO_EXTENSION);
+    if (empty($ext) || strlen($ext) > 5) $ext = 'jpg';
+    $safe_name = preg_replace('/[^a-zA-Z0-9_-]/', '_', $sku) . '_' . substr(md5($remote_url), 0, 8) . '.' . $ext;
+    $target_file = $target_full_dir . $safe_name;
+
+    if (!file_exists($target_file)) {
+        $ch = curl_init($remote_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0');
+        $img_data = curl_exec($ch);
+        $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($http_code == 200 && !empty($img_data)) {
+            @file_put_contents($target_file, $img_data);
+        } else {
+            // Fallback: return remote url
+            return $remote_url;
+        }
+    }
+
+    return $target_rel_dir . $safe_name;
+}
+
 
 // Parse Incoming Action & Payload
 $action = isset($_GET['action']) ? trim($_GET['action']) : 'push_product';
@@ -177,10 +215,11 @@ switch ($action) {
         $safe_title = $mysqli->real_escape_string($title);
         $safe_desc = $mysqli->real_escape_string($description);
 
-        // Primary Image & Gallery
+        // Primary Image & Gallery - download and get local relative OpenCart path
         $primary_image = '';
         if (isset($payload['images']) && is_array($payload['images']) && count($payload['images']) > 0) {
-            $primary_image = $payload['images'][0]['url'];
+            $raw_img = $payload['images'][0]['url'];
+            $primary_image = download_opencart_image($raw_img, $sku);
         }
         $safe_image = $mysqli->real_escape_string($primary_image);
 
@@ -377,7 +416,9 @@ switch ($action) {
             if (isset($payload['images']) && is_array($payload['images']) && count($payload['images']) > 1) {
                 $sort = 0;
                 for ($i = 1; $i < count($payload['images']); $i++) {
-                    $img_url = $mysqli->real_escape_string($payload['images'][$i]['url']);
+                    $raw_gallery_url = $payload['images'][$i]['url'];
+                    $local_gallery_path = download_opencart_image($raw_gallery_url, $sku . '_gal_' . $i);
+                    $img_url = $mysqli->real_escape_string($local_gallery_path);
                     if (!empty($img_url)) {
                         $mysqli->query("INSERT INTO `{$prefix}product_image` SET `product_id` = {$product_id}, `image` = '{$img_url}', `sort_order` = {$sort}");
                         $sort++;
