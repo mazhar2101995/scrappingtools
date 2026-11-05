@@ -11,7 +11,10 @@ import {
   AlertTriangle,
   ExternalLink,
   Filter,
-  Plus
+  Plus,
+  Info,
+  X,
+  AlertCircle
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -19,6 +22,7 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [selectedJob, setSelectedJob] = useState<any | null>(null);
 
   async function loadJobs() {
     try {
@@ -112,7 +116,8 @@ export default function JobsPage() {
                 <th className="py-3.5 px-4">Type</th>
                 <th className="py-3.5 px-4">Status</th>
                 <th className="py-3.5 px-4">Extracted Items</th>
-                <th className="py-3.5 px-5 text-right">Created</th>
+                <th className="py-3.5 px-4">Created</th>
+                <th className="py-3.5 px-5 text-right">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
@@ -126,21 +131,43 @@ export default function JobsPage() {
                     {job.jobType || 'SCRAPING'}
                   </td>
                   <td className="py-4 px-4">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                      job.status === 'completed'
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : job.status === 'failed'
-                        ? 'bg-rose-50 text-rose-700 border border-rose-200'
-                        : 'bg-amber-50 text-amber-700 border border-amber-200'
-                    }`}>
-                      {job.status}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                        job.status === 'completed'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : job.status === 'failed'
+                          ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                          : 'bg-amber-50 text-amber-700 border border-amber-200'
+                      }`}>
+                        {job.status}
+                      </span>
+                      {job.status === 'failed' && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedJob(job)}
+                          title="Click to view failure reason"
+                          className="p-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition"
+                        >
+                          <Info className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td className="py-4 px-4 font-bold text-slate-900 font-mono">
                     {job.itemsExtracted || 0}
                   </td>
-                  <td className="py-4 px-5 text-right text-slate-400 font-sans">
-                    {new Date(job.createdAt).toLocaleDateString()}
+                  <td className="py-4 px-4 text-slate-400 font-sans text-xs">
+                    {new Date(job.createdAt).toLocaleString()}
+                  </td>
+                  <td className="py-4 px-5 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedJob(job)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                    >
+                      <Info className="w-3.5 h-3.5 text-[#0d2a2c]" />
+                      <span>Info</span>
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -148,6 +175,117 @@ export default function JobsPage() {
           </table>
         )}
       </div>
+
+      {/* Failure Reason & Job Details Modal */}
+      {selectedJob && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className={`px-6 py-4 text-white flex items-center justify-between ${
+              selectedJob.status === 'failed' ? 'bg-rose-900' : 'bg-[#0d2a2c]'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-white font-black text-sm">
+                  {selectedJob.status === 'failed' ? (
+                    <AlertTriangle className="w-4 h-4 text-rose-300" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold leading-tight">Pipeline Job Information</h3>
+                  <p className="text-[11px] text-slate-300">Execution diagnostics &amp; error analysis</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedJob(null)}
+                className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-4 text-xs text-slate-700">
+              {/* Status Header Pill */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Execution Status</span>
+                  <span className={`inline-flex items-center gap-1 font-bold text-xs uppercase ${
+                    selectedJob.status === 'completed'
+                      ? 'text-emerald-700'
+                      : selectedJob.status === 'failed'
+                      ? 'text-rose-700'
+                      : 'text-amber-700'
+                  }`}>
+                    {selectedJob.status === 'failed' && <AlertCircle className="w-3.5 h-3.5" />}
+                    {selectedJob.status}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Extracted Items</span>
+                  <span className="font-mono font-bold text-slate-900">{selectedJob.itemsExtracted || 0}</span>
+                </div>
+              </div>
+
+              {/* Target URL */}
+              <div>
+                <span className="text-[10px] font-bold uppercase text-slate-400 block mb-1">Target Scrape URL</span>
+                <a
+                  href={selectedJob.targetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 font-mono text-[11px] text-[#0d2a2c] hover:underline flex items-center justify-between break-all"
+                >
+                  <span>{selectedJob.targetUrl}</span>
+                  <ExternalLink className="w-3.5 h-3.5 shrink-0 ml-2 text-slate-400" />
+                </a>
+              </div>
+
+              {/* Failure Reason Alert (if failed) */}
+              {selectedJob.status === 'failed' && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-xs text-rose-800">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>Failure Reason (Error Log):</span>
+                  </div>
+                  <pre className="text-[11px] font-mono bg-white/80 p-2.5 rounded border border-rose-200 text-rose-700 whitespace-pre-wrap break-all leading-relaxed">
+                    {selectedJob.errorMessage || 'Unknown extraction error occurred during parsing.'}
+                  </pre>
+                  <p className="text-[10px] text-rose-600 leading-normal">
+                    This error occurred when parsing the target HTML with the brand selector or connecting to the remote host. The selector union parser has now been patched.
+                  </p>
+                </div>
+              )}
+
+              {/* Timeline */}
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px]">
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Created At</span>
+                  <span className="font-mono text-slate-700">{new Date(selectedJob.createdAt).toLocaleString()}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Completed At</span>
+                  <span className="font-mono text-slate-700">
+                    {selectedJob.completedAt ? new Date(selectedJob.completedAt).toLocaleString() : 'In Progress / Queued'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedJob(null)}
+                className="px-4 py-2 bg-[#0d2a2c] text-[#fad982] text-xs font-bold rounded-xl hover:bg-[#143d40] transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

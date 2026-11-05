@@ -802,9 +802,25 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
 
           for (const m of mappings) {
             if (!m.enabled || !m.sourceValue) continue;
-            const selector = String(m.sourceValue).trim();
+            // Normalize union syntax: If user separated selectors with '|' or '/', convert to standard CSS comma selector ','
+            const rawSelector = String(m.sourceValue).trim();
+            const normalizedSelector = rawSelector
+              .split(/\s*\|\s*|\s*\/\s*(?=[.#\[])/)
+              .filter(Boolean)
+              .join(', ');
+
             const targetField = String(m.targetField || '').toLowerCase();
-            const matched = $(selector);
+            let matched = $(normalizedSelector);
+
+            // Fallback for common product aliases if initial selector found nothing
+            if (matched.length === 0) {
+              if (targetField === 'sku' || targetField === 'model') {
+                matched = $('[itemprop="sku"], .sku .value, .product.attribute.sku .value, .part-number');
+              } else if (targetField === 'images' || targetField === 'image' || targetField === 'primaryimage') {
+                matched = $('img[src*="/catalog/product/"], .fotorama__img, [data-gallery-role="gallery"] img, .product-image-photo');
+              }
+            }
+
             if (matched.length === 0) continue;
 
             const first = matched.first();
