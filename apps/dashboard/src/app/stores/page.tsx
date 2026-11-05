@@ -18,7 +18,9 @@ import {
   Key,
   Lock,
   AlertCircle,
-  Check
+  Check,
+  Download,
+  FileCode
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -143,13 +145,25 @@ export default function StoresPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenModal}
-          className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Connect New Store</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <a
+            href="http://localhost:4000/api/v1/stores/download-bridge"
+            download="saas_bridge.php"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-xs transition"
+            title="Download PHP bridge for OpenCart stores"
+          >
+            <Download className="w-4 h-4 text-[#0d2a2c]" />
+            <span>Download OpenCart Bridge</span>
+          </a>
+
+          <button
+            onClick={handleOpenModal}
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Connect New Store</span>
+          </button>
+        </div>
       </div>
 
       {/* Modal Dialog */}
@@ -280,7 +294,16 @@ export default function StoresPage() {
                 )}
 
                 {platformType === 'opencart' && (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed">
+                      <div className="font-bold flex items-center gap-1.5 mb-1 text-amber-950">
+                        <FileCode className="w-3.5 h-3.5 text-amber-700" />
+                        <span>OpenCart Setup Step:</span>
+                      </div>
+                      1. Download <a href="http://localhost:4000/api/v1/stores/download-bridge" className="font-bold underline text-amber-800">saas_bridge.php</a> and upload it to your OpenCart root directory.<br/>
+                      2. Enter your OpenCart API credentials below.
+                    </div>
+
                     <div>
                       <label className="block text-[11px] font-bold text-slate-600 mb-1">API Username</label>
                       <input

@@ -1,4 +1,6 @@
 import { Router, Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { db, connectedStores, storeSyncHistory, storeProductMappings, storeConflictLogs, globalProducts } from '@saas/database';
 import { eq, and, desc } from 'drizzle-orm';
 import { SynchronizationEngine, CredentialSecurity, OpenCartConnector, ShopifyConnector, WooCommerceConnector } from '@saas/connectors';
@@ -268,4 +270,16 @@ storeRouter.post('/push-product', async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Failed to push product to store', details: err.message });
   }
 });
+
+// GET /api/v1/stores/download-bridge - Download OpenCart connector bridge file
+storeRouter.get('/download-bridge', (req: Request, res: Response) => {
+  const bridgePath = path.resolve(__dirname, '../../../../packages/connectors/src/bridge/saas_bridge.php');
+  if (fs.existsSync(bridgePath)) {
+    res.setHeader('Content-Disposition', 'attachment; filename="saas_bridge.php"');
+    res.setHeader('Content-Type', 'application/x-php');
+    return res.sendFile(bridgePath);
+  }
+  return res.status(404).json({ error: 'Bridge file not found' });
+});
+
 

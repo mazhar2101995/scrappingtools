@@ -102,8 +102,44 @@ export class OpenCartConnector implements UniversalConnector {
     externalProductId: string;
     externalSku: string;
   }> {
-    // 1. Authenticate with OpenCart REST API
     const cleanUrl = this.config.storeUrl.replace(/\/+$/, '');
+
+    // 1. First, check if the high-speed OpenCart SaaS bridge file (saas_bridge.php) is present on customer's store
+    const bridgeUrl = `${cleanUrl}/saas_bridge.php?action=push_product`;
+    try {
+      const bridgeResp = await fetch(bridgeUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Saas-Key': this.config.apiKey,
+        },
+        body: JSON.stringify(product),
+      });
+
+      if (bridgeResp.ok) {
+        const bridgeData = await bridgeResp.json().catch(() => null);
+        if (bridgeData && bridgeData.success && bridgeData.product_id) {
+          return {
+            externalProductId: String(bridgeData.product_id),
+            externalSku: bridgeData.sku || product.sku,
+          };
+        } else if (bridgeData && bridgeData.error) {
+          throw new Error(`OpenCart Bridge Error: ${bridgeData.error}`);
+        }
+      } else if (bridgeResp.status !== 404) {
+        // If 401 or 403 or 500 from bridge
+        const errJson = await bridgeResp.json().catch(() => null);
+        if (errJson?.error) {
+          throw new Error(`OpenCart Bridge: ${errJson.error}`);
+        }
+      }
+    } catch (bridgeErr: any) {
+      if (!bridgeErr.message?.includes('404') && !bridgeErr.message?.includes('Unexpected token')) {
+        throw bridgeErr;
+      }
+    }
+
+    // 2. Fallback to OpenCart native REST API login verification
     const loginUrl = `${cleanUrl}/index.php?route=api/login`;
     
     const formParams = new URLSearchParams();
@@ -130,12 +166,10 @@ export class OpenCartConnector implements UniversalConnector {
       throw new Error('OpenCart did not return a valid API session token');
     }
 
-    // 2. Push product to OpenCart /index.php?route=api/cart/add or custom catalog push endpoint
-    const generatedExternalId = `oc_prod_${Date.now()}`;
-    return {
-      externalProductId: generatedExternalId,
-      externalSku: product.sku,
-    };
+    // If bridge is not uploaded yet, throw instructions so the user/client knows exactly what to do
+    throw new Error(
+      'OpenCart Bridge Required: OpenCart default API does not allow creating catalog products. Please download "saas_bridge.php" from Connected Stores and place it in your OpenCart root directory to enable live product insertion.'
+    );
   }
 
   public async updateProduct(externalId: string, delta: Partial<CanonicalProductModel>): Promise<boolean> {
