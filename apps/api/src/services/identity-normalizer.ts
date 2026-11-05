@@ -168,3 +168,4 @@ export function detectIdentityConflicts(candidateA: NormalizedIdentityCandidate,
 
   return { hasConflict: false, conflictReason: null };
 }
+
