@@ -136,7 +136,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex flex-col">
             <span className="font-bold text-sm tracking-tight text-white leading-tight">Product Intelligence AI</span>
-            <span className="text-[10px] text-amber-400/90 font-mono tracking-widest uppercase font-semibold">ENTERPRISE SAAS</span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[9px] text-amber-400/90 font-mono tracking-widest uppercase font-semibold">ENTERPRISE SAAS</span>
+              <span className="text-[8px] bg-amber-400/20 text-amber-300 px-1 py-0.2 rounded font-mono font-bold">STAGING</span>
+            </div>
           </div>
         </div>
 

@@ -364,6 +364,7 @@ brandsRouter.post('/:id/test-mapping', async (req: Request, res: Response) => {
       let extractedValue: any = '';
       let matchCount = 0;
       let status = 'missing';
+      let warningMsg: string | null = null;
 
       if (!isEnabled) {
         status = 'disabled';
@@ -628,7 +629,25 @@ brandsRouter.post('/:id/test-mapping', async (req: Request, res: Response) => {
             } else if (firstEl.attr('content')) {
               extractedValue = firstEl.attr('content') || '';
             } else {
-              extractedValue = firstEl.text().trim();
+              // Part 5 — Price Integrity Rule:
+              // If target field is 'price' and multiple elements match across the page (matchCount > 1),
+              // verify whether these prices come from secondary accessory/widget grids (e.g. .widget-product-grid, .product-item-*, accessories).
+              // If the primary product price cannot be confidently identified without ambiguity, store as null/missing.
+              if (targetField.toLowerCase().includes('price') && matchCount > 1) {
+                // Check if the matched elements belong to secondary accessory / recommendation containers
+                const isInAccessoryOrGrid = firstEl.closest('.widget-product-grid, .product-list-items-wrapper, .accessories, .related, .upsell, .recommendations, .product-info-nonpdp').length > 0;
+                const isExplicitHeroPrice = firstEl.closest('.product-info-main:not(.product-info-nonpdp), .product-essential, .primary-product-price, .pdp-price').length > 0;
+
+                if (isInAccessoryOrGrid && !isExplicitHeroPrice) {
+                  extractedValue = '';
+                  status = 'missing';
+                  warningMsg = 'Ambiguous price: Matched accessory or recommendation grid elements instead of primary vehicle price.';
+                } else {
+                  extractedValue = firstEl.text().trim();
+                }
+              } else {
+                extractedValue = firstEl.text().trim();
+              }
             }
 
             // Apply transformations
@@ -670,7 +689,8 @@ brandsRouter.post('/:id/test-mapping', async (req: Request, res: Response) => {
         transformation,
         matchCount,
         extractedValue,
-        confidence: matchCount === 1 ? 1.0 : matchCount > 1 ? 0.85 : 0.0,
+        warning: warningMsg,
+        confidence: matchCount === 1 ? 1.0 : (status === 'missing' && warningMsg) ? 0.0 : matchCount > 1 ? 0.85 : 0.0,
       };
     }
 
