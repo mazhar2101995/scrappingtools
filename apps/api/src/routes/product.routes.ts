@@ -21,6 +21,7 @@ import { authMiddleware } from '../middleware/auth.middleware';
 import { quotaMiddleware } from '../middleware/quota.middleware';
 import { evaluateProductQuality } from '../utils/validation';
 import { ProductIntelligenceService } from '../services/product-intelligence.service';
+import { ProductDiscoveryService } from '../services/product-discovery.service';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
@@ -33,6 +34,32 @@ function getOrgId(req: Request): string | null {
 
 // Apply Auth Middleware to all product routes
 productsRouter.use(authMiddleware);
+
+// --- Phase 5: Advanced Product Discovery & Source Ranking Endpoint ---
+productsRouter.post('/discover', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  if (!orgId) {
+    return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
+  }
+
+  const { type, value, brandHint } = req.body;
+
+  try {
+    const discovery = await ProductDiscoveryService.discoverProduct({
+      type: type || (value?.startsWith('http') ? 'URL' : 'IDENTIFIER'),
+      value,
+      brandHint,
+      organizationId: orgId,
+    });
+
+    return res.json({
+      success: true,
+      discovery,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to discover product', details: err.message });
+  }
+});
 
 // --- Phase 1: Smart Product Intelligence Lookup (Pre-Scrape Check) ---
 productsRouter.post('/lookup-intelligence', async (req: Request, res: Response) => {
