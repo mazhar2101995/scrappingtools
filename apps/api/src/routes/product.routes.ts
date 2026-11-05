@@ -20,6 +20,7 @@ import { eq, ilike, and, sql, inArray, or } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { quotaMiddleware } from '../middleware/quota.middleware';
 import { evaluateProductQuality } from '../utils/validation';
+import { ProductIntelligenceService } from '../services/product-intelligence.service';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
@@ -32,6 +33,72 @@ function getOrgId(req: Request): string | null {
 
 // Apply Auth Middleware to all product routes
 productsRouter.use(authMiddleware);
+
+// --- Phase 1: Smart Product Intelligence Lookup (Pre-Scrape Check) ---
+productsRouter.post('/lookup-intelligence', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  if (!orgId) {
+    return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
+  }
+
+  const { productUrl, brandId, sku, modelNumber, ean, title } = req.body;
+
+  try {
+    const result = await ProductIntelligenceService.lookupProduct({
+      productUrl,
+      brandId,
+      sku,
+      modelNumber,
+      ean,
+      title,
+      currentOrganizationId: orgId,
+    });
+
+    return res.json({
+      success: true,
+      data: result,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to perform intelligence lookup', details: err.message });
+  }
+});
+
+// --- Phase 1: Map Reusable Global Product into Tenant Catalog ---
+productsRouter.post('/reuse-canonical', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  if (!orgId) {
+    return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
+  }
+
+  const { globalProductId, customSku, customPrice, customTitle, customDescription, productUrl } = req.body;
+
+  if (!globalProductId) {
+    return res.status(400).json({ error: 'globalProductId is required' });
+  }
+
+  try {
+    const result = await ProductIntelligenceService.mapProductToTenant(
+      orgId,
+      globalProductId,
+      {
+        customSku,
+        customPrice,
+        customTitle,
+        customDescription,
+        productUrl,
+      }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Product successfully mapped to your organization catalog without duplicate scraping',
+      mapping: result.mapping,
+      product: result.globalProduct,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to reuse product intelligence', details: err.message });
+  }
+});
 
 // Check Deterministic Duplicates endpoint (Part 9: Product Identity & Duplicate Detection)
 productsRouter.post('/check-duplicate', async (req: Request, res: Response) => {

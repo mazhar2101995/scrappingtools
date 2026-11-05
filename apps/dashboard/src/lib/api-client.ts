@@ -69,6 +69,9 @@ export interface PlatformAdminData {
     aiExecutions: number;
     aiEstimatedCostUsd: number;
     pendingReviewCount: number;
+    totalTenantMappings?: number;
+    duplicateScrapesPrevented?: number;
+    dataReuseRatePercent?: number;
   };
   criticalIncidents: Array<{
     id: string;
@@ -432,6 +435,47 @@ export class DashboardApiClient {
 
   async getProductById(id: string): Promise<any> {
     return this.fetchJson(`/products/${id}`);
+  }
+
+  // --- Phase 1: Smart Product Intelligence Lookup & Canonical Reuse ---
+  async lookupProductIntelligence(payload: {
+    productUrl?: string;
+    brandId?: string;
+    sku?: string;
+    modelNumber?: string;
+    ean?: string;
+    title?: string;
+  }): Promise<{
+    decision: 'REUSE_EXISTING' | 'EXTRACT_NEW' | 'REVIEW_REQUIRED';
+    confidence: 'EXACT' | 'HIGH_CONFIDENCE' | 'POSSIBLE_MATCH' | 'NO_MATCH';
+    confidenceScore: number;
+    matchReason: string;
+    isAlreadyMappedInTenant: boolean;
+    tenantMappingId: string | null;
+    reusableProduct: any | null;
+    canonicalProductId: string | null;
+    freshnessStatus: 'fresh' | 'stale' | 'unknown';
+    recommendedAction: 'REUSE' | 'SCRAPE' | 'CONFIRM_MERGE';
+  }> {
+    const res = await this.fetchJson<any>('/products/lookup-intelligence', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return res.data;
+  }
+
+  async reuseCanonicalProduct(payload: {
+    globalProductId: string;
+    customSku?: string;
+    customPrice?: string;
+    customTitle?: string;
+    customDescription?: string;
+    productUrl?: string;
+  }): Promise<any> {
+    return this.fetchJson('/products/reuse-canonical', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 
   async createProduct(payload: {

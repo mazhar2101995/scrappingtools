@@ -324,6 +324,16 @@ metricsRouter.get('/admin-overview', async (req: Request, res: Response) => {
       .from(globalProducts)
       .where(eq(globalProducts.verificationStatus, 'verified'));
 
+    // 2b. Phase 1: Smart Data Reuse & Tenant Mappings Statistics
+    const [allTenantMappingsRes] = await db.select({ count: sql<number>`count(*)::int` }).from(customerProductMappings);
+    const totalCanonicalProducts = allProductsRes?.count || 0;
+    const totalTenantMappings = allTenantMappingsRes?.count || 0;
+    // Prevented scrapes = excess tenant mappings over canonical products (when multiple tenants map same product)
+    const duplicateScrapesPrevented = Math.max(0, totalTenantMappings - totalCanonicalProducts);
+    const dataReuseRatePercent = totalTenantMappings > 0
+      ? Math.round((duplicateScrapesPrevented / totalTenantMappings) * 100)
+      : 0;
+
     // 3. Global Scraping & Pipeline Jobs
     const [totalJobsRes] = await db.select({ count: sql<number>`count(*)::int` }).from(scrapingJobs);
     const [activeJobsRes] = await db
@@ -401,6 +411,9 @@ metricsRouter.get('/admin-overview', async (req: Request, res: Response) => {
           totalConnectedStores: allStoresRes?.count || 0,
           totalProducts: allProductsRes?.count || 0,
           verifiedProducts: verifiedProductsRes?.count || 0,
+          totalTenantMappings,
+          duplicateScrapesPrevented,
+          dataReuseRatePercent,
           totalJobs: totalJobsRes?.count || 0,
           activeJobs: activeJobsRes?.count || 0,
           failedJobs: failedJobsRes?.count || 0,

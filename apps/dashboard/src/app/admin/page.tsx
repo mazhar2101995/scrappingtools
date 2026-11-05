@@ -25,7 +25,8 @@ import {
   Award,
   TrendingUp,
   BarChart3,
-  Check
+  Check,
+  Sparkles
 } from 'lucide-react';
 import { apiClient, PlatformAdminData } from '@/lib/api-client';
 
@@ -178,13 +179,42 @@ export default function PlatformAdminControlCenter() {
             </div>
             <span className="text-xs text-slate-700 font-bold">BullMQ Workers</span>
           </div>
-          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${
-            systemStatus.workers === 'healthy' 
-              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono ${systemStatus.workers === 'healthy'
+              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
               : 'bg-amber-100 text-amber-900 border border-amber-200'
-          }`}>
+            }`}>
             {systemStatus.workers}
           </span>
+        </div>
+      </div>
+
+      {/* Phase 1: Smart Data Reuse & Deduplication Telemetry Banner */}
+      <div className="p-5 rounded-3xl bg-gradient-to-r from-emerald-50 via-amber-50 to-white border border-[#ebdcb9] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-sm">
+            <Sparkles className="w-5 h-5 text-[#fad982]" />
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <span>Global Product Intelligence & Smart Data Reuse</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 uppercase font-mono">
+                {globalMetrics.dataReuseRatePercent ?? 0}% Reuse Rate
+              </span>
+            </h3>
+            <p className="text-xs text-slate-600 mt-0.5">
+              Across {globalMetrics.totalOrganizations} tenant organizations, <strong className="text-slate-900 font-mono">{globalMetrics.duplicateScrapesPrevented ?? 0} duplicate scrape jobs</strong> and unnecessary AI inference calls have been completely eliminated through canonical identity reuse.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="px-4 py-2 rounded-xl bg-white border border-[#ebdcb9] text-center">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tenant Mappings</span>
+            <span className="text-sm font-black text-slate-900 font-mono">{globalMetrics.totalTenantMappings ?? globalMetrics.totalProducts}</span>
+          </div>
+          <div className="px-4 py-2 rounded-xl bg-white border border-[#ebdcb9] text-center">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Jobs Avoided</span>
+            <span className="text-sm font-black text-emerald-700 font-mono">{globalMetrics.duplicateScrapesPrevented ?? 0}</span>
+          </div>
         </div>
       </div>
 
@@ -306,13 +336,12 @@ export default function PlatformAdminControlCenter() {
                         {a.jobType}
                       </td>
                       <td className="py-3.5 px-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          a.status === 'completed'
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${a.status === 'completed'
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                             : a.status === 'failed'
-                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                            : 'bg-sky-100 text-sky-800 border border-sky-200 animate-pulse'
-                        }`}>
+                              ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                              : 'bg-sky-100 text-sky-800 border border-sky-200 animate-pulse'
+                          }`}>
                           {a.status}
                         </span>
                       </td>

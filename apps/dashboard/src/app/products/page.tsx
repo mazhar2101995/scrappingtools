@@ -53,6 +53,10 @@ export default function ProductsPage() {
   const [savingProduct, setSavingProduct] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Phase 1: Smart Data Reuse & Intelligence Match States
+  const [intelligenceMatch, setIntelligenceMatch] = useState<any | null>(null);
+  const [reusingData, setReusingData] = useState(false);
+
   // Review Form & AI Enrichment States
   const [reviewTitle, setReviewTitle] = useState('');
   const [reviewModel, setReviewModel] = useState('');
@@ -209,7 +213,7 @@ export default function ProductsPage() {
     }
   }
 
-  // Execute Brand-Driven Extraction using Brand's configured field mappings
+  // Execute Brand-Driven Extraction with Phase 1 Smart Intelligence Pre-Check
   async function handleExtractProduct(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedBrandId || !productUrl.trim()) return;
@@ -218,8 +222,38 @@ export default function ProductsPage() {
       setExtracting(true);
       setExtractionError('');
       setExtractedData(null);
+      setIntelligenceMatch(null);
 
-      // Call test-mapping endpoint with the brand's configured mappings
+      // Phase 1: Smart Lookup before starting live scrape
+      try {
+        const lookupRes = await apiClient.lookupProductIntelligence({
+          productUrl: productUrl.trim(),
+          brandId: selectedBrandId,
+        });
+
+        if (lookupRes && (lookupRes.decision === 'REUSE_EXISTING' || lookupRes.confidence === 'EXACT' || lookupRes.confidence === 'HIGH_CONFIDENCE') && lookupRes.reusableProduct) {
+          setIntelligenceMatch(lookupRes);
+          const p = lookupRes.reusableProduct;
+          setReviewTitle(p.canonicalTitle || '');
+          setReviewModel(p.modelNumber || '');
+          const skuId = p.identifiers?.find((i: any) => i.idType === 'MANUFACTURER_SKU' || i.idType === 'MPN')?.idValue;
+          setReviewSku(skuId || p.modelNumber || '');
+          setReviewPrice('');
+          setReviewDescription(p.standardizedDescription || '');
+          setReviewPrimaryImage(p.primaryImageUrl || (p.images && p.images[0]) || '');
+          setReviewImages(p.images || []);
+          setReviewAttributes(p.attributes || {});
+          setReviewCustomFields({});
+          setOriginalRawData({ title: p.canonicalTitle, description: p.standardizedDescription || '' });
+          setExtractedData({ canonicalMatch: true });
+          setExtracting(false);
+          return;
+        }
+      } catch (lookupErr) {
+        console.warn('Smart lookup check bypassed, proceeding with live mapping extraction:', lookupErr);
+      }
+
+      // Fallback to Live Brand Selector Mapping
       const res = await apiClient.testBrandMapping(selectedBrandId, {
         sampleUrl: productUrl.trim(),
         mappings: selectedBrand?.fieldMappings || [],
@@ -336,7 +370,7 @@ export default function ProductsPage() {
     }
   }
 
-  // Save reviewed product directly into Client Catalog
+  // Save reviewed product directly into Client Catalog (with Phase 1 smart reuse check)
   async function handleSaveExtractedProduct() {
     if (!reviewTitle.trim()) {
       alert('Product title is required');
@@ -347,19 +381,31 @@ export default function ProductsPage() {
       setSavingProduct(true);
       setExtractionError('');
 
-      await apiClient.createProduct({
-        brandId: selectedBrandId,
-        productUrl: productUrl.trim(),
-        title: reviewTitle.trim(),
-        modelNumber: reviewModel.trim() || undefined,
-        sku: reviewSku.trim() || undefined,
-        price: reviewPrice.trim() || undefined,
-        description: reviewDescription.trim() || undefined,
-        primaryImageUrl: reviewPrimaryImage || undefined,
-        images: reviewImages,
-        attributes: reviewAttributes,
-        customData: reviewCustomFields,
-      });
+      if (intelligenceMatch && intelligenceMatch.canonicalProductId) {
+        // Reuse global canonical product directly into tenant catalog
+        await apiClient.reuseCanonicalProduct({
+          globalProductId: intelligenceMatch.canonicalProductId,
+          customTitle: reviewTitle.trim(),
+          customSku: reviewSku.trim() || reviewModel.trim() || undefined,
+          customPrice: reviewPrice.trim() || undefined,
+          customDescription: reviewDescription.trim() || undefined,
+          productUrl: productUrl.trim(),
+        });
+      } else {
+        await apiClient.createProduct({
+          brandId: selectedBrandId,
+          productUrl: productUrl.trim(),
+          title: reviewTitle.trim(),
+          modelNumber: reviewModel.trim() || undefined,
+          sku: reviewSku.trim() || undefined,
+          price: reviewPrice.trim() || undefined,
+          description: reviewDescription.trim() || undefined,
+          primaryImageUrl: reviewPrimaryImage || undefined,
+          images: reviewImages,
+          attributes: reviewAttributes,
+          customData: reviewCustomFields,
+        });
+      }
 
       setSaveSuccess(true);
       setTimeout(() => {
@@ -905,15 +951,43 @@ export default function ProductsPage() {
                   <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <h4 className="text-xs font-bold text-slate-900">Extracted Product Review</h4>
+                      <h4 className="text-xs font-bold text-slate-900">
+                        {intelligenceMatch ? 'Product Intelligence Match Review' : 'Extracted Product Review'}
+                      </h4>
                     </div>
                     <button
-                      onClick={() => setExtractedData(null)}
+                      onClick={() => {
+                        setExtractedData(null);
+                        setIntelligenceMatch(null);
+                      }}
                       className="text-[11px] font-bold text-slate-500 hover:text-slate-800 underline"
                     >
                       &larr; Re-extract with different URL
                     </button>
                   </div>
+
+                  {/* Phase 1: Smart Data Reuse Notification Banner */}
+                  {intelligenceMatch && (
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-transparent border border-emerald-200 flex items-start gap-3">
+                      <Sparkles className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-emerald-950 uppercase tracking-wide">
+                            Product Intelligence Reused &bull; Scraping Avoided
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-100 text-emerald-800 uppercase">
+                            {intelligenceMatch.confidence} ({Math.round(intelligenceMatch.confidenceScore * 100)}%)
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${intelligenceMatch.freshnessStatus === 'fresh' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {intelligenceMatch.freshnessStatus}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-600">
+                          {intelligenceMatch.matchReason}. Canonical intelligence has been loaded instantly without hitting the target website or burning AI tokens.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {saveSuccess && (
                     <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
