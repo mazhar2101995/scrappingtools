@@ -39,6 +39,7 @@ export const storeProductMappings = pgTable('store_product_mappings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   uniqueIndex('idx_spm_store_ext_id').on(table.connectedStoreId, table.externalProductId),
+  uniqueIndex('idx_spm_store_product').on(table.connectedStoreId, table.globalProductId),
   index('idx_spm_gp').on(table.globalProductId),
   index('idx_spm_status').on(table.connectedStoreId, table.syncStatus),
 ]);

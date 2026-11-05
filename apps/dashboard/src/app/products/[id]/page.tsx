@@ -21,7 +21,11 @@ import {
   ShoppingBag,
   Sparkles,
   ArrowUpRight,
-  AlertCircle
+  AlertCircle,
+  Info,
+  X,
+  Clock,
+  Send
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -36,6 +40,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [pushingStoreId, setPushingStoreId] = useState<string | null>(null);
   const [pushSuccessMsg, setPushSuccessMsg] = useState<string | null>(null);
   const [pushErrorMsg, setPushErrorMsg] = useState<string | null>(null);
+  const [selectedSyncInfo, setSelectedSyncInfo] = useState<any | null>(null);
 
   // Price & Stock Monitoring State
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
@@ -264,7 +269,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             </div>
 
             {/* 1-Click Push to Connected Store Action Bar */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-[#0d2a2c]/5 via-amber-500/5 to-transparent border border-slate-200 space-y-3">
+            <div id="store-sync" className="p-4 rounded-2xl bg-gradient-to-r from-[#0d2a2c]/5 via-amber-500/5 to-transparent border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShoppingBag className="w-4 h-4 text-[#0d2a2c]" />
@@ -330,17 +335,25 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                         </button>
 
                         {syncedMapping && (
-                          <span
-                            title={`External Store Product ID: ${syncedMapping.externalProductId || 'N/A'}${
-                              syncedMapping.lastPushedAt
-                                ? `\nSynced: ${new Date(syncedMapping.lastPushedAt).toLocaleString()}`
-                                : ''
-                            }`}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-300"
-                          >
-                            <Check className="w-3.5 h-3.5 text-emerald-700" />
-                            <span>Live on {s.storeName}</span>
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-100 text-emerald-800 text-[11px] font-bold border border-emerald-300"
+                            >
+                              <Check className="w-3.5 h-3.5 text-emerald-700" />
+                              <span>Live on {s.storeName}</span>
+                            </span>
+
+                            {/* Info Button to Open Push Details Modal */}
+                            <button
+                              type="button"
+                              onClick={() => setSelectedSyncInfo({ ...syncedMapping, store: s })}
+                              title="Click for full push details and external product identifiers"
+                              className="p-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-600 hover:text-slate-900 border border-slate-200 transition shadow-2xs flex items-center gap-1 text-[11px] font-semibold"
+                            >
+                              <Info className="w-3.5 h-3.5 text-emerald-700" />
+                              <span className="hidden sm:inline">Info</span>
+                            </button>
+                          </div>
                         )}
                       </div>
                     );
@@ -528,6 +541,111 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           </div>
         </div>
       </div>
+
+      {/* Push Details & Store Sync Info Modal */}
+      {selectedSyncInfo && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-[#0d2a2c] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#fad982] flex items-center justify-center text-slate-950 font-black text-sm">
+                  <ShoppingBag className="w-4 h-4 text-[#0d2a2c]" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold leading-tight">Store Push &amp; Sync Details</h3>
+                  <p className="text-[11px] text-slate-300">Live remote store mapping information</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedSyncInfo(null)}
+                className="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-4 text-xs text-slate-700">
+              <div className="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Store Name</span>
+                  <span className="font-bold text-slate-900">{selectedSyncInfo.storeName || selectedSyncInfo.store?.storeName}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Platform</span>
+                  <span className="font-mono uppercase font-bold text-slate-900">
+                    {selectedSyncInfo.platformType || selectedSyncInfo.store?.platformType}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Sync Status</span>
+                  <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    {selectedSyncInfo.syncStatus?.toUpperCase() || 'SYNCED'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block mb-0.5">Last Pushed At</span>
+                  <span className="font-mono text-slate-800">
+                    {selectedSyncInfo.lastPushedAt ? new Date(selectedSyncInfo.lastPushedAt).toLocaleString() : 'Just now'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                  <span>Remote Store Product ID</span>
+                  <span className="font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded text-slate-700 select-all">
+                    {selectedSyncInfo.externalProductId || 'oc_prod_live'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                  <span>Remote SKU</span>
+                  <span className="font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded text-slate-700 select-all">
+                    {selectedSyncInfo.externalSku || sku}
+                  </span>
+                </div>
+                {selectedSyncInfo.storeUrl && (
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-800 pt-1">
+                    <span>Store Base URL</span>
+                    <a
+                      href={selectedSyncInfo.storeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[#0d2a2c] hover:underline flex items-center gap-1 font-mono text-[11px]"
+                    >
+                      <span>{selectedSyncInfo.storeUrl}</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-xs">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>Push Verification Active</span>
+                </div>
+                <p className="text-[11px] text-emerald-700 leading-relaxed">
+                  Canonical product title, model number, prices, and media are linked to this store mapping. Future changes will sync to this remote ID.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedSyncInfo(null)}
+                className="px-4 py-2 bg-[#0d2a2c] text-[#fad982] text-xs font-bold rounded-xl hover:bg-[#143d40] transition"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

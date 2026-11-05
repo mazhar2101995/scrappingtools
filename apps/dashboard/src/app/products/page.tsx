@@ -616,24 +616,39 @@ export default function ProductsPage() {
                     <div className="text-slate-400 font-medium">{prod.variantsCount || 1} variants</div>
                   </td>
 
-                  {/* Store Sync Status Badge */}
+                  {/* Store Sync Status Badge (Single consolidated badge on listing) */}
                   <td className="py-4 px-4">
                     {Array.isArray(prod.syncedStores) && prod.syncedStores.length > 0 ? (
-                      <div className="flex flex-col gap-1 items-start">
-                        {prod.syncedStores.map((s: any, idx: number) => (
-                          <span
-                            key={idx}
-                            title={`External ID: ${s.externalProductId || 'N/A'}${s.lastPushedAt ? ` • Last Synced: ${new Date(s.lastPushedAt).toLocaleString()}` : ''}`}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-2xs"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            <ShoppingBag className="w-3 h-3 text-emerald-600" />
-                            <span>
-                              Synced to {s.storeName} ({String(s.platformType || '').toUpperCase()})
+                      (() => {
+                        const first = prod.syncedStores[0];
+                        const extraCount = prod.syncedStores.length - 1;
+                        return (
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              title={`Synced with ${prod.syncedStores.map((st: any) => st.storeName).join(', ')}`}
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs whitespace-nowrap"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              <ShoppingBag className="w-3 h-3 text-emerald-600" />
+                              <span>
+                                Synced to {first.storeName} ({String(first.platformType || '').toUpperCase()})
+                              </span>
+                              {extraCount > 0 && (
+                                <span className="ml-1 px-1.5 py-0.2 rounded bg-emerald-200 text-emerald-900 text-[9px] font-black">
+                                  +{extraCount}
+                                </span>
+                              )}
                             </span>
-                          </span>
-                        ))}
-                      </div>
+                            <Link
+                              href={`/products/${prod.id}#store-sync`}
+                              title="Click to view detailed store sync history & credentials"
+                              className="text-slate-400 hover:text-slate-700 transition p-0.5 rounded hover:bg-slate-100"
+                            >
+                              <AlertCircle className="w-3.5 h-3.5 rotate-180" />
+                            </Link>
+                          </div>
+                        );
+                      })()
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
                         Not Pushed

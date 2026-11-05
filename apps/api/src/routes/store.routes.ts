@@ -209,7 +209,7 @@ storeRouter.post('/push-product', async (req: Request, res: Response) => {
 
     const pushResult = await connector.pushProduct(canonicalModel);
 
-    // Save or update mapping
+    // Save or update mapping (upsert by store + product)
     const [mapping] = await db
       .insert(storeProductMappings)
       .values({
@@ -221,8 +221,10 @@ storeRouter.post('/push-product', async (req: Request, res: Response) => {
         lastPushedAt: new Date(),
       })
       .onConflictDoUpdate({
-        target: [storeProductMappings.connectedStoreId, storeProductMappings.externalProductId],
+        target: [storeProductMappings.connectedStoreId, storeProductMappings.globalProductId],
         set: {
+          externalProductId: pushResult.externalProductId,
+          externalSku: pushResult.externalSku,
           lastPushedAt: new Date(),
           syncStatus: 'synced',
           updatedAt: new Date(),

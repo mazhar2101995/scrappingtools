@@ -293,14 +293,18 @@ productsRouter.get('/', async (req: Request, res: Response) => {
         if (!storeMappingsByProduct[m.productId]) {
           storeMappingsByProduct[m.productId] = [];
         }
-        storeMappingsByProduct[m.productId].push({
-          storeId: m.storeId,
-          storeName: m.storeName,
-          platformType: m.platformType,
-          syncStatus: m.syncStatus,
-          externalProductId: m.externalProductId,
-          lastPushedAt: m.lastPushedAt,
-        });
+        // Deduplicate so each connected store appears at most once per product
+        const exists = storeMappingsByProduct[m.productId].some((entry) => entry.storeId === m.storeId);
+        if (!exists) {
+          storeMappingsByProduct[m.productId].push({
+            storeId: m.storeId,
+            storeName: m.storeName,
+            platformType: m.platformType,
+            syncStatus: m.syncStatus,
+            externalProductId: m.externalProductId,
+            lastPushedAt: m.lastPushedAt,
+          });
+        }
       });
     }
 
@@ -457,6 +461,8 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
             platformType: connectedStores.platformType,
             syncStatus: storeProductMappings.syncStatus,
             externalProductId: storeProductMappings.externalProductId,
+            externalSku: storeProductMappings.externalSku,
+            storeUrl: connectedStores.storeUrl,
             lastPushedAt: storeProductMappings.lastPushedAt,
           })
           .from(storeProductMappings)
