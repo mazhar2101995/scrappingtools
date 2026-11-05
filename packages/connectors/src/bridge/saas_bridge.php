@@ -207,3 +207,4 @@ if ($action === 'push_product') {
 
 http_response_code(400);
 echo json_encode(['success' => false, 'error' => 'Unknown action: ' . $action]);
+
