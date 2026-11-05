@@ -114,14 +114,43 @@ switch ($action) {
         $cat_count_res = $mysqli->query("SELECT COUNT(*) as total FROM `{$prefix}category`");
         $total_cats = $cat_count_res ? (int)$cat_count_res->fetch_assoc()['total'] : 0;
 
+        // Check languages and desc columns
+        $desc_cols_res = $mysqli->query("SHOW COLUMNS FROM `{$prefix}product_description`");
+        $desc_cols = [];
+        if ($desc_cols_res) {
+            while ($dc = $desc_cols_res->fetch_assoc()) {
+                $desc_cols[] = $dc['Field'];
+            }
+        }
+
+        $all_langs_res = $mysqli->query("SELECT * FROM `{$prefix}language`");
+        $all_langs = [];
+        if ($all_langs_res) {
+            while ($al = $all_langs_res->fetch_assoc()) {
+                $all_langs[] = $al;
+            }
+        }
+
+        // Check if product 607 has description
+        $check_desc = $mysqli->query("SELECT * FROM `{$prefix}product_description` WHERE `product_id` = 607");
+        $product_desc_rows = [];
+        if ($check_desc) {
+            while ($cd = $check_desc->fetch_assoc()) {
+                $product_desc_rows[] = $cd;
+            }
+        }
+
         echo json_encode([
             'success' => true,
-            'bridge_version' => '2.0.0',
+            'bridge_version' => '2.0.1',
             'opencart_version' => defined('VERSION') ? VERSION : '3.x',
             'store_name' => defined('HTTP_SERVER') ? HTTP_SERVER : 'OpenCart Live Store',
             'database' => DB_DATABASE,
             'total_products' => $total_prods,
             'total_categories' => $total_cats,
+            'desc_columns' => $desc_cols,
+            'languages' => $all_langs,
+            'product_607_descriptions' => $product_desc_rows,
             'capabilities' => ['PUSH', 'PULL', 'UPDATE_PRICE', 'UPDATE_STOCK', 'DELETE', 'REMOTE_RPC']
         ]);
         exit;
@@ -181,11 +210,43 @@ switch ($action) {
                 `date_modified` = NOW() 
                 WHERE `product_id` = {$existing_id}");
 
-            // Update Descriptions
-            $mysqli->query("UPDATE `{$prefix}product_description` SET 
-                `name` = '{$safe_title}', 
-                `description` = '{$safe_desc}' 
-                WHERE `product_id` = {$existing_id}");
+            // Ensure store mapping exists
+            $mysqli->query("INSERT IGNORE INTO `{$prefix}product_to_store` SET `product_id` = {$existing_id}, `store_id` = 0");
+
+            // Update Descriptions or insert if missing
+            $desc_cols_res = $mysqli->query("SHOW COLUMNS FROM `{$prefix}product_description`");
+            $desc_fields_meta = [];
+            if ($desc_cols_res) {
+                while ($dc = $desc_cols_res->fetch_assoc()) {
+                    $desc_fields_meta[$dc['Field']] = $dc;
+                }
+            }
+
+            $langs_query = $mysqli->query("SELECT language_id FROM `{$prefix}language`");
+            if ($langs_query) {
+                while ($l = $langs_query->fetch_assoc()) {
+                    $lid = (int)$l['language_id'];
+                    $d_sets = [
+                        "`product_id` = {$existing_id}",
+                        "`language_id` = {$lid}",
+                        "`name` = '{$safe_title}'",
+                        "`description` = '{$safe_desc}'",
+                        "`meta_title` = '{$safe_title}'",
+                    ];
+                    foreach ($desc_fields_meta as $fname => $finfo) {
+                        if (in_array($fname, ['product_id', 'language_id', 'name', 'description', 'meta_title'])) continue;
+                        if ($finfo['Default'] === null && strtolower($finfo['Null']) === 'no') {
+                            $ftype = strtolower($finfo['Type']);
+                            if (strpos($ftype, 'int') !== false) {
+                                $d_sets[] = "`{$fname}` = 0";
+                            } else {
+                                $d_sets[] = "`{$fname}` = ''";
+                            }
+                        }
+                    }
+                    $mysqli->query("INSERT INTO `{$prefix}product_description` SET " . implode(', ', $d_sets) . " ON DUPLICATE KEY UPDATE `name` = '{$safe_title}', `description` = '{$safe_desc}'");
+                }
+            }
 
             echo json_encode([
                 'success' => true,
@@ -257,17 +318,41 @@ switch ($action) {
             $product_id = (int)$mysqli->insert_id;
 
             // Insert Multilingual Descriptions for all configured languages
+            $desc_cols_res = $mysqli->query("SHOW COLUMNS FROM `{$prefix}product_description`");
+            $desc_fields_meta = [];
+            if ($desc_cols_res) {
+                while ($dc = $desc_cols_res->fetch_assoc()) {
+                    $desc_fields_meta[$dc['Field']] = $dc;
+                }
+            }
+
             $langs_query = $mysqli->query("SELECT language_id FROM `{$prefix}language`");
             if ($langs_query) {
                 while ($l = $langs_query->fetch_assoc()) {
                     $lid = (int)$l['language_id'];
-                    $mysqli->query("INSERT INTO `{$prefix}product_description` SET 
-                        `product_id` = {$product_id},
-                        `language_id` = {$lid},
-                        `name` = '{$safe_title}',
-                        `description` = '{$safe_desc}',
-                        `meta_title` = '{$safe_title}',
-                        `meta_description` = '{$safe_title}'");
+                    
+                    $d_sets = [
+                        "`product_id` = {$product_id}",
+                        "`language_id` = {$lid}",
+                        "`name` = '{$safe_title}'",
+                        "`description` = '{$safe_desc}'",
+                        "`meta_title` = '{$safe_title}'",
+                    ];
+
+                    foreach ($desc_fields_meta as $fname => $finfo) {
+                        if (in_array($fname, ['product_id', 'language_id', 'name', 'description', 'meta_title'])) continue;
+                        if ($finfo['Default'] === null && strtolower($finfo['Null']) === 'no') {
+                            $ftype = strtolower($finfo['Type']);
+                            if (strpos($ftype, 'int') !== false) {
+                                $d_sets[] = "`{$fname}` = 0";
+                            } else {
+                                $d_sets[] = "`{$fname}` = ''";
+                            }
+                        }
+                    }
+
+                    $insert_desc_sql = "INSERT INTO `{$prefix}product_description` SET " . implode(', ', $d_sets) . " ON DUPLICATE KEY UPDATE `name` = '{$safe_title}', `description` = '{$safe_desc}'";
+                    $mysqli->query($insert_desc_sql);
                 }
             }
 
