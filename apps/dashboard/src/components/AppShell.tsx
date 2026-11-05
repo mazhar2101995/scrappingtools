@@ -54,6 +54,7 @@ const SECONDARY_NAV_ITEMS = [
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
+  const isAdminPage = pathname.startsWith('/admin');
 
   const [workspaceName, setWorkspaceName] = useState('Mazhar Dev');
   const [userName, setUserName] = useState('mazhar client');
@@ -111,7 +112,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setNotificationsOpen(false);
   }, [pathname]);
 
-  if (isAuthPage) {
+  if (isAuthPage || isAdminPage) {
     return <>{children}</>;
   }
 
@@ -318,6 +319,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
 
                   <div className="py-1">
+                    <Link
+                      href="/admin"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs text-purple-700 hover:bg-purple-50 font-bold transition"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-purple-600" />
+                      <span>Platform Admin Portal</span>
+                    </Link>
                     <Link
                       href="/profile"
                       onClick={() => setProfileDropdownOpen(false)}
