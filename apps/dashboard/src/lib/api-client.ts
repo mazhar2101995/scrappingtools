@@ -376,6 +376,22 @@ export class DashboardApiClient {
     return res.brands || [];
   }
 
+  // --- Billing & Subscription Methods ---
+  async getMySubscription(): Promise<any> {
+    return this.fetchJson('/billing/my-subscription', {}, 'client');
+  }
+
+  async changePlan(planId: string, billingCycle: 'monthly' | 'annual'): Promise<any> {
+    return this.fetchJson('/billing/change-plan', {
+      method: 'POST',
+      body: JSON.stringify({ planId, billingCycle }),
+    }, 'client');
+  }
+
+  async getAdminRevenue(): Promise<any> {
+    return this.fetchJson('/billing/admin-revenue', {}, 'admin');
+  }
+
   async getMyTeam(): Promise<any[]> {
     const res = await this.fetchJson<any>('/organizations/my-team', {}, 'client');
     return res.members || [];

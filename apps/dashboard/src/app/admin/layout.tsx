@@ -25,13 +25,15 @@ import {
   RefreshCw,
   Search,
   Award,
-  Boxes
+  Boxes,
+  DollarSign
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
 const ADMIN_PRIMARY_NAV = [
   { name: 'Control Center', href: '/admin', icon: Activity },
   { name: 'Tenants & Clients', href: '/admin/organizations', icon: Building2 },
+  { name: 'Revenue & MRR Billing', href: '/admin/billing', icon: DollarSign },
   { name: 'Global Master Catalog', href: '/admin/products', icon: Boxes },
   { name: 'Global Brand Profiles', href: '/admin/brands', icon: Award },
 ];
