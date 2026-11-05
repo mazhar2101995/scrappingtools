@@ -273,7 +273,12 @@ reviewRouter.get('/queue', async (req: Request, res: Response) => {
 // 3. POST /api/v1/review/queue/:id/resolve - Apply Human Review Decision
 reviewRouter.post('/queue/:id/resolve', async (req: Request, res: Response) => {
   const reviewId = req.params.id as string;
-  const { action, note } = req.body; // 'APPROVE_MERGE', 'REJECT_MERGE', 'CREATE_SEPARATE'
+  let { action, note } = req.body; // 'APPROVE_MERGE', 'REJECT_MERGE', 'CREATE_SEPARATE', 'approve', 'reject', 'separate'
+
+  // Map lowercase short actions to standard action enum
+  if (action === 'approve') action = 'APPROVE_MERGE';
+  if (action === 'reject') action = 'REJECT_MERGE';
+  if (action === 'separate') action = 'CREATE_SEPARATE';
 
   if (!['APPROVE_MERGE', 'REJECT_MERGE', 'CREATE_SEPARATE'].includes(action)) {
     return res.status(400).json({ error: 'Valid action required (APPROVE_MERGE, REJECT_MERGE, CREATE_SEPARATE)' });
