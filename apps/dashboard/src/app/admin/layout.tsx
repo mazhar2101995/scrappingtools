@@ -34,6 +34,12 @@ const ADMIN_NAV_ITEMS = [
   { name: 'Identity Review Queue', href: '/admin/review', icon: ShieldAlert },
 ];
 
+const ADMIN_SUBSYSTEM_ITEMS = [
+  { name: 'BullMQ Engine & Queues', href: '/admin/jobs', icon: Activity },
+  { name: 'Telemetry & Cluster Logs', href: '/admin/telemetry', icon: BarChart3 },
+  { name: 'Store Connectors & Bridges', href: '/admin/stores', icon: RefreshCw },
+];
+
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [adminName, setAdminName] = useState('Platform Super Admin');
@@ -132,30 +138,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-3 py-1.5 font-mono">
-            Client Subsystems
+            Platform Subsystems
           </div>
 
-          <Link
-            href="/jobs"
-            className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-850/60 transition"
-          >
-            <Activity className="w-4 h-4 text-slate-500" />
-            <span>BullMQ Engine</span>
-          </Link>
-          <Link
-            href="/health"
-            className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-850/60 transition"
-          >
-            <BarChart3 className="w-4 h-4 text-slate-500" />
-            <span>Telemetry & Logs</span>
-          </Link>
-          <Link
-            href="/stores"
-            className="flex items-center gap-3 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-850/60 transition"
-          >
-            <RefreshCw className="w-4 h-4 text-slate-500" />
-            <span>Store Connectors</span>
-          </Link>
+          {ADMIN_SUBSYSTEM_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                  isActive
+                    ? 'bg-purple-600 text-white font-bold shadow-lg shadow-purple-600/30'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-850'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                  <span>{item.name}</span>
+                </div>
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Admin Footer Status */}
@@ -255,3 +260,4 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   );
 }
+
