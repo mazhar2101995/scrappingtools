@@ -16,9 +16,10 @@ import {
   storeProductMappings,
   connectedStores,
 } from '@saas/database';
-import { eq, ilike, and, sql, inArray } from 'drizzle-orm';
+import { eq, ilike, and, sql, inArray, or } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { quotaMiddleware } from '../middleware/quota.middleware';
+import { evaluateProductQuality } from '../utils/validation';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
@@ -31,6 +32,107 @@ function getOrgId(req: Request): string | null {
 
 // Apply Auth Middleware to all product routes
 productsRouter.use(authMiddleware);
+
+// Check Deterministic Duplicates endpoint (Part 9: Product Identity & Duplicate Detection)
+productsRouter.post('/check-duplicate', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  if (!orgId) {
+    return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
+  }
+
+  const { brandId, modelNumber, sku, ean, title } = req.body;
+
+  try {
+    const cleanModel = modelNumber ? String(modelNumber).trim().toLowerCase().replace(/[^a-z0-9]/g, '') : null;
+    const cleanSku = sku ? String(sku).trim() : null;
+    const cleanEan = ean ? String(ean).replace(/[^0-9]/g, '') : null;
+
+    let duplicateFound: any = null;
+    let matchReason = '';
+
+    // Priority 1: Check by GTIN / EAN in identifiers
+    if (cleanEan && cleanEan.length >= 8) {
+      const [eanMatch] = await db
+        .select({
+          product: globalProducts,
+          identifier: productIdentifiers,
+        })
+        .from(productIdentifiers)
+        .innerJoin(globalProducts, eq(globalProducts.id, productIdentifiers.globalProductId))
+        .where(eq(productIdentifiers.idValue, cleanEan))
+        .limit(1);
+
+      if (eanMatch) {
+        duplicateFound = eanMatch.product;
+        matchReason = `Matched existing product by EAN/GTIN: ${cleanEan}`;
+      }
+    }
+
+    // Priority 2: Check by Normalized Model / MPN
+    if (!duplicateFound && cleanModel && cleanModel.length >= 2) {
+      const [modelMatch] = await db
+        .select()
+        .from(globalProducts)
+        .where(eq(globalProducts.normalizedModel, cleanModel))
+        .limit(1);
+
+      if (modelMatch) {
+        duplicateFound = modelMatch;
+        matchReason = `Matched existing product by Model Number: ${modelNumber}`;
+      }
+    }
+
+    // Priority 3: Check by SKU in tenant mappings
+    if (!duplicateFound && cleanSku) {
+      const [skuMatch] = await db
+        .select({
+          product: globalProducts,
+        })
+        .from(customerProductMappings)
+        .innerJoin(globalProducts, eq(globalProducts.id, customerProductMappings.globalProductId))
+        .where(
+          and(
+            eq(customerProductMappings.organizationId, orgId),
+            eq(customerProductMappings.customerInternalSku, cleanSku)
+          )
+        )
+        .limit(1);
+
+      if (skuMatch) {
+        duplicateFound = skuMatch.product;
+        matchReason = `Matched existing product by SKU in your catalog: ${cleanSku}`;
+      }
+    }
+
+    return res.json({
+      success: true,
+      hasDuplicate: Boolean(duplicateFound),
+      matchReason: matchReason || null,
+      existingProduct: duplicateFound || null,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to verify duplicates', details: err.message });
+  }
+});
+
+// Evaluate Product Data Quality & Validation Rules (Part 7 & Part 8)
+productsRouter.post('/validate-quality', async (req: Request, res: Response) => {
+  const { title, model, sku, ean, images, description, sourceTrustScore } = req.body;
+  const evaluation = evaluateProductQuality({
+    title,
+    model,
+    sku,
+    ean,
+    images,
+    description,
+    sourceTrustScore: Number(sourceTrustScore) || 0.95,
+  });
+
+  return res.json({
+    success: true,
+    evaluation,
+  });
+});
 
 // 0. CREATE / SAVE PRODUCT (Client Tenant Scoped from Extraction with Quota Limit Check)
 productsRouter.post('/', async (req: Request, res: Response, next) => {
@@ -143,7 +245,15 @@ productsRouter.post('/', async (req: Request, res: Response, next) => {
         },
       });
 
-    // 5. Save tenant overrides for price, custom attributes, internal notes
+    // 5. Save tenant overrides for price, custom attributes, internal notes + field-level provenance (Part 6)
+    const fieldProvenanceMetadata = {
+      title: { value: cleanTitle, sourceUrl: productUrl || null, method: 'css_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() },
+      modelNumber: cleanModel ? { value: cleanModel, sourceUrl: productUrl || null, method: 'css_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() } : null,
+      sku: sku ? { value: String(sku).trim(), sourceUrl: productUrl || null, method: 'css_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() } : null,
+      price: price ? { value: String(price).trim(), sourceUrl: productUrl || null, method: 'css_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() } : null,
+      description: description ? { value: String(description).substring(0, 100) + '...', sourceUrl: productUrl || null, method: 'css_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() } : null,
+    };
+
     if (price || attributes || customData) {
       await db
         .insert(customerProductOverrides)
@@ -157,6 +267,7 @@ productsRouter.post('/', async (req: Request, res: Response, next) => {
             extractedAttributes: attributes || {},
             customFields: customData || {},
             productUrl: productUrl || null,
+            fieldProvenance: fieldProvenanceMetadata,
           },
         })
         .onConflictDoUpdate({
@@ -169,6 +280,7 @@ productsRouter.post('/', async (req: Request, res: Response, next) => {
               extractedAttributes: attributes || {},
               customFields: customData || {},
               productUrl: productUrl || null,
+              fieldProvenance: fieldProvenanceMetadata,
             },
             updatedAt: new Date(),
           },

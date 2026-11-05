@@ -674,6 +674,63 @@ brandsRouter.post('/:id/test-mapping', async (req: Request, res: Response) => {
       };
     }
 
+    // --- Part 4: Selector Health Monitoring Update ---
+    // If fieldMappings exists in profile, update health metrics for tested selectors
+    try {
+      const currentMappings = (profile.fieldMappings as any[]) || [];
+      let mappingsUpdated = false;
+
+      const updatedMappings = currentMappings.map((m: any) => {
+        const res = extractionResults[m.targetField];
+        if (res && res.sourceValue === m.sourceValue) {
+          mappingsUpdated = true;
+          const isSuccess = res.status === 'success' || (Array.isArray(res.extractedValue) ? res.extractedValue.length > 0 : Boolean(res.extractedValue && !res.extractedValue.startsWith('(')));
+          const prevConsecutiveFailures = Number(m.consecutiveFailures || 0);
+          const consecutiveFailures = isSuccess ? 0 : prevConsecutiveFailures + 1;
+          const successCount = Number(m.successCount || 0) + (isSuccess ? 1 : 0);
+          const failureCount = Number(m.failureCount || 0) + (isSuccess ? 0 : 1);
+          const totalRuns = successCount + failureCount;
+          const successRate = totalRuns > 0 ? Math.round((successCount / totalRuns) * 100) : 100;
+          
+          let healthStatus: 'healthy' | 'degraded' | 'broken' = 'healthy';
+          if (consecutiveFailures >= 3 || (totalRuns >= 5 && successRate < 50)) {
+            healthStatus = 'broken';
+          } else if (consecutiveFailures >= 1 || (totalRuns >= 5 && successRate < 80)) {
+            healthStatus = 'degraded';
+          }
+
+          return {
+            ...m,
+            healthStatus,
+            lastTestedAt: new Date().toISOString(),
+            lastExtractedAt: isSuccess ? new Date().toISOString() : m.lastExtractedAt,
+            consecutiveFailures,
+            successCount,
+            failureCount,
+            successRate,
+          };
+        }
+        return m;
+      });
+
+      if (mappingsUpdated) {
+        await db
+          .update(tenantBrandProfiles)
+          .set({
+            fieldMappings: updatedMappings,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(tenantBrandProfiles.id, brandId),
+              eq(tenantBrandProfiles.organizationId, orgId)
+            )
+          );
+      }
+    } catch (healthErr) {
+      console.warn('[SelectorHealth] Failed to update selector health metrics:', healthErr);
+    }
+
     return res.json({
       success: true,
       testUrl: sampleUrl || 'Direct HTML Payload',
@@ -812,13 +869,13 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
     const clickToMapScript = `
       <style>
         .visual-mapper-hover {
-          outline: 2px dashed #0d2a2c !important;
-          background-color: rgba(250, 217, 130, 0.25) !important;
+          outline: 2px dashed #d4af37 !important;
+          background-color: rgba(212, 175, 55, 0.18) !important;
           cursor: crosshair !important;
         }
         .visual-mapper-selected {
           outline: 3px solid #0d2a2c !important;
-          background-color: rgba(250, 217, 130, 0.45) !important;
+          background-color: rgba(212, 175, 55, 0.35) !important;
         }
       </style>
       <script>
@@ -826,49 +883,106 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
           var lastHovered = null;
           var selectedElem = null;
 
+          function isBadClassOrId(str) {
+            if (!str) return true;
+            // Ignore dynamically generated hashes, tailwind arbitrary, or temporary DOM numbers
+            return /^[0-9]+$|^[a-f0-9]{8,}|^css-[0-9a-z]+|^jsx-[0-9a-z]+|^_[0-9a-zA-Z]{5,}/i.test(str);
+          }
+
           function generateCssSelector(el) {
-            if (!el || el.nodeType !== 1) return '';
+            if (!el || el.nodeType !== 1) return { selector: '', confidence: 'Low', warning: 'Invalid element' };
             
-            // 1. Unique ID
-            if (el.id && !el.id.match(/[0-9]{4,}/)) {
-              return '#' + CSS.escape(el.id);
+            var tagName = el.tagName.toLowerCase();
+
+            // 1. Unique ID (Avoid dynamic/framework IDs)
+            if (el.id && !isBadClassOrId(el.id)) {
+              var idSel = '#' + CSS.escape(el.id);
+              try {
+                if (document.querySelectorAll(idSel).length === 1) {
+                  return { selector: idSel, confidence: 'High', warning: null };
+                }
+              } catch (_) {}
             }
 
-            // 2. Data Attributes
-            var dataAttrs = ['data-product-title', 'data-sku', 'data-price', 'itemprop', 'data-testid'];
-            for (var i = 0; i < dataAttrs.length; i++) {
-              var attr = dataAttrs[i];
+            // 2. Stable Semantic Data Attributes (itemprop, data-product-*, data-sku, data-name)
+            var priorityAttrs = ['itemprop', 'data-sku', 'data-product-sku', 'data-product-title', 'data-product-name', 'data-price', 'data-product-price', 'data-mpn', 'data-ean'];
+            for (var i = 0; i < priorityAttrs.length; i++) {
+              var attr = priorityAttrs[i];
               if (el.hasAttribute(attr)) {
-                return '[' + attr + '="' + CSS.escape(el.getAttribute(attr)) + '"]';
+                var attrVal = el.getAttribute(attr);
+                var sel = '[' + attr + '="' + CSS.escape(attrVal) + '"]';
+                try {
+                  var count = document.querySelectorAll(sel).length;
+                  if (count === 1) {
+                    return { selector: sel, confidence: 'High', warning: null };
+                  }
+                  if (count > 1) {
+                    return { selector: sel, confidence: 'Medium', warning: 'Attribute matched ' + count + ' elements on page' };
+                  }
+                } catch (_) {}
               }
             }
 
-            // 3. Meaningful Class Names
-            var classes = Array.from(el.classList).filter(function(c) {
-              return !c.startsWith('visual-mapper') && !c.match(/[0-9]{4,}/) && c.length > 2;
+            // 3. Meaningful Semantic Class Names
+            var validClasses = Array.from(el.classList).filter(function(c) {
+              return !c.startsWith('visual-mapper') && !isBadClassOrId(c) && c.length > 2;
             });
 
-            var tagName = el.tagName.toLowerCase();
-            if (classes.length > 0) {
-              // Prefer title/price/sku semantic class names
-              var semantic = classes.find(function(c) {
-                return /title|name|sku|price|model|ean|description|spec|brand/i.test(c);
+            if (validClasses.length > 0) {
+              // Priority semantic matches: title, name, sku, price, model, mpn, desc, ean, spec
+              var semanticClass = validClasses.find(function(c) {
+                return /^(product[-_]?title|product[-_]?name|page[-_]?title|price|product[-_]?price|sku|model|mpn|ean|overview|description|specs|attribute)/i.test(c);
               });
-              if (semantic) {
-                return tagName + '.' + CSS.escape(semantic);
+
+              if (semanticClass) {
+                var classSel = tagName + '.' + CSS.escape(semanticClass);
+                try {
+                  var count = document.querySelectorAll(classSel).length;
+                  if (count === 1) {
+                    return { selector: classSel, confidence: 'High', warning: null };
+                  }
+                  return { selector: classSel, confidence: 'Medium', warning: 'Matches ' + count + ' elements' };
+                } catch (_) {}
               }
-              return tagName + '.' + classes.slice(0, 2).map(CSS.escape).join('.');
+
+              // Test combination of two first valid classes
+              var joinedClasses = tagName + '.' + validClasses.slice(0, 2).map(CSS.escape).join('.');
+              try {
+                var cCount = document.querySelectorAll(joinedClasses).length;
+                if (cCount === 1) {
+                  return { selector: joinedClasses, confidence: 'High', warning: null };
+                }
+              } catch (_) {}
             }
 
-            // 4. Meaningful Parent Structure
+            // 4. Meaningful Parent-Child Relationship (up to 2 levels)
             if (el.parentElement && el.parentElement !== document.body) {
-              var parentSel = generateCssSelector(el.parentElement);
-              if (parentSel) {
-                return parentSel + ' > ' + tagName;
+              var parent = el.parentElement;
+              var parentTag = parent.tagName.toLowerCase();
+              var parentClass = Array.from(parent.classList).find(function(c) {
+                return !c.startsWith('visual-mapper') && !isBadClassOrId(c) && /product|detail|info|main|hero|gallery|specs|header/i.test(c);
+              });
+
+              if (parent.id && !isBadClassOrId(parent.id)) {
+                var compound = '#' + CSS.escape(parent.id) + ' ' + tagName;
+                if (document.querySelectorAll(compound).length === 1) {
+                  return { selector: compound, confidence: 'High', warning: null };
+                }
+              } else if (parentClass) {
+                var compound = parentTag + '.' + CSS.escape(parentClass) + ' ' + tagName;
+                if (document.querySelectorAll(compound).length === 1) {
+                  return { selector: compound, confidence: 'High', warning: null };
+                }
               }
             }
 
-            return tagName;
+            // 5. Fallback: Positional selector with warning
+            var fallback = tagName;
+            return {
+              selector: fallback,
+              confidence: 'Low',
+              warning: 'Broad generic selector. Matches multiple page elements. Verify or refine manually.'
+            };
           }
 
           document.addEventListener('mouseover', function(e) {
@@ -892,11 +1006,9 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
             var target = e.target;
             if (!target || target === document.body) return;
 
-            // 1. If user clicked an interactive tab, accordion, or toggle (e.g. APPLICATION GUIDE, Specs, Reviews),
-            // toggle open its content panel so they can inspect/select internal content!
+            // Allow interactive tabs / accordions to toggle open in preview
             var isTabOrAccordion = target.closest('[data-role="collapsible"], [data-toggle="switch"], .data.item.title, .tab, .accordion, details, summary, [aria-expanded]');
             if (isTabOrAccordion) {
-              // Locate associated content target
               var href = isTabOrAccordion.getAttribute('href') || isTabOrAccordion.querySelector('[href]')?.getAttribute('href') || '';
               var targetId = href.startsWith('#') ? href.substring(1) : (isTabOrAccordion.id ? isTabOrAccordion.id.replace('tab-label-', '') : '');
               var contentPanel = targetId ? document.getElementById(targetId) : null;
@@ -922,24 +1034,27 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
             target.classList.add('visual-mapper-selected');
             selectedElem = target;
 
-            var selector = generateCssSelector(target);
+            var result = generateCssSelector(target);
             var isImage = target.tagName.toLowerCase() === 'img';
             var extractedValue = isImage ? (target.src || target.currentSrc || '') : (target.innerText || target.textContent || '').trim();
 
-            // Count matches on page
             var count = 1;
             try {
-              count = document.querySelectorAll(selector).length;
+              if (result.selector) {
+                count = document.querySelectorAll(result.selector).length;
+              }
             } catch (_) {}
 
             window.parent.postMessage({
               type: 'VISUAL_MAPPER_SELECTION',
               payload: {
-                selector: selector,
+                selector: result.selector,
                 value: extractedValue,
                 tagName: target.tagName.toLowerCase(),
                 isImage: isImage,
                 matchCount: count,
+                confidence: result.confidence,
+                warning: result.warning,
                 previewHtml: target.outerHTML.substring(0, 250)
               }
             }, '*');
