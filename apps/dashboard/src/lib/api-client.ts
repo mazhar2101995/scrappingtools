@@ -286,7 +286,12 @@ export class DashboardApiClient {
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`API ${response.status}: ${errText}`);
+      let parsedMsg = errText;
+      try {
+        const j = JSON.parse(errText);
+        parsedMsg = j.details || j.error || j.message || errText;
+      } catch (_) {}
+      throw new Error(parsedMsg);
     }
 
     return (await response.json()) as T;

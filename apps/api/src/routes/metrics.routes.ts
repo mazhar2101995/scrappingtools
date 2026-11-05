@@ -172,7 +172,7 @@ metricsRouter.get('/client-overview', async (req: Request, res: Response) => {
         .from(storeConflictLogs)
         .where(
           and(
-            sql`${storeConflictLogs.connectedStoreId} = ANY(${storeIds})`,
+            sql`${storeConflictLogs.connectedStoreId} IN (${sql.join(storeIds.map(id => sql`${id}`), sql`, `)})`,
             eq(storeConflictLogs.resolution, 'pending')
           )
         )
@@ -187,7 +187,7 @@ metricsRouter.get('/client-overview', async (req: Request, res: Response) => {
         .from(storeSyncHistory)
         .where(
           and(
-            sql`${storeSyncHistory.connectedStoreId} = ANY(${storeIds})`,
+            sql`${storeSyncHistory.connectedStoreId} IN (${sql.join(storeIds.map(id => sql`${id}`), sql`, `)})`,
             eq(storeSyncHistory.status, 'failed')
           )
         )

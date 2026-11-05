@@ -2,13 +2,22 @@ import { Router, Request, Response } from 'express';
 import { db, connectedStores, storeSyncHistory, storeProductMappings, storeConflictLogs, globalProducts } from '@saas/database';
 import { eq, and, desc } from 'drizzle-orm';
 import { SynchronizationEngine, CredentialSecurity, OpenCartConnector, ShopifyConnector, WooCommerceConnector } from '@saas/connectors';
+import { authMiddleware } from '../middleware/auth.middleware';
 
 export const storeRouter = Router();
+
+// Apply auth middleware to all store routes
+storeRouter.use(authMiddleware);
+
+// Helper to get organization ID
+function getOrgId(req: Request): string | null {
+  return (req as any).user?.organizationId || (req as any).apiKey?.organizationId || (req.headers['x-organization-id'] as string) || null;
+}
 
 // GET /api/v1/stores - List all connected stores for tenant
 storeRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const orgId = (req as any).user?.organizationId || (req as any).apiKey?.organizationId || req.headers['x-organization-id'];
+    const orgId = getOrgId(req);
     if (!orgId) {
       return res.status(401).json({ error: 'Tenant context required' });
     }
@@ -37,7 +46,7 @@ storeRouter.get('/', async (req: Request, res: Response) => {
 // POST /api/v1/stores - Connect a new e-commerce store
 storeRouter.post('/', async (req: Request, res: Response) => {
   try {
-    const orgId = (req as any).user?.organizationId || (req as any).apiKey?.organizationId || req.headers['x-organization-id'];
+    const orgId = getOrgId(req);
     if (!orgId) {
       return res.status(401).json({ error: 'Tenant context required' });
     }
@@ -155,7 +164,7 @@ storeRouter.get('/:id/history', async (req: Request, res: Response) => {
 // POST /api/v1/stores/push-product - 1-Click Push Single Product to Connected Store
 storeRouter.post('/push-product', async (req: Request, res: Response) => {
   try {
-    const orgId = (req as any).user?.organizationId || (req as any).apiKey?.organizationId || req.headers['x-organization-id'];
+    const orgId = getOrgId(req);
     if (!orgId) {
       return res.status(401).json({ error: 'Tenant context required' });
     }

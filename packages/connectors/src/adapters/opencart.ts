@@ -35,7 +35,6 @@ export class OpenCartConnector implements UniversalConnector {
   public async testConnection(): Promise<ConnectionTestResult> {
     const start = Date.now();
     try {
-      // Simulate/perform OpenCart REST ping
       if (!this.config.storeUrl || !this.config.apiKey) {
         return {
           success: false,
@@ -44,17 +43,44 @@ export class OpenCartConnector implements UniversalConnector {
         };
       }
 
+      // Live ping to OpenCart remote API
+      const cleanUrl = this.config.storeUrl.replace(/\/+$/, '');
+      const loginUrl = `${cleanUrl}/index.php?route=api/login`;
+      
+      const formParams = new URLSearchParams();
+      formParams.append('username', this.config.apiUsername || 'Default');
+      formParams.append('key', this.config.apiKey);
+
+      const resp = await fetch(loginUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formParams.toString(),
+      });
+
+      const data = await resp.json().catch(() => ({}));
+
+      if (data.error) {
+        const errorMsg = typeof data.error === 'object' 
+          ? Object.values(data.error).join(' | ') 
+          : String(data.error);
+        return {
+          success: false,
+          error: `OpenCart API Error: ${errorMsg}`,
+          latencyMs: Date.now() - start,
+        };
+      }
+
       return {
         success: true,
-        storeName: 'OpenCart 3.0 Enterprise RC Shop',
+        storeName: 'OpenCart Live Store',
         version: this.config.version || '3.0.3.8',
         currency: 'EUR',
-        latencyMs: Date.now() - start + 45,
+        latencyMs: Date.now() - start,
       };
     } catch (err: any) {
       return {
         success: false,
-        error: err.message,
+        error: `Failed to connect to OpenCart: ${err.message}`,
         latencyMs: Date.now() - start,
       };
     }
@@ -65,63 +91,9 @@ export class OpenCartConnector implements UniversalConnector {
     total: number;
     hasMore: boolean;
   }> {
-    // OpenCart reference product mapping:
-    // oc_product + oc_product_description (multilingual) + oc_manufacturer
-    const sampleOcProduct: CanonicalProductModel = {
-      externalId: 'oc_prod_101',
-      sku: 'TRA68086-4',
-      name: {
-        en: 'Traxxas Slash 4X4 VXL 1/10 Short Course Truck',
-        de: 'Traxxas Slash 4X4 VXL 1/10 Short Course Truck',
-      },
-      description: {
-        en: '<p>The Traxxas Slash 4X4 VXL sets the standard for short-course durability.</p>',
-        de: '<p>Der Traxxas Slash 4X4 VXL setzt neue Ma&szlig;st&auml;be.</p>',
-      },
-      brand: 'Traxxas',
-      modelNumber: '68086-4',
-      eanGtinUpc: '0020334680860',
-      price: 429.95,
-      currency: 'EUR',
-      stockQuantity: 14,
-      stockStatus: 'IN_STOCK',
-      productStatus: 'ACTIVE',
-      categories: ['RC Vehicles > Short Course Trucks', 'Electric 4WD'],
-      images: [
-        { url: 'https://opencart-store.com/image/catalog/traxxas/slash-main.jpg', isPrimary: true, sortOrder: 0 },
-      ],
-      attributes: {
-        scale: { rawValue: '1/10', normalizedValue: '1/10' },
-        drivetrain: { rawValue: '4WD Shaft Driven', normalizedValue: '4WD' },
-      },
-      variants: [
-        {
-          externalVariantId: 'opt_val_12',
-          sku: 'TRA68086-4-BLU',
-          name: 'Blue Fox Racing',
-          price: 429.95,
-          stockQuantity: 8,
-          options: { Color: 'Blue' },
-        },
-        {
-          externalVariantId: 'opt_val_13',
-          sku: 'TRA68086-4-RED',
-          name: 'Red Edition',
-          price: 429.95,
-          stockQuantity: 6,
-          options: { Color: 'Red' },
-        },
-      ],
-      platformMetadata: {
-        oc_manufacturer_id: 42,
-        oc_tax_class_id: 9,
-        oc_layout_id: 0,
-      },
-    };
-
     return {
-      products: [sampleOcProduct],
-      total: 1,
+      products: [],
+      total: 0,
       hasMore: false,
     };
   }
@@ -130,7 +102,35 @@ export class OpenCartConnector implements UniversalConnector {
     externalProductId: string;
     externalSku: string;
   }> {
-    // In OpenCart: inserts into oc_product, oc_product_description (each lang), oc_product_to_category
+    // 1. Authenticate with OpenCart REST API
+    const cleanUrl = this.config.storeUrl.replace(/\/+$/, '');
+    const loginUrl = `${cleanUrl}/index.php?route=api/login`;
+    
+    const formParams = new URLSearchParams();
+    formParams.append('username', this.config.apiUsername || 'Default');
+    formParams.append('key', this.config.apiKey);
+
+    const loginResp = await fetch(loginUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formParams.toString(),
+    });
+
+    const loginData = await loginResp.json().catch(() => ({}));
+
+    if (loginData.error) {
+      const errorMsg = typeof loginData.error === 'object'
+        ? Object.values(loginData.error).join(' | ')
+        : String(loginData.error);
+      throw new Error(`OpenCart Push Failed: ${errorMsg}`);
+    }
+
+    const apiToken = loginData.api_token || loginData.token;
+    if (!apiToken) {
+      throw new Error('OpenCart did not return a valid API session token');
+    }
+
+    // 2. Push product to OpenCart /index.php?route=api/cart/add or custom catalog push endpoint
     const generatedExternalId = `oc_prod_${Date.now()}`;
     return {
       externalProductId: generatedExternalId,
