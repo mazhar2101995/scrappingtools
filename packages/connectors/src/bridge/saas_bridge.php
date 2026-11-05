@@ -196,18 +196,57 @@ switch ($action) {
             ]);
             exit;
         } else {
-            // Create Brand New Product
-            $insert_sql = "INSERT INTO `{$prefix}product` SET 
-                `model` = '{$safe_model}',
-                `sku` = '{$safe_sku}',
-                `quantity` = {$quantity},
-                `stock_status_id` = 7,
-                `image` = '{$safe_image}',
-                `shipping` = 1,
-                `price` = {$price},
-                `status` = 1,
-                `date_added` = NOW(),
-                `date_modified` = NOW()";
+            // Read all table columns dynamically to prevent MySQL strict mode errors (e.g. Field 'upc' doesn't have a default value)
+            $cols_res = $mysqli->query("SHOW COLUMNS FROM `{$prefix}product`");
+            $fields = [];
+            if ($cols_res) {
+                while ($c = $cols_res->fetch_assoc()) {
+                    $field_name = $c['Field'];
+                    $field_type = strtolower($c['Type']);
+                    
+                    if ($field_name === 'product_id') continue;
+
+                    if ($field_name === 'model') {
+                        $fields["`model`"] = "'{$safe_model}'";
+                    } elseif ($field_name === 'sku') {
+                        $fields["`sku`"] = "'{$safe_sku}'";
+                    } elseif ($field_name === 'price') {
+                        $fields["`price`"] = $price;
+                    } elseif ($field_name === 'quantity') {
+                        $fields["`quantity`"] = $quantity;
+                    } elseif ($field_name === 'image') {
+                        $fields["`image`"] = "'{$safe_image}'";
+                    } elseif ($field_name === 'status') {
+                        $fields["`status`"] = 1;
+                    } elseif ($field_name === 'shipping') {
+                        $fields["`shipping`"] = 1;
+                    } elseif ($field_name === 'stock_status_id') {
+                        $fields["`stock_status_id`"] = 7;
+                    } elseif ($field_name === 'date_available') {
+                        $fields["`date_available`"] = "CURDATE()";
+                    } elseif ($field_name === 'date_added') {
+                        $fields["`date_added`"] = "NOW()";
+                    } elseif ($field_name === 'date_modified') {
+                        $fields["`date_modified`"] = "NOW()";
+                    } elseif ($c['Default'] === null && strtolower($c['Null']) === 'no') {
+                        // Strict mode non-nullable field without default
+                        if (strpos($field_type, 'int') !== false || strpos($field_type, 'decimal') !== false || strpos($field_type, 'float') !== false) {
+                            $fields["`{$field_name}`"] = 0;
+                        } elseif (strpos($field_type, 'date') !== false) {
+                            $fields["`{$field_name}`"] = "CURDATE()";
+                        } else {
+                            $fields["`{$field_name}`"] = "''";
+                        }
+                    }
+                }
+            }
+
+            $set_clauses = [];
+            foreach ($fields as $col => $val) {
+                $set_clauses[] = "{$col} = {$val}";
+            }
+
+            $insert_sql = "INSERT INTO `{$prefix}product` SET " . implode(', ', $set_clauses);
 
             if (!$mysqli->query($insert_sql)) {
                 http_response_code(500);
