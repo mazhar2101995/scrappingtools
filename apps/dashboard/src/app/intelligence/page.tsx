@@ -301,12 +301,12 @@ export default function ProductIntelligencePage() {
                               {item.canonicalProduct?.title || item.suggestedTitle || 'Canonical Product'}
                             </h4>
                             <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
-                              <span>Brand: <strong className="text-slate-800">{item.canonicalProduct?.brand || 'Traxxas'}</strong></span>
+                              <span>Brand: <strong className="text-slate-800">{item.canonicalProduct?.brand || 'N/A'}</strong></span>
                               <span>&bull;</span>
                               <span>Model: <strong className="text-slate-800">{item.canonicalProduct?.modelNumber || '77097-4'}</strong></span>
                             </div>
                             <div className="text-sm font-black text-slate-900 pt-1">
-                              {item.canonicalProduct?.price || '$1,349.95'}
+                              {item.canonicalProduct?.price || '—'}
                             </div>
                           </div>
                         </div>
@@ -327,7 +327,7 @@ export default function ProductIntelligencePage() {
                               {item.incomingProduct?.title || item.listingTitle}
                             </h4>
                             <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
-                              <span>Brand: <strong className="text-slate-800">{item.incomingProduct?.brand || 'Traxxas'}</strong></span>
+                              <span>Brand: <strong className="text-slate-800">{item.incomingProduct?.brand || 'N/A'}</strong></span>
                               <span>&bull;</span>
                               <span>Model: <strong className="text-slate-800">{item.incomingProduct?.modelNumber || item.canonicalProduct?.modelNumber || '77097-4'}</strong></span>
                             </div>

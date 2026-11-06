@@ -17,10 +17,10 @@ import {
 import { apiClient } from '@/lib/api-client';
 
 export default function ProfilePage() {
-  const [fullName, setFullName] = useState('mazhar client');
-  const [email, setEmail] = useState('mak@gmail.com');
-  const [organizationName, setOrganizationName] = useState('Mazhar Dev');
-  const [role, setRole] = useState('Organization Owner');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [organizationName, setOrganizationName] = useState('');
+  const [role, setRole] = useState('Organization Member');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

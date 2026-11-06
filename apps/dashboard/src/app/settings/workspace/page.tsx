@@ -18,7 +18,7 @@ import {
 import { apiClient } from '@/lib/api-client';
 
 export default function WorkspaceSettingsPage() {
-  const [orgName, setOrgName] = useState('Acme Corp');
+  const [orgName, setOrgName] = useState('');
   const [currency, setCurrency] = useState('USD');
   const [timezone, setTimezone] = useState('UTC');
   const [notifyOnSyncFailure, setNotifyOnSyncFailure] = useState(true);

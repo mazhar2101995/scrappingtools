@@ -54,12 +54,13 @@ const SECONDARY_NAV_ITEMS = [
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
+  const isAuthPage = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password' || pathname === '/reset-password';
   const isAdminPage = pathname.startsWith('/admin');
 
-  const [workspaceName, setWorkspaceName] = useState('Mazhar Dev');
-  const [userName, setUserName] = useState('mazhar client');
-  const [userEmail, setUserEmail] = useState('mak@gmail.com');
+  const [workspaceName, setWorkspaceName] = useState('Workspace');
+  const [userName, setUserName] = useState('User');
+  const [userEmail, setUserEmail] = useState('');
+  const [authChecked, setAuthChecked] = useState(false);
 
   // Interactive UI Dropdowns / Modals
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -71,6 +72,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('saas_token');
+
+      // Mandatory Auth Check: Redirect unauthenticated user to login immediately
+      if (!token && !isAuthPage) {
+        window.location.href = '/login';
+        return;
+      }
+
       const storedUser = localStorage.getItem('saas_current_user');
       if (storedUser) {
         try {
@@ -78,20 +87,30 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           if (u.fullName) setUserName(u.fullName);
           if (u.email) setUserEmail(u.email);
           if (u.organizationName) setWorkspaceName(u.organizationName);
+
+          // Role check: If regular client tries to access /admin, redirect back to client portal
+          if (isAdminPage && u.role !== 'super_admin' && u.role !== 'admin') {
+            window.location.href = '/';
+            return;
+          }
         } catch (_) {}
       }
 
       const storedOrg = localStorage.getItem('saas_current_org_name');
       if (storedOrg) setWorkspaceName(storedOrg);
 
-      apiClient.getClientWorkspace().then((ws) => {
-        if (ws?.organization?.name) {
-          setWorkspaceName(ws.organization.name);
-          localStorage.setItem('saas_current_org_name', ws.organization.name);
-        }
-      }).catch(() => {});
+      if (!isAuthPage) {
+        apiClient.getClientWorkspace().then((ws) => {
+          if (ws?.organization?.name) {
+            setWorkspaceName(ws.organization.name);
+            localStorage.setItem('saas_current_org_name', ws.organization.name);
+          }
+        }).catch(() => {});
+      }
+
+      setAuthChecked(true);
     }
-  }, []);
+  }, [pathname, isAuthPage, isAdminPage]);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -117,7 +136,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // Generate dynamic initials for the user (e.g. "MC" for "mazhar client")
+  // Generate dynamic initials for the user (e.g. "JD" for "John Doe")
   const initials = userName
     .split(' ')
     .map((n) => n[0])

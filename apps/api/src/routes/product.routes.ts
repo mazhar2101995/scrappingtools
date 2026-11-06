@@ -703,7 +703,7 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
       price: price ? (String(price).startsWith('$') ? String(price) : `$${price}`) : null,
       productUrl,
     },
-    brandName: product.brandName || 'Traxxas',
+    brandName: product.brandName || '',
     mapping,
     variants,
     identifiers,

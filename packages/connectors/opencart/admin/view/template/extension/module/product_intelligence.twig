@@ -1,0 +1,315 @@
+{{ header }}{{ column_left }}
+<div id="content">
+  <div class="page-header">
+    <div class="container-fluid">
+      <div class="pull-right">
+        <button type="submit" form="form-module" data-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary"><i class="fa fa-save"></i> Save</button>
+        <a href="{{ cancel }}" data-toggle="tooltip" title="{{ button_cancel }}" class="btn btn-default"><i class="fa fa-reply"></i> Cancel</a>
+      </div>
+      <h1>{{ heading_title }}</h1>
+      <ul class="breadcrumb">
+        {% for breadcrumb in breadcrumbs %}
+          <li><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="container-fluid">
+    {% if error_warning %}
+      <div class="alert alert-danger alert-dismissible"><i class="fa fa-exclamation-circle"></i> {{ error_warning }}
+        <button type="button" class="close" data-dismiss="alert">&times;</button>
+      </div>
+    {% endif %}
+
+    <div id="connection-alert"></div>
+
+    <div class="row">
+      <!-- Settings Form & Test Connection -->
+      <div class="col-md-7">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title"><i class="fa fa-cogs"></i> {{ text_edit }}</h3>
+          </div>
+          <div class="panel-body">
+            <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-module" class="form-horizontal">
+              
+              <div class="form-group">
+                <label class="col-sm-3 control-label" for="input-status">{{ entry_status }}</label>
+                <div class="col-sm-9">
+                  <select name="module_product_intelligence_status" id="input-status" class="form-control">
+                    <option value="1" {% if module_product_intelligence_status %}selected="selected"{% endif %}>Enabled</option>
+                    <option value="0" {% if not module_product_intelligence_status %}selected="selected"{% endif %}>Disabled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group required">
+                <label class="col-sm-3 control-label" for="input-api-url"><span data-toggle="tooltip" title="{{ help_api_url }}">{{ entry_api_url }}</span></label>
+                <div class="col-sm-9">
+                  <input type="text" name="module_product_intelligence_api_url" value="{{ module_product_intelligence_api_url }}" placeholder="http://127.0.0.1:4000/api/v1" id="input-api-url" class="form-control" />
+                </div>
+              </div>
+
+              <div class="form-group required">
+                <label class="col-sm-3 control-label" for="input-api-key"><span data-toggle="tooltip" title="{{ help_api_key }}">{{ entry_api_key }}</span></label>
+                <div class="col-sm-9">
+                  <div class="input-group">
+                    <input type="text" name="module_product_intelligence_api_key" value="{{ module_product_intelligence_api_key }}" placeholder="pk_..." id="input-api-key" class="form-control" />
+                    <span class="input-group-btn">
+                      <button type="button" id="btn-test-connection" class="btn btn-info"><i class="fa fa-plug"></i> Test Connection</button>
+                    </span>
+                  </div>
+                  {% if masked_api_key %}
+                    <small class="text-muted">Saved Key: <code>{{ masked_api_key }}</code> (Never exposed in public responses)</small>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="col-sm-3 control-label">Data Ownership Policy</label>
+                <div class="col-sm-9">
+                  <div class="alert alert-info" style="margin-bottom:0;">
+                    <strong><i class="fa fa-shield"></i> Protected Store Data:</strong><br>
+                    Selling Price, Stock Quantity, and Local Categories remain 100% store-owned. Product Intelligence synchronizes only administrator-approved specifications and catalog copy.
+                  </div>
+                </div>
+              </div>
+
+            </form>
+          </div>
+        </div>
+
+        <!-- Interactive Product Lookup & Field Comparison Simulator -->
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title"><i class="fa fa-search"></i> Product Intelligence Lookup & Field Comparison</h3>
+          </div>
+          <div class="panel-body">
+            <div class="row">
+              <div class="col-sm-8">
+                <div class="input-group">
+                  <input type="text" id="lookup-identifier" class="form-control" placeholder="Enter GTIN, EAN, UPC, or MPN (e.g. 0020334680864)" />
+                  <span class="input-group-btn">
+                    <button type="button" id="btn-run-lookup" class="btn btn-primary"><i class="fa fa-search"></i> Lookup Intelligence</button>
+                  </span>
+                </div>
+              </div>
+              <div class="col-sm-4">
+                <input type="number" id="lookup-product-id" class="form-control" placeholder="OpenCart Product ID (e.g. 28)" value="28" />
+              </div>
+            </div>
+
+            <div id="lookup-result-box" style="margin-top:20px; display:none;">
+              <!-- Dynamic comparison table rendered via JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Integration Activity Logs -->
+      <div class="col-md-5">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h3 class="panel-title"><i class="fa fa-list"></i> Recent Integration Activity (Auditable)</h3>
+          </div>
+          <div class="panel-body" style="max-height: 550px; overflow-y: auto;">
+            <table class="table table-bordered table-striped" style="font-size:12px;">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Operation</th>
+                  <th>Status</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody id="logs-table-body">
+                {% if logs %}
+                  {% for log in logs %}
+                    <tr>
+                      <td>{{ log.created_at }}</td>
+                      <td><code>{{ log.operation }}</code></td>
+                      <td>
+                        {% if log.status == 'SUCCESS' or log.status == 'CONNECTED' or log.status == 'FOUND' %}
+                          <span class="label label-success">{{ log.status }}</span>
+                        {% elseif log.status == 'NOT_FOUND' %}
+                          <span class="label label-warning">{{ log.status }}</span>
+                        {% else %}
+                          <span class="label label-danger">{{ log.status }}</span>
+                        {% endif %}
+                      </td>
+                      <td><small>{{ log.details }}</small></td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr><td colspan="4" class="text-center text-muted">No integration events recorded yet.</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+$('#btn-test-connection').on('click', function() {
+  var $btn = $(this);
+  var apiUrl = $('#input-api-url').val();
+  var apiKey = $('#input-api-key').val();
+
+  $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Testing...');
+
+  $.ajax({
+    url: '{{ url_test_connection }}',
+    type: 'POST',
+    data: { api_url: apiUrl, api_key: apiKey },
+    dataType: 'json',
+    success: function(json) {
+      $btn.prop('disabled', false).html('<i class="fa fa-plug"></i> Test Connection');
+      if (json.status === 'CONNECTED') {
+        $('#connection-alert').html('<div class="alert alert-success"><i class="fa fa-check-circle"></i> ' + json.message + '</div>');
+      } else if (json.status === 'AUTHENTICATION_FAILED') {
+        $('#connection-alert').html('<div class="alert alert-danger"><i class="fa fa-ban"></i> ' + json.message + '</div>');
+      } else {
+        $('#connection-alert').html('<div class="alert alert-warning"><i class="fa fa-exclamation-triangle"></i> ' + json.message + '</div>');
+      }
+    },
+    error: function(xhr, ajaxOptions, thrownError) {
+      $btn.prop('disabled', false).html('<i class="fa fa-plug"></i> Test Connection');
+      $('#connection-alert').html('<div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> Network Error: ' + thrownError + '</div>');
+    }
+  });
+});
+
+$('#btn-run-lookup').on('click', function() {
+  var $btn = $(this);
+  var ident = $('#lookup-identifier').val();
+  var pId = $('#lookup-product-id').val();
+
+  if (!ident) {
+    alert('Please enter an identifier (GTIN / EAN / MPN)');
+    return;
+  }
+
+  $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Looking up...');
+
+  $.ajax({
+    url: '{{ url_lookup }}',
+    type: 'POST',
+    data: { identifier: ident, product_id: pId },
+    dataType: 'json',
+    success: function(resp) {
+      $btn.prop('disabled', false).html('<i class="fa fa-search"></i> Lookup Intelligence');
+      var $box = $('#lookup-result-box');
+      $box.show();
+
+      if (resp.status === 'FOUND') {
+        var p = resp.data.product;
+        var oc = resp.current_opencart || {};
+        var q = resp.data.quality || {};
+
+        var html = '<div class="panel panel-info">';
+        html += '<div class="panel-heading"><strong>Intelligence Match Found</strong> - Quality Score: <span class="badge">' + (q.score || 0) + '%</span> | Status: <code>' + (resp.data.status || 'FOUND') + '</code></div>';
+        html += '<div class="panel-body">';
+        html += '<p><strong>Canonical Title:</strong> ' + (p.identity.canonicalTitle || 'N/A') + '<br><strong>EAN:</strong> ' + (p.identifiers.ean || 'N/A') + ' | <strong>Model/MPN:</strong> ' + (p.identifiers.mpn || p.identity.modelNumber || 'N/A') + '</p>';
+        
+        html += '<h4><i class="fa fa-columns"></i> Side-by-Side Field Comparison (Safe Sync)</h4>';
+        html += '<table class="table table-bordered">';
+        html += '<thead><tr><th>Field</th><th>Current OpenCart Value</th><th>Intelligence Value</th><th>Action</th></tr></thead>';
+        html += '<tbody>';
+        
+        // Field: Product Name
+        html += '<tr><td><strong>Product Name</strong></td><td>' + (oc.name || '<em>empty</em>') + '</td><td class="text-success"><strong>' + (p.identity.canonicalTitle || 'N/A') + '</strong></td><td><label><input type="checkbox" class="sync-field-chk" data-field="name" data-val="' + encodeURIComponent(p.identity.canonicalTitle || '') + '" checked> Apply Replace</label></td></tr>';
+        
+        // Field: Model
+        var intelModel = p.identity.modelNumber || p.identifiers.mpn || '';
+        html += '<tr><td><strong>Model / MPN</strong></td><td>' + (oc.model || '<em>empty</em>') + '</td><td class="text-success"><strong>' + (intelModel || 'N/A') + '</strong></td><td><label><input type="checkbox" class="sync-field-chk" data-field="model" data-val="' + encodeURIComponent(intelModel) + '" checked> Apply Replace</label></td></tr>';
+
+        // Field: EAN
+        var intelEan = p.identifiers.ean || '';
+        html += '<tr><td><strong>EAN / GTIN</strong></td><td>' + (oc.ean || '<em>empty</em>') + '</td><td class="text-success"><strong>' + (intelEan || 'N/A') + '</strong></td><td><label><input type="checkbox" class="sync-field-chk" data-field="ean" data-val="' + encodeURIComponent(intelEan) + '" checked> Apply Replace</label></td></tr>';
+
+        // Protected fields notice
+        html += '<tr class="warning"><td colspan="4"><i class="fa fa-lock"></i> <strong>Store-Protected Fields:</strong> Price (Current: ' + (oc.price || '0.00') + ') and Quantity (Current: ' + (oc.quantity || '0') + ') are strictly protected and will NOT be modified.</td></tr>';
+
+        html += '</tbody></table>';
+        html += '<button type="button" id="btn-apply-sync" class="btn btn-success"><i class="fa fa-check"></i> Apply Selected Fields to OpenCart</button>';
+        html += '<div id="sync-status-msg" style="margin-top:10px;"></div>';
+        html += '</div></div>';
+
+        $box.html(html);
+
+        $('#btn-apply-sync').on('click', function() {
+          var syncFields = {};
+          var intelPayload = {};
+
+          $('.sync-field-chk:checked').each(function() {
+            var f = $(this).data('field');
+            var v = decodeURIComponent($(this).data('val'));
+            syncFields[f] = 1;
+            intelPayload[f] = v;
+          });
+
+          if (Object.keys(syncFields).length === 0) {
+            alert('Please select at least one field to sync.');
+            return;
+          }
+
+          $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Syncing...');
+
+          $.ajax({
+            url: '{{ url_sync }}',
+            type: 'POST',
+            data: {
+              product_id: pId,
+              fields: syncFields,
+              intelligence: intelPayload
+            },
+            dataType: 'json',
+            success: function(sResp) {
+              if (sResp.status === 'SUCCESS') {
+                $('#sync-status-msg').html('<div class="alert alert-success"><i class="fa fa-check-circle"></i> ' + sResp.message + '</div>');
+              } else {
+                $('#sync-status-msg').html('<div class="alert alert-danger"><i class="fa fa-ban"></i> ' + sResp.message + '</div>');
+              }
+            }
+          });
+        });
+
+      } else if (resp.status === 'NOT_FOUND') {
+        var notFoundHtml = '<div class="alert alert-warning"><i class="fa fa-question-circle"></i> ' + resp.message + '<br><br>';
+        notFoundHtml += '<button type="button" id="btn-trigger-discovery" class="btn btn-primary btn-sm"><i class="fa fa-globe"></i> Request Product Discovery via AI / Scraping Engine</button>';
+        notFoundHtml += '<div id="discovery-status-box" style="margin-top:10px;"></div></div>';
+        $box.html(notFoundHtml);
+
+        $('#btn-trigger-discovery').on('click', function() {
+          $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Submitting Discovery Job...');
+          $.ajax({
+            url: '{{ url_discover }}',
+            type: 'POST',
+            data: {
+              model: ident,
+              product_id: pId
+            },
+            dataType: 'json',
+            success: function(dResp) {
+              if (dResp.status === 'SUBMITTED') {
+                var jobId = dResp.job.id || 'job-id';
+                $('#discovery-status-box').html('<div class="alert alert-info"><i class="fa fa-clock-o"></i> Discovery Job Created: <code>' + jobId + '</code> | Status: <strong>' + (dResp.job.status || 'SUBMITTED') + '</strong></div>');
+              } else {
+                $('#discovery-status-box').html('<div class="alert alert-danger">' + dResp.message + '</div>');
+              }
+            }
+          });
+        });
+      } else {
+        $box.html('<div class="alert alert-danger">' + resp.message + '</div>');
+      }
+    }
+  });
+});
+</script>
+{{ footer }}
+

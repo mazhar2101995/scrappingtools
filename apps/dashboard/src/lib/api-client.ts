@@ -252,8 +252,37 @@ export class DashboardApiClient {
     return data;
   }
 
+  async forgotPassword(email: string): Promise<any> {
+    const res = await fetch(`${this.baseUrl}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to request password reset');
+    }
+    return await res.json();
+  }
+
+  async resetPassword(token: string, email: string, newPassword: string): Promise<any> {
+    const res = await fetch(`${this.baseUrl}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, email, newPassword }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Password reset failed');
+    }
+    return await res.json();
+  }
+
   logout(): void {
     if (typeof window !== 'undefined') {
+      try {
+        fetch(`${this.baseUrl}/auth/logout`, { method: 'POST' }).catch(() => {});
+      } catch (_) {}
       localStorage.removeItem('saas_token');
       localStorage.removeItem('saas_token_client');
       localStorage.removeItem('saas_token_admin');
@@ -269,10 +298,14 @@ export class DashboardApiClient {
 
     // Auto-detect role from path if not explicitly provided
     const targetRole = rolePreference || (path.includes('/admin') || path.includes('/organizations') ? 'admin' : 'client');
-    let token = typeof window !== 'undefined' ? localStorage.getItem('saas_token') || localStorage.getItem(`saas_token_${targetRole}`) : null;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('saas_token') || localStorage.getItem(`saas_token_${targetRole}`) : null;
 
     if (!token && typeof window !== 'undefined') {
-      token = await this.ensureSession(targetRole);
+      const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register' || window.location.pathname === '/forgot-password' || window.location.pathname === '/reset-password';
+      if (!isAuthPage) {
+        window.location.href = '/login';
+        throw new Error('Authentication required. Redirecting to login...');
+      }
     }
 
     const orgId = typeof window !== 'undefined' ? localStorage.getItem('saas_org_id') : null;
@@ -292,12 +325,13 @@ export class DashboardApiClient {
     });
 
     if ((response.status === 401 || response.status === 403) && typeof window !== 'undefined') {
-      // Refresh matching role session if token rejected
-      token = await this.ensureSession(targetRole);
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-        const retryRes = await fetch(url, { ...options, headers, cache: 'no-store' });
-        if (retryRes.ok) return (await retryRes.json()) as T;
+      const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register' || window.location.pathname === '/forgot-password' || window.location.pathname === '/reset-password';
+      if (!isAuthPage) {
+        localStorage.removeItem('saas_token');
+        localStorage.removeItem('saas_token_client');
+        localStorage.removeItem('saas_token_admin');
+        window.location.href = '/login';
+        throw new Error('Session expired or unauthorized. Redirecting to login...');
       }
     }
 

@@ -282,7 +282,7 @@ storeRouter.post('/push-product', async (req: Request, res: Response) => {
       sku: product.modelNumber || `SKU-${Date.now().toString().slice(-6)}`,
       name: { en: override?.customTitle || product.canonicalTitle },
       description: { en: finalDescription },
-      brand: 'Traxxas',
+      brand: '',
       modelNumber: product.modelNumber || undefined,
       price: finalPrice,
       currency: 'USD',

@@ -46,7 +46,8 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
 
   // 2. API Key Authentication
   if (apiKeyHeader) {
-    const [keyPrefix] = apiKeyHeader.split('_');
+    const parts = apiKeyHeader.split('_');
+    const keyPrefix = parts.length >= 3 ? `${parts[0]}_${parts[1]}` : parts[0];
     if (!keyPrefix) {
       res.status(401).json({ error: 'Unauthorized: Malformed API key' });
       return;
