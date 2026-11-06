@@ -29,6 +29,9 @@ export interface StructuredAiOutput {
   enhancedTitle: string;
   enhancedDescription: string;
   keyHighlights: string[];
+  features?: string[];
+  compatibleModels?: string[];
+  specifications?: Record<string, any>;
   seoKeywords: string[];
   technicalSummary: string;
   suggestedCategory?: string;
@@ -148,6 +151,9 @@ export class AiIntelligenceService {
       enhancedTitle: title,
       enhancedDescription: (output.enhancedDescription || output.description || sourceContext.rawDescription || '').trim(),
       keyHighlights: Array.isArray(output.keyHighlights) ? output.keyHighlights.slice(0, 8) : [],
+      features: Array.isArray(output.features) ? output.features : (Array.isArray(output.keyHighlights) ? output.keyHighlights : []),
+      compatibleModels: Array.isArray(output.compatibleModels) ? output.compatibleModels : [],
+      specifications: output.specifications && typeof output.specifications === 'object' ? output.specifications : {},
       seoKeywords: Array.isArray(output.seoKeywords) ? output.seoKeywords.slice(0, 10) : [],
       technicalSummary: (output.technicalSummary || '').trim(),
       suggestedCategory: output.suggestedCategory || undefined,
@@ -220,8 +226,11 @@ export class AiIntelligenceService {
     const model = aiConfig.model || 'gemini-1.5-flash';
     const temperature = aiConfig.temperature !== undefined ? Number(aiConfig.temperature) : 0.2;
     const apiKey = aiConfig.apiKey || process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY || '';
+    const globalRules = aiConfig.globalRules || 'Ensure all product titles follow standardized e-commerce taxonomy. Emphasize manufacturing durability, verified specifications, and OEM part compatibility.';
+    const globalTitlePrompt = aiConfig.titlePrompt || '';
+    const globalDescriptionPrompt = aiConfig.descriptionPrompt || '';
 
-    // 3. Fetch Brand-Specific Prompt Rules
+    // 3. Fetch Brand-Specific Prompt Rules & Field Groups
     let brandAiPromptRules = '';
     let resolvedBrandName = brandName || '';
 
@@ -248,14 +257,18 @@ export class AiIntelligenceService {
 
     // 4. Compose Prompts with strict JSON Schema
     const systemPrompt = `You are a high-precision E-Commerce Product Intelligence Engine.
-Transform raw or unstructured scraped data into canonical catalog content.
-CRITICAL SAFEGUARDS:
-- Do NOT fabricate specs or fake warranties.
-- Preserve model numbers and SKUs exactly.
-- Return ONLY valid JSON matching this schema:
+Follow this strict hierarchy:
+1. Preserve all factual specifications, model numbers, and SKUs exactly without fabricating details.
+2. Apply Workspace Global Rules.
+3. Apply Brand Profile Rules.
+4. Generate structured content with clear sections: enhancedTitle, enhancedDescription, features, compatibleModels, specifications, keyHighlights.
+Return ONLY valid JSON matching this schema:
 {
   "enhancedTitle": "string",
   "enhancedDescription": "string",
+  "features": ["string"],
+  "compatibleModels": ["string"],
+  "specifications": { "key": "value" },
   "keyHighlights": ["string"],
   "seoKeywords": ["string"],
   "technicalSummary": "string",
@@ -270,7 +283,15 @@ Price: ${price || 'N/A'}
 Raw Description: ${rawDescription || 'N/A'}
 Features: ${JSON.stringify(features || [])}
 Specs: ${JSON.stringify(attributes || {})}
-Brand Rules: ${brandAiPromptRules || 'Standard e-commerce formatting'}`;
+Custom Attributes: ${JSON.stringify(customFields || {})}
+
+=== WORKSPACE GLOBAL RULES ===
+${globalRules}
+${globalTitlePrompt ? `Title Template: ${globalTitlePrompt}` : ''}
+${globalDescriptionPrompt ? `Description Template: ${globalDescriptionPrompt}` : ''}
+
+=== BRAND PROFILE RULES ===
+${brandAiPromptRules || 'Apply standard brand styling'}`;
 
     let rawOutput: any = null;
     let providerName = 'intelligent-engine-fallback';

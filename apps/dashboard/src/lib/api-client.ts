@@ -803,6 +803,12 @@ export class DashboardApiClient {
       body: JSON.stringify(payload),
     }, 'client');
   }
+
+  async reprocessProduct(productId: string): Promise<any> {
+    return this.fetchJson(`/products/${productId}/reprocess`, {
+      method: 'POST',
+    }, 'client');
+  }
 }
 
 export const apiClient = new DashboardApiClient();
