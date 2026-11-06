@@ -339,8 +339,8 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </span>
 
                 {product.categoryPath && (
-                  <span className="px-2.5 py-1 rounded-lg text-xs text-slate-500 bg-slate-100 border border-slate-200">
-                    {product.categoryPath}
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 border border-slate-200" title={product.categoryPath}>
+                    {product.categoryPath.split('>')[0].trim()}
                   </span>
                 )}
               </div>

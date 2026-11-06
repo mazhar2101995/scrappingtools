@@ -682,7 +682,9 @@ export default function ProductsPage() {
                     >
                       {prod.canonicalTitle}
                     </Link>
-                    <span className="text-[11px] text-slate-400 block mt-0.5">{prod.categoryPath || 'General'}</span>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                      {prod.categoryPath ? prod.categoryPath.split('>')[0].trim() : 'General'}
+                    </span>
                   </td>
 
                   <td className="py-4 px-4">
