@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { config } from '../config';
 import { db, apiKeys } from '@saas/database';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
@@ -28,7 +30,32 @@ const MAX_REQUESTS_PER_WINDOW = 120; // 120 requests/minute default
  * Enforces key validation, hash verification, expiration check, and rate limiting.
  */
 export async function integrationAuthMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
-  const apiKeyHeader = (req.headers['x-api-key'] as string) || (req.headers['authorization']?.startsWith('Bearer pk_') ? req.headers['authorization'].substring(7) : undefined);
+  const authHeader = req.headers['authorization'];
+  const apiKeyHeader = (req.headers['x-api-key'] as string) || (authHeader?.startsWith('Bearer pk_') ? authHeader.substring(7) : undefined);
+
+  // If request already has standard user JWT session from dashboard, support it transparently!
+  if (!apiKeyHeader && authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const decoded = jwt.verify(token, config.jwtSecret) as any;
+      if (decoded && decoded.organizationId) {
+        req.user = {
+          userId: decoded.userId,
+          email: decoded.email,
+          organizationId: decoded.organizationId,
+          role: decoded.role,
+          authType: 'jwt',
+        };
+        req.integration = {
+          keyId: `session:${decoded.userId}`,
+          name: 'Dashboard Client Session',
+          organizationId: decoded.organizationId,
+          permissions: ['*'], // Full tenant permissions for logged-in UI
+        };
+        return next();
+      }
+    } catch (_) {}
+  }
 
   if (!apiKeyHeader) {
     res.status(401).json({
