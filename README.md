@@ -8,15 +8,17 @@ The platform extracts, resolves, deduplicates, verifies, enriches, and synchroni
 
 ## 📑 Table of Contents
 1. [Architecture Overview](#-architecture-overview)
-2. [Phase 1 to Phase 7 Core Engine Roadmap](#-phase-1-to-phase-7-core-engine-roadmap)
+2. [Phase 1 to Phase 8 Core Engine Roadmap](#-phase-1-to-phase-8-core-engine-roadmap)
 3. [Monorepo Directory Structure](#-monorepo-directory-structure)
 4. [Prerequisites & System Requirements](#-prerequisites--system-requirements)
 5. [Step-by-Step Developer Setup Guide](#-step-by-step-developer-setup-guide)
 6. [Services, Ports & Endpoints](#-services-ports--endpoints)
 7. [Database & Schema Management (Drizzle ORM)](#-database--schema-management-drizzle-orm)
 8. [External Integration REST API (Phase 7)](#-external-integration-rest-api-phase-7)
-9. [Running Verification & Test Suites](#-running-verification--test-suites)
-10. [Troubleshooting Common Issues](#-troubleshooting-common-issues)
+9. [OpenCart Connector & Product Sync Engine (Phase 8)](#-opencart-connector--product-sync-engine-phase-8)
+10. [Clean Reset & Production Testing Setup](#-clean-reset--production-testing-setup)
+11. [Running Verification & Test Suites](#-running-verification--test-suites)
+12. [Troubleshooting Common Issues](#-troubleshooting-common-issues)
 
 ---
 
@@ -48,7 +50,7 @@ External Client / Store / Crawler
 
 ---
 
-## 🚀 Phase 1 to Phase 7 Core Engine Roadmap
+## 🚀 Phase 1 to Phase 8 Core Engine Roadmap
 
 | Phase | Subsystem | Description & Key Responsibilities |
 |---|---|---|
@@ -59,6 +61,7 @@ External Client / Store / Crawler
 | **Phase 5** | **Advanced Product Discovery & Source Ranking** | Multi-source acquisition engine. Accepts URLs or Barcodes, queries catalog intelligence first, and ranks distributor sources by trust score. |
 | **Phase 6** | **Data Quality, Confidence Scoring & Review Center** | Field-level confidence (`EXACT`, `HIGH`, `MISSING`, `CONFLICT`), GTIN mathematical checksum validation, and human review correction workflows. |
 | **Phase 7** | **Product Intelligence API & Integration Platform** | External REST v1 API with API Key authentication (`pk_<prefix>_<secret>`), sliding window rate limiting (120 req/min), scoped permissions, and HMAC-SHA256 webhooks. |
+| **Phase 8** | **OpenCart Connector & Product Sync Engine** | Native OpenCart extension module with zero direct DB queries, side-by-side field comparison table, selective updates, strict store price/stock protection, and discovery requests. |
 
 ---
 
@@ -252,6 +255,52 @@ curl -X GET "http://localhost:4000/api/v1/integrations/products/lookup?identifie
     "summary": "Aggregated across 4 validated field provenance records"
   }
 }
+```
+
+---
+
+## 🛒 OpenCart Connector & Product Sync Engine (Phase 8)
+
+The platform provides a native OpenCart module located under `packages/connectors/opencart/` (tested with OpenCart 3.0.3.9 `oc_3039`):
+
+### Architectural Rules
+- **Zero Direct Database Access**: OpenCart never connects directly to PostgreSQL. All operations use the Phase 7 REST API with scoped API keys (`X-API-Key: pk_...`).
+- **Store Data Ownership**: Local selling price (`price`) and stock quantity (`quantity`) are strictly store-owned and are never modified by intelligence sync.
+- **Side-by-Side Field Comparison**: Before applying any changes, administrators see a visual diff of current store values vs incoming intelligence, selecting individual fields (`name`, `description`, `model`, `ean`, `meta_title`).
+
+### Module Directory Structure
+```text
+packages/connectors/opencart/
+├── README.md
+└── admin/
+    ├── controller/extension/module/product_intelligence.php
+    ├── model/extension/module/product_intelligence.php
+    ├── view/template/extension/module/product_intelligence.twig
+    └── language/en-gb/extension/module/product_intelligence.php
+```
+
+---
+
+## 🧼 Clean Reset & Production Testing Setup
+
+For deploying to clean staging or beginning testing with real users:
+
+### 1. Mandatory Real Authentication
+- All unauthenticated traffic hitting `/` redirects immediately to `/login`.
+- Registration creates a real user and tenant organization atomically in PostgreSQL.
+- Forgot Password (`/forgot-password`) and Reset Password (`/reset-password`) operate via secure SHA-256 tokens with 1-hour expiration.
+
+### 2. Default Seeded Platform Admin Credentials
+- **Email**: `admin@productintel.internal`
+- **Password**: `AdminPass123!`
+- **Role**: `super_admin`
+- **Workspace**: `Platform Master Administration`
+
+### 3. Database Purge Script
+To completely reset test databases while preserving table schemas and migrations:
+```bash
+# Seed initial Super Admin
+pnpm --filter @saas/api exec tsx src/scripts/seed-admin.ts
 ```
 
 ---
