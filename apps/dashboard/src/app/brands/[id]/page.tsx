@@ -135,14 +135,28 @@ export default function BrandProfileDetailPage() {
   const [selectedTargetField, setSelectedTargetField] = useState('name');
   const [visualSelection, setVisualSelection] = useState<{
     selector: string;
+    candidates?: Array<{
+      selector: string;
+      type: string;
+      matchCount: number;
+      confidence: string;
+      stability: string;
+      reason: string;
+      warning: string | null;
+    }>;
     value: string;
     tagName: string;
     isImage: boolean;
     matchCount: number;
+    confidence?: string;
+    stability?: string;
+    warning?: string | null;
     previewHtml: string;
   } | null>(null);
   const [selectorEditMode, setSelectorEditMode] = useState(false);
   const [editedSelector, setEditedSelector] = useState('');
+  const [testingSelector, setTestingSelector] = useState(false);
+  const [testSelectorCount, setTestSelectorCount] = useState<number | null>(null);
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -194,11 +208,42 @@ export default function BrandProfileDetailPage() {
         setVisualSelection(payload);
         setEditedSelector(payload.selector);
         setSelectorEditMode(false);
+        setTestSelectorCount(payload.matchCount);
+      } else if (event.data?.type === 'SELECTOR_TEST_RESULT') {
+        setTestSelectorCount(event.data.matchCount);
+        setTestingSelector(false);
       }
     }
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
+
+  function handleTestEditedSelector() {
+    if (!iframeRef.current || !iframeRef.current.contentWindow) return;
+    setTestingSelector(true);
+    iframeRef.current.contentWindow.postMessage(
+      {
+        type: 'TEST_SELECTOR_COUNT',
+        selector: editedSelector.trim(),
+      },
+      '*'
+    );
+  }
+
+  function handleSelectCandidate(cand: any) {
+    setEditedSelector(cand.selector);
+    setTestSelectorCount(cand.matchCount);
+    if (visualSelection) {
+      setVisualSelection({
+        ...visualSelection,
+        selector: cand.selector,
+        matchCount: cand.matchCount,
+        confidence: cand.confidence,
+        stability: cand.stability,
+        warning: cand.warning,
+      });
+    }
+  }
 
   async function handleSaveChanges(mappingsOverride?: any[], groupsOverride?: any[], sourcesOverride?: any[]) {
     try {
@@ -813,24 +858,49 @@ export default function BrandProfileDetailPage() {
 
                       <div>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase">Generated CSS Selector</span>
-                          <button
-                            type="button"
-                            onClick={() => setSelectorEditMode(!selectorEditMode)}
-                            className="text-[10px] font-bold text-[#0d2a2c] hover:underline flex items-center gap-1"
-                          >
-                            <Edit2 className="w-2.5 h-2.5" />
-                            <span>{selectorEditMode ? 'Lock' : 'Edit'}</span>
-                          </button>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase">CSS Selector</span>
+                          <div className="flex items-center gap-2">
+                            {selectorEditMode && (
+                              <button
+                                type="button"
+                                onClick={handleTestEditedSelector}
+                                disabled={testingSelector}
+                                className="text-[10px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1"
+                              >
+                                <span>{testingSelector ? 'Testing...' : 'Test Match'}</span>
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectorEditMode(!selectorEditMode);
+                                if (!selectorEditMode) setEditedSelector(visualSelection.selector);
+                              }}
+                              className="text-[10px] font-bold text-[#0d2a2c] hover:underline flex items-center gap-1"
+                            >
+                              <Edit2 className="w-2.5 h-2.5" />
+                              <span>{selectorEditMode ? 'Done' : 'Edit'}</span>
+                            </button>
+                          </div>
                         </div>
 
                         {selectorEditMode ? (
-                          <input
-                            type="text"
-                            value={editedSelector}
-                            onChange={(e) => setEditedSelector(e.target.value)}
-                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs text-slate-900 bg-white focus:outline-none"
-                          />
+                          <div className="space-y-1.5">
+                            <input
+                              type="text"
+                              value={editedSelector}
+                              onChange={(e) => setEditedSelector(e.target.value)}
+                              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-mono text-xs text-slate-900 bg-white focus:outline-none focus:border-[#0d2a2c]"
+                            />
+                            {testSelectorCount !== null && (
+                              <div className="text-[10px] font-bold text-slate-600 flex items-center gap-1">
+                                <span>Matches:</span>
+                                <span className={testSelectorCount === 1 ? 'text-emerald-700 font-bold' : testSelectorCount > 1 ? 'text-amber-700 font-bold' : 'text-rose-600 font-bold'}>
+                                  {testSelectorCount} elements found in preview
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <div className="text-xs font-mono font-bold text-[#0d2a2c] bg-white px-2.5 py-2 rounded-lg border border-slate-200 truncate">
                             {visualSelection.selector}
@@ -838,7 +908,48 @@ export default function BrandProfileDetailPage() {
                         )}
                       </div>
 
-                      {/* Selector Quality Status & Health Confidence (Part 3: Intelligent Selector Generation) */}
+                      {/* Multi-Candidate Selector Recommendation Engine */}
+                      {visualSelection.candidates && visualSelection.candidates.length > 1 && (
+                        <div className="space-y-1.5 pt-1">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase block">
+                            Recommended Alternatives ({visualSelection.candidates.length})
+                          </span>
+                          <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                            {visualSelection.candidates.map((cand, cIdx) => {
+                              const isSelected = cand.selector === (selectorEditMode ? editedSelector : visualSelection.selector);
+                              return (
+                                <button
+                                  key={cIdx}
+                                  type="button"
+                                  onClick={() => handleSelectCandidate(cand)}
+                                  className={`w-full text-left p-1.5 rounded-lg text-[11px] border transition flex items-center justify-between gap-1.5 ${
+                                    isSelected
+                                      ? 'bg-amber-50 border-amber-300 text-slate-950 font-bold'
+                                      : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
+                                  }`}
+                                >
+                                  <div className="truncate flex-1">
+                                    <div className="font-mono truncate">{cand.selector}</div>
+                                    <div className="text-[9px] text-slate-400 font-sans">{cand.reason}</div>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                      cand.matchCount === 1
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : 'bg-amber-100 text-amber-800'
+                                    }`}>
+                                      {cand.matchCount} {cand.matchCount === 1 ? 'match' : 'matches'}
+                                    </span>
+                                    <span className="text-[9px] text-slate-400 font-semibold uppercase">{cand.stability}</span>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Selector Quality Status & Health Confidence */}
                       <div className="space-y-1.5 pt-1 text-xs">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold text-slate-500 uppercase">Confidence</span>

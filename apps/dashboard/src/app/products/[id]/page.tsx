@@ -66,6 +66,9 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [savingMonitoring, setSavingMonitoring] = useState(false);
   const [monitoringSuccess, setMonitoringSuccess] = useState(false);
 
+  // Raw Data Modal State
+  const [showRawDataModal, setShowRawDataModal] = useState(false);
+
   const fetchProduct = React.useCallback(async () => {
     try {
       setLoading(true);
@@ -243,6 +246,15 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         </Link>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowRawDataModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 shadow-xs transition"
+          >
+            <Layers className="w-3.5 h-3.5 text-slate-600" />
+            <span>View Raw Data</span>
+          </button>
+
           {product.productUrl && (
             <a
               href={product.productUrl}
@@ -654,6 +666,68 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         </div>
       </div>
 
+      {/* STRUCTURED FIELD GROUPS (Organized Output per Brand Profile) */}
+      {data?.fieldGroupsData && Array.isArray(data.fieldGroupsData) && data.fieldGroupsData.length > 0 && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Layers className="w-5 h-5 text-[#0d2a2c]" />
+              <h2 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                Brand Field Groups &amp; Structured Output
+              </h2>
+            </div>
+            <span className="text-[11px] font-bold text-slate-400">
+              Formatted according to {brandName || 'Brand'} Profile Rules
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {data.fieldGroupsData.map((grp: any) => (
+              <div key={grp.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+                <div className="border-b border-slate-100 pb-2.5">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center justify-between">
+                    <span>{grp.name}</span>
+                    <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                      {grp.fields.length} {grp.fields.length === 1 ? 'field' : 'fields'}
+                    </span>
+                  </h3>
+                  {grp.description && (
+                    <p className="text-xs text-slate-500 mt-0.5">{grp.description}</p>
+                  )}
+                </div>
+
+                <div className="divide-y divide-slate-100 text-xs">
+                  {grp.fields.map((f: any, fIdx: number) => {
+                    const isArr = Array.isArray(f.value);
+                    const isObj = typeof f.value === 'object' && f.value !== null && !isArr;
+                    return (
+                      <div key={fIdx} className="py-2.5 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
+                        <span className="font-semibold text-slate-700 sm:w-1/3">{f.label}</span>
+                        <div className="text-slate-900 sm:w-2/3 sm:text-right">
+                          {isArr ? (
+                            <ul className="list-disc list-inside space-y-0.5 text-slate-800 text-left sm:text-right">
+                              {f.value.map((item: any, iIdx: number) => (
+                                <li key={iIdx}>{String(item)}</li>
+                              ))}
+                            </ul>
+                          ) : isObj ? (
+                            <pre className="text-[11px] font-mono bg-slate-50 p-2 rounded text-left whitespace-pre-wrap">
+                              {JSON.stringify(f.value, null, 2)}
+                            </pre>
+                          ) : (
+                            <span className="font-mono text-slate-900 whitespace-pre-wrap">{String(f.value)}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Specifications & Custom Attributes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
@@ -863,6 +937,94 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* View Raw Data Modal */}
+      {showRawDataModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-amber-600" />
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Raw Scraped Source Payload &amp; Provenance
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Original unformatted values extracted directly from the target page.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRawDataModal(false)}
+                className="text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="overflow-y-auto space-y-4 pr-1 text-xs text-slate-700">
+              {data?.rawScrapedData ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Scraped Source URL</span>
+                      <a
+                        href={data.rawScrapedData.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-amber-700 hover:underline font-mono text-[11px] break-all block"
+                      >
+                        {data.rawScrapedData.sourceUrl || '—'}
+                      </a>
+                    </div>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Scraped Timestamp</span>
+                      <span className="font-mono text-[11px] text-slate-800">
+                        {data.rawScrapedData.scrapedAt ? new Date(data.rawScrapedData.scrapedAt).toLocaleString() : '—'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {data.rawScrapedData.appliedAiPromptRules && (
+                    <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200 space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-amber-800 block">Applied Brand AI Instructions</span>
+                      <p className="font-mono text-[11px] text-slate-800 whitespace-pre-wrap">
+                        {data.rawScrapedData.appliedAiPromptRules}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block">Complete Raw Scraped JSON</span>
+                    <pre className="p-4 bg-slate-900 text-slate-100 rounded-xl font-mono text-[11px] overflow-x-auto whitespace-pre leading-relaxed">
+                      {JSON.stringify(data.rawScrapedData, null, 2)}
+                    </pre>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Extracted Attributes Payload</span>
+                    <pre className="p-3 bg-slate-900 text-slate-100 rounded-xl font-mono text-[11px] overflow-x-auto whitespace-pre">
+                      {JSON.stringify({ attributes, customFields, identifiers }, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-100 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowRawDataModal(false)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

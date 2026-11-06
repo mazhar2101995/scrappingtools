@@ -220,6 +220,9 @@ export class DashboardApiClient {
     if (typeof window !== 'undefined') {
       localStorage.setItem('saas_token', data.accessToken);
       localStorage.setItem('saas_token_client', data.accessToken);
+      if (data.refreshToken) {
+        localStorage.setItem('saas_refresh_token', data.refreshToken);
+      }
       localStorage.setItem('saas_current_user', JSON.stringify(data.user));
       if (data.organization?.id) {
         localStorage.setItem('saas_org_id', data.organization.id);
@@ -243,6 +246,9 @@ export class DashboardApiClient {
     if (typeof window !== 'undefined') {
       localStorage.setItem('saas_token', data.accessToken);
       localStorage.setItem('saas_token_client', data.accessToken);
+      if (data.refreshToken) {
+        localStorage.setItem('saas_refresh_token', data.refreshToken);
+      }
       localStorage.setItem('saas_current_user', JSON.stringify(data.user));
       if (data.organization?.id) {
         localStorage.setItem('saas_org_id', data.organization.id);
@@ -327,9 +333,43 @@ export class DashboardApiClient {
     if ((response.status === 401 || response.status === 403) && typeof window !== 'undefined') {
       const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register' || window.location.pathname === '/forgot-password' || window.location.pathname === '/reset-password';
       if (!isAuthPage) {
+        // Attempt silent token refresh before kicking to login
+        const storedRefreshToken = localStorage.getItem('saas_refresh_token');
+        if (storedRefreshToken && !options.headers?.hasOwnProperty('x-is-refresh-retry')) {
+          try {
+            const refreshRes = await fetch(`${this.baseUrl}/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken: storedRefreshToken }),
+            });
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              if (refreshData.accessToken) {
+                localStorage.setItem('saas_token', refreshData.accessToken);
+                localStorage.setItem('saas_token_client', refreshData.accessToken);
+                if (refreshData.refreshToken) {
+                  localStorage.setItem('saas_refresh_token', refreshData.refreshToken);
+                }
+                // Replay original request with fresh token
+                const retryHeaders = {
+                  ...headers,
+                  'Authorization': `Bearer ${refreshData.accessToken}`,
+                  'x-is-refresh-retry': '1',
+                };
+                const retryResponse = await fetch(url, { ...options, headers: retryHeaders, cache: 'no-store' });
+                if (retryResponse.ok) {
+                  return (await retryResponse.json()) as T;
+                }
+              }
+            }
+          } catch (_) {}
+        }
+
+        // Only redirect if genuinely unauthorized and refresh failed
         localStorage.removeItem('saas_token');
         localStorage.removeItem('saas_token_client');
         localStorage.removeItem('saas_token_admin');
+        localStorage.removeItem('saas_refresh_token');
         window.location.href = '/login';
         throw new Error('Session expired or unauthorized. Redirecting to login...');
       }

@@ -347,6 +347,28 @@ taskkill /PID <PID> /F
 
 ---
 
+## 🛠️ Post-Testing Refinements & User Feedback Upgrades
+
+Following real-user testing, the platform has been updated with the following core improvements:
+
+1. **Intelligent Visual Auto Mapping & Selector Candidate Generator**:
+   - Element selection now evaluates DOM hierarchy, semantic microdata (`itemprop`, `data-sku`, `data-price`), classes, and parent container scoping.
+   - Generates ranked selector alternatives (`candidates`) sorted by uniqueness (`matchCount === 1`), stability (`High`/`Medium`/`Low`), and specificity.
+   - Interactive selector testing: allows real-time match count evaluation directly against the live embedded preview iframe.
+
+2. **Brand Field Groups & Structured Product Output**:
+   - Field Groups configured within Brand Profiles (e.g. Media & Assets, Technical Specs, Compatible Models) are structured into final processed product outputs.
+   - Dual-view Product Detail page (`/products/[id]`): Displays clean, client-facing final output by default, with a dedicated **"View Raw Data"** drawer to audit unformatted scraped payloads and provenance.
+
+3. **Session Persistence & Silent Token Refresh**:
+   - Access tokens extended to 24 hours and refresh tokens to 30 days.
+   - Dashboard HTTP client automatically catches `401/403` responses and executes silent refresh against `/api/v1/auth/refresh` without forcing unexpected logouts.
+
+4. **Streamlined Navigation**:
+   - Consolidated scraping tools into Brand Profiles to remove duplicate menus and provide an intuitive workflow.
+
+---
+
 ## 👥 Contributing Guidelines
 - Maintain strict multi-tenant isolation (`organizationId` on all tenant-specific queries).
 - Preserve raw scraped source payloads when running AI normalization.

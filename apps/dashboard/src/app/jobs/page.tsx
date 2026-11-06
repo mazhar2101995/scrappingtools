@@ -62,7 +62,7 @@ export default function JobsPage() {
             Total Jobs: {jobs.length}
           </span>
           <Link
-            href="/studio"
+            href="/brands"
             className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-lg shadow-sm transition"
           >
             <Plus className="w-4 h-4" />

@@ -37,7 +37,6 @@ const MAIN_NAV_ITEMS = [
   { name: 'Products', href: '/products', icon: Boxes },
   { name: 'Product Intelligence', href: '/intelligence', icon: Sparkles },
   { name: 'Brand Profiles', href: '/brands', icon: Award },
-  { name: 'Scraping', href: '/studio', icon: Search },
   { name: 'AI Enrichment', href: '/settings/ai', icon: Cpu, badge: 'AI' },
   { name: 'Connected Stores', href: '/stores', icon: ShoppingBag },
   { name: 'Sync & Integration', href: '/sync', icon: RefreshCw },

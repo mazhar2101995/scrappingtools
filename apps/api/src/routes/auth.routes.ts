@@ -51,13 +51,13 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     const accessToken = jwt.sign(
       { userId: result.user.id, email: result.user.email, organizationId: result.organization.id, role: 'owner' },
       config.jwtSecret,
-      { expiresIn: '15m' }
+      { expiresIn: '24h' }
     );
 
     const refreshToken = jwt.sign(
       { userId: result.user.id },
       config.refreshSecret,
-      { expiresIn: '7d' }
+      { expiresIn: '30d' }
     );
 
     return res.status(201).json({
@@ -109,13 +109,13 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   const accessToken = jwt.sign(
     { userId: user.id, email: user.email, organizationId, role },
     config.jwtSecret,
-    { expiresIn: '15m' }
+    { expiresIn: '24h' }
   );
 
   const refreshToken = jwt.sign(
     { userId: user.id },
     config.refreshSecret,
-    { expiresIn: '7d' }
+    { expiresIn: '30d' }
   );
 
   return res.json({
@@ -124,6 +124,58 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     user: { id: user.id, email: user.email, fullName: user.fullName },
     organization: membership ? { id: membership.organizationId, name: membership.orgName, slug: membership.orgSlug } : null,
   });
+});
+
+// 2.1 Token Refresh
+authRouter.post('/refresh', async (req: Request, res: Response) => {
+  const { refreshToken } = req.body;
+  if (!refreshToken) {
+    return res.status(400).json({ error: 'Refresh token is required' });
+  }
+
+  try {
+    const decoded = jwt.verify(refreshToken, config.refreshSecret) as any;
+    const [user] = await db.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid refresh token: User not found' });
+    }
+
+    const [membership] = await db
+      .select({
+        organizationId: organizationMemberships.organizationId,
+        role: organizationMemberships.role,
+        orgName: organizations.name,
+        orgSlug: organizations.slug,
+      })
+      .from(organizationMemberships)
+      .innerJoin(organizations, eq(organizationMemberships.organizationId, organizations.id))
+      .where(eq(organizationMemberships.userId, user.id))
+      .limit(1);
+
+    const organizationId = membership ? membership.organizationId : 'unassigned';
+    const role = membership ? membership.role : 'member';
+
+    const newAccessToken = jwt.sign(
+      { userId: user.id, email: user.email, organizationId, role },
+      config.jwtSecret,
+      { expiresIn: '24h' }
+    );
+
+    const newRefreshToken = jwt.sign(
+      { userId: user.id },
+      config.refreshSecret,
+      { expiresIn: '30d' }
+    );
+
+    return res.json({
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      user: { id: user.id, email: user.email, fullName: user.fullName },
+      organization: membership ? { id: membership.organizationId, name: membership.orgName, slug: membership.orgSlug } : null,
+    });
+  } catch (err: any) {
+    return res.status(401).json({ error: 'Invalid or expired refresh token' });
+  }
 });
 
 // 3. Current User Profile

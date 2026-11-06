@@ -905,42 +905,74 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
 
           function isBadClassOrId(str) {
             if (!str) return true;
-            // Ignore dynamically generated hashes, tailwind arbitrary, or temporary DOM numbers
+            // Ignore dynamically generated hashes, arbitrary numbers, or framework IDs
             return /^[0-9]+$|^[a-f0-9]{8,}|^css-[0-9a-z]+|^jsx-[0-9a-z]+|^_[0-9a-zA-Z]{5,}/i.test(str);
           }
 
-          function generateCssSelector(el) {
-            if (!el || el.nodeType !== 1) return { selector: '', confidence: 'Low', warning: 'Invalid element' };
-            
-            var tagName = el.tagName.toLowerCase();
+          function getSelectorMatchCount(sel) {
+            try {
+              return document.querySelectorAll(sel).length;
+            } catch (_) {
+              return 0;
+            }
+          }
 
-            // 1. Unique ID (Avoid dynamic/framework IDs)
-            if (el.id && !isBadClassOrId(el.id)) {
-              var idSel = '#' + CSS.escape(el.id);
-              try {
-                if (document.querySelectorAll(idSel).length === 1) {
-                  return { selector: idSel, confidence: 'High', warning: null };
-                }
-              } catch (_) {}
+          function generateCssSelectorCandidates(el) {
+            if (!el || el.nodeType !== 1) return [];
+            var tagName = el.tagName.toLowerCase();
+            var candidates = [];
+            var seen = {};
+
+            function addCandidate(sel, type, stability, reason) {
+              if (!sel || seen[sel]) return;
+              var count = getSelectorMatchCount(sel);
+              if (count === 0) return;
+              seen[sel] = true;
+
+              var confidence = 'Low';
+              var warning = null;
+
+              if (count === 1) {
+                confidence = stability === 'High' ? 'High' : 'Medium';
+              } else if (count > 1) {
+                confidence = 'Warning';
+                warning = 'Matches ' + count + ' elements on page. Recommended to refine or use parent context.';
+              }
+
+              candidates.push({
+                selector: sel,
+                type: type, // 'attribute' | 'id' | 'semantic_class' | 'parent_compound' | 'tag'
+                matchCount: count,
+                confidence: confidence,
+                stability: stability, // 'High' | 'Medium' | 'Low'
+                reason: reason,
+                warning: warning
+              });
             }
 
-            // 2. Stable Semantic Data Attributes (itemprop, data-product-*, data-sku, data-name)
-            var priorityAttrs = ['itemprop', 'data-sku', 'data-product-sku', 'data-product-title', 'data-product-name', 'data-price', 'data-product-price', 'data-mpn', 'data-ean'];
+            // 1. Stable Semantic Attributes (itemprop, data-*, etc.)
+            var priorityAttrs = [
+              'itemprop', 'data-sku', 'data-product-sku', 'data-product-title', 'data-product-name',
+              'data-price', 'data-product-price', 'data-mpn', 'data-ean', 'data-gtin', 'data-model',
+              'data-gallery-role', 'data-role'
+            ];
             for (var i = 0; i < priorityAttrs.length; i++) {
               var attr = priorityAttrs[i];
               if (el.hasAttribute(attr)) {
                 var attrVal = el.getAttribute(attr);
-                var sel = '[' + attr + '="' + CSS.escape(attrVal) + '"]';
-                try {
-                  var count = document.querySelectorAll(sel).length;
-                  if (count === 1) {
-                    return { selector: sel, confidence: 'High', warning: null };
-                  }
-                  if (count > 1) {
-                    return { selector: sel, confidence: 'Medium', warning: 'Attribute matched ' + count + ' elements on page' };
-                  }
-                } catch (_) {}
+                if (attrVal) {
+                  var selAttr = '[' + attr + '="' + CSS.escape(attrVal) + '"]';
+                  addCandidate(selAttr, 'attribute', 'High', 'Semantic microdata / data attribute');
+                  var tagSelAttr = tagName + '[' + attr + '="' + CSS.escape(attrVal) + '"]';
+                  addCandidate(tagSelAttr, 'attribute', 'High', 'Scoped tag with semantic attribute');
+                }
               }
+            }
+
+            // 2. Element ID (if clean and unique)
+            if (el.id && !isBadClassOrId(el.id)) {
+              var idSel = '#' + CSS.escape(el.id);
+              addCandidate(idSel, 'id', 'High', 'Unique Element ID');
             }
 
             // 3. Meaningful Semantic Class Names
@@ -949,60 +981,75 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
             });
 
             if (validClasses.length > 0) {
-              // Priority semantic matches: title, name, sku, price, model, mpn, desc, ean, spec
+              // High priority semantic keywords
               var semanticClass = validClasses.find(function(c) {
-                return /^(product[-_]?title|product[-_]?name|page[-_]?title|price|product[-_]?price|sku|model|mpn|ean|overview|description|specs|attribute)/i.test(c);
+                return /^(product[-_]?title|product[-_]?name|page[-_]?title|price|product[-_]?price|sku|model|mpn|ean|overview|description|specs|attribute|gallery)/i.test(c);
               });
 
               if (semanticClass) {
-                var classSel = tagName + '.' + CSS.escape(semanticClass);
-                try {
-                  var count = document.querySelectorAll(classSel).length;
-                  if (count === 1) {
-                    return { selector: classSel, confidence: 'High', warning: null };
-                  }
-                  return { selector: classSel, confidence: 'Medium', warning: 'Matches ' + count + ' elements' };
-                } catch (_) {}
+                addCandidate('.' + CSS.escape(semanticClass), 'semantic_class', 'High', 'Recognized e-commerce semantic class');
+                addCandidate(tagName + '.' + CSS.escape(semanticClass), 'semantic_class', 'High', 'Tag scoped semantic class');
               }
 
-              // Test combination of two first valid classes
-              var joinedClasses = tagName + '.' + validClasses.slice(0, 2).map(CSS.escape).join('.');
-              try {
-                var cCount = document.querySelectorAll(joinedClasses).length;
-                if (cCount === 1) {
-                  return { selector: joinedClasses, confidence: 'High', warning: null };
-                }
-              } catch (_) {}
+              // Multi-class specific selector
+              if (validClasses.length >= 2) {
+                var compoundClass = tagName + '.' + validClasses.slice(0, 2).map(CSS.escape).join('.');
+                addCandidate(compoundClass, 'semantic_class', 'Medium', 'Multi-class combination');
+              } else {
+                addCandidate(tagName + '.' + CSS.escape(validClasses[0]), 'semantic_class', 'Medium', 'Tag + primary class');
+              }
             }
 
-            // 4. Meaningful Parent-Child Relationship (up to 2 levels)
-            if (el.parentElement && el.parentElement !== document.body) {
-              var parent = el.parentElement;
-              var parentTag = parent.tagName.toLowerCase();
-              var parentClass = Array.from(parent.classList).find(function(c) {
-                return !c.startsWith('visual-mapper') && !isBadClassOrId(c) && /product|detail|info|main|hero|gallery|specs|header/i.test(c);
+            // 4. Safe Parent / Container Context (up to 3 levels)
+            var currentParent = el.parentElement;
+            var depth = 0;
+            while (currentParent && currentParent !== document.body && depth < 3) {
+              depth++;
+              var pTag = currentParent.tagName.toLowerCase();
+              var pId = currentParent.id && !isBadClassOrId(currentParent.id) ? '#' + CSS.escape(currentParent.id) : null;
+              var pSemanticClass = Array.from(currentParent.classList).find(function(c) {
+                return !c.startsWith('visual-mapper') && !isBadClassOrId(c) && /product|detail|info|main|hero|gallery|specs|header|summary|box/i.test(c);
               });
 
-              if (parent.id && !isBadClassOrId(parent.id)) {
-                var compound = '#' + CSS.escape(parent.id) + ' ' + tagName;
-                if (document.querySelectorAll(compound).length === 1) {
-                  return { selector: compound, confidence: 'High', warning: null };
+              if (pId) {
+                if (validClasses.length > 0) {
+                  addCandidate(pId + ' .' + CSS.escape(validClasses[0]), 'parent_compound', 'High', 'Parent container ID + class');
                 }
-              } else if (parentClass) {
-                var compound = parentTag + '.' + CSS.escape(parentClass) + ' ' + tagName;
-                if (document.querySelectorAll(compound).length === 1) {
-                  return { selector: compound, confidence: 'High', warning: null };
-                }
+                addCandidate(pId + ' ' + tagName, 'parent_compound', 'Medium', 'Parent container ID + tag');
               }
+
+              if (pSemanticClass) {
+                var pClassSel = '.' + CSS.escape(pSemanticClass);
+                if (validClasses.length > 0) {
+                  addCandidate(pClassSel + ' .' + CSS.escape(validClasses[0]), 'parent_compound', 'High', 'Parent semantic container + class');
+                }
+                addCandidate(pClassSel + ' ' + tagName, 'parent_compound', 'Medium', 'Parent semantic container + tag');
+              }
+
+              currentParent = currentParent.parentElement;
             }
 
-            // 5. Fallback: Positional selector with warning
-            var fallback = tagName;
-            return {
-              selector: fallback,
-              confidence: 'Low',
-              warning: 'Broad generic selector. Matches multiple page elements. Verify or refine manually.'
-            };
+            // 5. Fallback generic selector
+            addCandidate(tagName, 'tag', 'Low', 'Generic tag selector (Broad)');
+
+            // Rank candidates:
+            // 1) Match count = 1 first (unique)
+            // 2) Stability High > Medium > Low
+            // 3) Shorter selector length for cleaner readability
+            candidates.sort(function(a, b) {
+              var aIsOne = a.matchCount === 1 ? 1 : 0;
+              var bIsOne = b.matchCount === 1 ? 1 : 0;
+              if (aIsOne !== bIsOne) return bIsOne - aIsOne;
+
+              var stabScore = { High: 3, Medium: 2, Low: 1 };
+              var scoreA = stabScore[a.stability] || 1;
+              var scoreB = stabScore[b.stability] || 1;
+              if (scoreA !== scoreB) return scoreB - scoreA;
+
+              return a.selector.length - b.selector.length;
+            });
+
+            return candidates;
           }
 
           document.addEventListener('mouseover', function(e) {
@@ -1021,6 +1068,19 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
               lastHovered.classList.remove('visual-mapper-hover');
             }
           }, true);
+
+          // Handle message from parent to test or count selector dynamically
+          window.addEventListener('message', function(ev) {
+            if (ev.data && ev.data.type === 'TEST_SELECTOR_COUNT') {
+              var sel = ev.data.selector;
+              var count = getSelectorMatchCount(sel);
+              window.parent.postMessage({
+                type: 'SELECTOR_TEST_RESULT',
+                selector: sel,
+                matchCount: count
+              }, '*');
+            }
+          });
 
           document.addEventListener('click', function(e) {
             var target = e.target;
@@ -1054,28 +1114,31 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
             target.classList.add('visual-mapper-selected');
             selectedElem = target;
 
-            var result = generateCssSelector(target);
+            var candidates = generateCssSelectorCandidates(target);
+            var best = candidates[0] || {
+              selector: target.tagName.toLowerCase(),
+              matchCount: getSelectorMatchCount(target.tagName.toLowerCase()),
+              confidence: 'Low',
+              stability: 'Low',
+              warning: 'Unable to build precise selector.'
+            };
+
             var isImage = target.tagName.toLowerCase() === 'img';
             var extractedValue = isImage ? (target.src || target.currentSrc || '') : (target.innerText || target.textContent || '').trim();
-
-            var count = 1;
-            try {
-              if (result.selector) {
-                count = document.querySelectorAll(result.selector).length;
-              }
-            } catch (_) {}
 
             window.parent.postMessage({
               type: 'VISUAL_MAPPER_SELECTION',
               payload: {
-                selector: result.selector,
+                selector: best.selector,
+                candidates: candidates,
                 value: extractedValue,
                 tagName: target.tagName.toLowerCase(),
                 isImage: isImage,
-                matchCount: count,
-                confidence: result.confidence,
-                warning: result.warning,
-                previewHtml: target.outerHTML.substring(0, 250)
+                matchCount: best.matchCount,
+                confidence: best.confidence,
+                stability: best.stability,
+                warning: best.warning,
+                previewHtml: target.outerHTML.substring(0, 300)
               }
             }, '*');
           }, true);

@@ -340,15 +340,74 @@ productsRouter.post('/', async (req: Request, res: Response, next) => {
       });
 
     // 5. Save tenant overrides for price, custom attributes, internal notes + field-level provenance (Part 6)
-    const fieldProvenanceMetadata = {
-      title: { value: cleanTitle, sourceUrl: productUrl || null, method: 'css_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() },
-      modelNumber: cleanModel ? { value: cleanModel, sourceUrl: productUrl || null, method: 'css_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() } : null,
-      sku: sku ? { value: String(sku).trim(), sourceUrl: productUrl || null, method: 'css_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() } : null,
-      price: price ? { value: String(price).trim(), sourceUrl: productUrl || null, method: 'css_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() } : null,
-      description: description ? { value: String(description).substring(0, 100) + '...', sourceUrl: productUrl || null, method: 'css_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() } : null,
+    // Structure Field Groups from brand profile configuration
+    const configuredGroups: any[] = Array.isArray(brandProfile.fieldGroups) ? brandProfile.fieldGroups : [];
+    const brandAiRules = brandProfile.aiPromptRules || null;
+
+    // Build structured field groups mapping: Group Name -> array of { label, key, value }
+    const fieldGroupsData: Array<{ id: string; name: string; description?: string; fields: Array<{ key: string; label: string; value: any }> }> = [];
+    const combinedExtracted: Record<string, any> = {
+      ...(typeof attributes === 'object' && attributes ? attributes : {}),
+      ...(typeof customData === 'object' && customData ? customData : {}),
     };
 
-    if (price || attributes || customData) {
+    if (configuredGroups.length > 0) {
+      for (const grp of configuredGroups) {
+        const groupFields: Array<{ key: string; label: string; value: any }> = [];
+        const fieldKeys: string[] = Array.isArray(grp.fields) ? grp.fields : [];
+        for (const fk of fieldKeys) {
+          let val = combinedExtracted[fk];
+          if (val === undefined || val === null) {
+            // Check top-level fields
+            if (fk === 'name' || fk === 'title') val = cleanTitle;
+            else if (fk === 'sku') val = sku;
+            else if (fk === 'model' || fk === 'modelNumber') val = cleanModel;
+            else if (fk === 'price') val = price;
+            else if (fk === 'description') val = description;
+          }
+          if (val !== undefined && val !== null && val !== '') {
+            groupFields.push({
+              key: fk,
+              label: fk.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+              value: val,
+            });
+          }
+        }
+        if (groupFields.length > 0) {
+          fieldGroupsData.push({
+            id: grp.id || `grp_${Date.now()}`,
+            name: grp.name,
+            description: grp.description,
+            fields: groupFields,
+          });
+        }
+      }
+    }
+
+    // Capture raw scraped payload for complete provenance & transparency
+    const rawScrapedData = {
+      sourceUrl: productUrl || null,
+      scrapedAt: new Date().toISOString(),
+      rawTitle: title,
+      rawModelNumber: modelNumber || null,
+      rawSku: sku || null,
+      rawPrice: price || null,
+      rawDescription: description || null,
+      rawImages: images || [],
+      rawAttributes: attributes || {},
+      rawCustomData: customData || {},
+      appliedAiPromptRules: brandAiRules,
+    };
+
+    const fieldProvenanceMetadata = {
+      title: { value: cleanTitle, sourceUrl: productUrl || null, method: 'brand_profile_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() },
+      modelNumber: cleanModel ? { value: cleanModel, sourceUrl: productUrl || null, method: 'brand_profile_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() } : null,
+      sku: sku ? { value: String(sku).trim(), sourceUrl: productUrl || null, method: 'brand_profile_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() } : null,
+      price: price ? { value: String(price).trim(), sourceUrl: productUrl || null, method: 'brand_profile_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() } : null,
+      description: description ? { value: String(description).substring(0, 100) + '...', sourceUrl: productUrl || null, method: 'brand_profile_mapping', confidence: 'High', lastVerifiedAt: new Date().toISOString() } : null,
+    };
+
+    if (price || attributes || customData || fieldGroupsData.length > 0) {
       await db
         .insert(customerProductOverrides)
         .values({
@@ -362,6 +421,9 @@ productsRouter.post('/', async (req: Request, res: Response, next) => {
             customFields: customData || {},
             productUrl: productUrl || null,
             fieldProvenance: fieldProvenanceMetadata,
+            rawScrapedData,
+            fieldGroupsData,
+            brandAiRules,
           },
         })
         .onConflictDoUpdate({
@@ -375,6 +437,9 @@ productsRouter.post('/', async (req: Request, res: Response, next) => {
               customFields: customData || {},
               productUrl: productUrl || null,
               fieldProvenance: fieldProvenanceMetadata,
+              rawScrapedData,
+              fieldGroupsData,
+              brandAiRules,
             },
             updatedAt: new Date(),
           },
@@ -694,6 +759,9 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
   const customFields = customAttrs.customFields || {};
   const price = customAttrs.price || null;
   const productUrl = customAttrs.productUrl || null;
+  const rawScrapedData = customAttrs.rawScrapedData || null;
+  const fieldGroupsData = customAttrs.fieldGroupsData || [];
+  const brandAiRules = customAttrs.brandAiRules || null;
 
   return res.json({
     product: {
@@ -710,6 +778,9 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
     syncedStores,
     attributes: Object.keys(extractedSpecs).length > 0 ? extractedSpecs : rawAttributes,
     customFields,
+    fieldGroupsData,
+    rawScrapedData,
+    brandAiRules,
     images: images.length > 0 ? images : (product.primaryImageUrl ? [{ originUrl: product.primaryImageUrl, storageUri: product.primaryImageUrl, isPrimary: true }] : []),
   });
 });
