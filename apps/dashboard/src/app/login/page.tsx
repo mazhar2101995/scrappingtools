@@ -23,7 +23,7 @@ export default function LoginPage() {
       // If user is a Platform Super Admin, inform them to use the separate Admin portal
       const isSuperAdmin = res?.user?.role === 'super_admin' || res?.user?.role === 'admin' || res?.user?.isSuperadmin;
       if (isSuperAdmin) {
-        throw new Error('This account belongs to Platform Administration. Please sign in via the Admin Portal at /admin/login.');
+        throw new Error('This account belongs to Platform Administration. Please visit http://localhost:3000/admin/login to sign in.');
       }
 
       // Hard redirect to Client Portal Dashboard
