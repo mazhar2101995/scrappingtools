@@ -241,6 +241,15 @@ export class SourceHealthService {
         return 'The store page was accessed successfully, but product specifications could not be mapped.';
       case 'SERVER_ERROR_5XX':
         return 'The target store encountered an internal server error. Retrying with backoff.';
+      case 'PAGE_NAVIGATION_TIMEOUT':
+        return 'The store page took too long to render dynamic components. Retrying with extended timeout.';
+      case 'BROWSER_LAUNCH_FAILED':
+      case 'PAGE_CRASH':
+        return 'The web page engine encountered an unexpected rendering problem. Retrying with backoff.';
+      case 'JS_RENDERING_FAILED':
+        return 'The store script structure could not be rendered completely. Retrying automatically.';
+      case 'RESOURCE_EXHAUSTION':
+        return 'The platform rendering worker is currently at capacity. The task is queued and will proceed shortly.';
       default:
         return 'The product source could not be acquired at this time. Our system is investigating.';
     }

@@ -3,6 +3,7 @@ import { db, sourceCache, sourceVersionHistory } from '@saas/database';
 import { eq, sql, lt } from 'drizzle-orm';
 import crypto from 'crypto';
 import { SourceHealthService } from './source-health.service';
+import { BrowserIsolationManager, BrowserFailureCategory } from './browser-isolation.service';
 
 export type AcquisitionMethod = 'DIRECT_HTTP' | 'CONTROLLED_BROWSER' | 'CACHED_INFLIGHT' | 'VERIFIED_CACHE';
 
@@ -16,6 +17,12 @@ export type AcquisitionErrorCategory =
   | 'NOT_FOUND_404'
   | 'SERVER_ERROR_5XX'
   | 'EMPTY_PAYLOAD'
+  | 'BROWSER_LAUNCH_FAILED'
+  | 'PAGE_NAVIGATION_TIMEOUT'
+  | 'PAGE_CRASH'
+  | 'JS_RENDERING_FAILED'
+  | 'RESOURCE_EXHAUSTION'
+  | 'EXTRACTION_FAILED_AFTER_RENDER'
   | 'UNKNOWN_ERROR';
 
 export interface AcquisitionOptions {
@@ -25,6 +32,9 @@ export interface AcquisitionOptions {
   headers?: Record<string, string>;
   bypassCache?: boolean;
   cacheTtlHours?: number; // Configurable freshness window (defaults to 168h / 7 days)
+  tenantId?: string; // Multi-tenant fairness quota identifier
+  waitForSelector?: string;
+  captureSnapshot?: boolean;
 }
 
 export interface AcquisitionResult {
@@ -511,78 +521,61 @@ export class SourceAccessService {
   }
 
   /**
-   * Controlled Browser Execution via Puppeteer (Used only when JS rendering is explicitly required)
+   * Controlled Browser Execution via Isolated BrowserIsolationManager
+   * (Enforces concurrency bounds, timeouts, request abortion of media, and guaranteed process cleanup)
    */
   private static async executeControlledBrowser(
     norm: NormalizedUrlResult,
     options: AcquisitionOptions
   ): Promise<AcquisitionResult> {
-    const startTime = Date.now();
-    let browser: any = null;
+    const browserResult = await BrowserIsolationManager.executeBrowserJob(norm.normalizedUrl, {
+      tenantId: options.tenantId,
+      timeoutMs: options.timeoutMs,
+      waitForSelector: options.waitForSelector,
+      captureSnapshot: options.captureSnapshot,
+    });
 
-    try {
-      const puppeteer = await import('puppeteer');
-      browser = await puppeteer.default.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--no-first-run',
-          '--no-zygote',
-        ],
-      });
-
-      const page = await browser.newPage();
-      await page.setUserAgent(
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-      );
-      await page.setViewport({ width: 1280, height: 800 });
-
-      const response = await page.goto(norm.normalizedUrl, {
-        waitUntil: 'domcontentloaded',
-        timeout: options.timeoutMs || 25000,
-      });
-
-      const content = await page.content();
-      const statusCode = response ? response.status() : 200;
-      await browser.close();
-
+    if (browserResult.success) {
       return {
-        success: statusCode >= 200 && statusCode < 300,
+        success: true,
         originalUrl: norm.originalUrl,
         normalizedUrl: norm.normalizedUrl,
         domain: norm.normalizedDomain,
         urlHash: norm.urlHash,
         method: 'CONTROLLED_BROWSER',
-        statusCode,
-        content,
+        statusCode: browserResult.statusCode,
+        content: browserResult.content,
         contentType: 'text/html',
-        byteSize: Buffer.byteLength(content, 'utf8'),
-        durationMs: Date.now() - startTime,
-      };
-    } catch (browserErr: any) {
-      if (browser) await browser.close().catch(() => {});
-      return {
-        success: false,
-        originalUrl: norm.originalUrl,
-        normalizedUrl: norm.normalizedUrl,
-        domain: norm.normalizedDomain,
-        urlHash: norm.urlHash,
-        method: 'CONTROLLED_BROWSER',
-        statusCode: 0,
-        content: '',
-        contentType: '',
-        byteSize: 0,
-        durationMs: Date.now() - startTime,
-        error: {
-          category: 'UNKNOWN_ERROR',
-          message: `Browser rendering failed: ${browserErr.message}`,
-          isRetryable: true,
-        },
+        byteSize: browserResult.byteSize,
+        durationMs: browserResult.durationMs,
       };
     }
+
+    return {
+      success: false,
+      originalUrl: norm.originalUrl,
+      normalizedUrl: norm.normalizedUrl,
+      domain: norm.normalizedDomain,
+      urlHash: norm.urlHash,
+      method: 'CONTROLLED_BROWSER',
+      statusCode: browserResult.statusCode,
+      content: '',
+      contentType: '',
+      byteSize: 0,
+      durationMs: browserResult.durationMs,
+      error: browserResult.error
+        ? {
+            category: browserResult.error.category as AcquisitionErrorCategory,
+            message: browserResult.error.message,
+            isRetryable: browserResult.error.isRetryable,
+            rawError: browserResult.error.rawError,
+          }
+        : {
+            category: 'UNKNOWN_ERROR',
+            message: 'Browser execution encountered an unclassified error',
+            isRetryable: true,
+          },
+    };
   }
 
   /**

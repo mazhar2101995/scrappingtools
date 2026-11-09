@@ -27,6 +27,7 @@ const defaultQueueOptions: QueueOptions = {
 
 export const QUEUE_NAMES = {
   SCRAPING: 'product-scraping',
+  BROWSER_SCRAPING: 'browser-scraping',
   NORMALIZATION: 'product-normalization',
   MATCHING: 'identity-matching',
   PERSISTENCE: 'product-persistence',
@@ -38,6 +39,15 @@ export const scrapingQueue = new Queue<ScrapeJobPayload>(QUEUE_NAMES.SCRAPING, {
     ...defaultQueueOptions.defaultJobOptions,
     attempts: 4,
     backoff: { type: 'exponential', delay: 3000 },
+  },
+});
+
+export const browserScrapingQueue = new Queue<ScrapeJobPayload>(QUEUE_NAMES.BROWSER_SCRAPING, {
+  ...defaultQueueOptions,
+  defaultJobOptions: {
+    ...defaultQueueOptions.defaultJobOptions,
+    attempts: 2, // Fewer retries for heavy browser jobs to protect resources
+    backoff: { type: 'exponential', delay: 10000 },
   },
 });
 

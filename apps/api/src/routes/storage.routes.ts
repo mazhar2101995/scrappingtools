@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 import { authMiddleware, adminOnlyMiddleware } from '../middleware/auth.middleware';
 import { GarbageCollectionService } from '../services/garbage-collection.service';
 import { SourceHealthService } from '../services/source-health.service';
-import { createRedisConnection } from '@saas/queue';
+import { BrowserIsolationManager } from '../services/browser-isolation.service';
+import { createRedisConnection, getQueueMetrics, scrapingQueue, browserScrapingQueue } from '@saas/queue';
 
 export const storageRouter = Router();
 
@@ -130,5 +131,64 @@ storageRouter.get('/source-health/:domain', async (req: Request, res: Response) 
   } catch (err: any) {
     console.error('[StorageRouter] Domain Health Error:', err);
     return res.status(500).json({ error: 'Failed to fetch domain health', details: err.message });
+  }
+});
+
+/**
+ * GET /api/v1/storage/browser-metrics
+ * Real-time browser isolation, active slots, queue backlog, and memory observability for Platform Admin
+ */
+storageRouter.get('/browser-metrics', async (req: Request, res: Response) => {
+  try {
+    const operational = BrowserIsolationManager.getOperationalMetrics();
+    const config = BrowserIsolationManager.getConfig();
+
+    // Query BullMQ queue depths
+    let lightweightQueueMetrics = null;
+    let browserQueueMetrics = null;
+
+    try {
+      lightweightQueueMetrics = await getQueueMetrics(scrapingQueue);
+      browserQueueMetrics = await getQueueMetrics(browserScrapingQueue);
+    } catch (_) {}
+
+    return res.json({
+      success: true,
+      data: {
+        config,
+        operational,
+        queues: {
+          lightweight: lightweightQueueMetrics,
+          browser: browserQueueMetrics,
+        },
+      },
+    });
+  } catch (err: any) {
+    console.error('[StorageRouter] Browser Metrics Error:', err);
+    return res.status(500).json({ error: 'Failed to fetch browser metrics', details: err.message });
+  }
+});
+
+/**
+ * POST /api/v1/storage/browser-config
+ * Update browser isolation limits dynamically (admin only)
+ */
+storageRouter.post('/browser-config', async (req: Request, res: Response) => {
+  try {
+    const { maxConcurrentBrowsers, navigationTimeoutMs, totalJobTimeoutMs, maxPerTenantConcurrent } = req.body;
+    BrowserIsolationManager.configure({
+      ...(maxConcurrentBrowsers ? { maxConcurrentBrowsers: parseInt(maxConcurrentBrowsers) } : {}),
+      ...(navigationTimeoutMs ? { navigationTimeoutMs: parseInt(navigationTimeoutMs) } : {}),
+      ...(totalJobTimeoutMs ? { totalJobTimeoutMs: parseInt(totalJobTimeoutMs) } : {}),
+      ...(maxPerTenantConcurrent ? { maxPerTenantConcurrent: parseInt(maxPerTenantConcurrent) } : {}),
+    });
+
+    return res.json({
+      success: true,
+      data: BrowserIsolationManager.getConfig(),
+      message: 'Browser isolation configuration updated successfully',
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to update browser configuration', details: err.message });
   }
 });

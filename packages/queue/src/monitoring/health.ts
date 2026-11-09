@@ -1,6 +1,7 @@
 import { Queue } from 'bullmq';
 import {
   scrapingQueue,
+  browserScrapingQueue,
   normalizationQueue,
   matchingQueue,
   persistenceQueue,
@@ -47,7 +48,7 @@ export async function getAllQueuesHealth() {
     await redis.quit();
   }
 
-  const queues = [scrapingQueue, normalizationQueue, matchingQueue, persistenceQueue];
+  const queues = [scrapingQueue, browserScrapingQueue, normalizationQueue, matchingQueue, persistenceQueue];
   const metrics = await Promise.all(queues.map(getQueueMetrics));
 
   return {
