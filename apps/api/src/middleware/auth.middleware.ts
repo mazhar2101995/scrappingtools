@@ -87,3 +87,11 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   res.status(401).json({ error: 'Unauthorized: Missing Authorization Bearer token or X-API-Key' });
 }
 
+export function adminOnlyMiddleware(req: Request, res: Response, next: NextFunction): void {
+  const role = req.user?.role;
+  if (role === 'admin' || role === 'super_admin' || role === 'owner') {
+    return next();
+  }
+  res.status(403).json({ error: 'Forbidden: Platform Admin access required' });
+}
+

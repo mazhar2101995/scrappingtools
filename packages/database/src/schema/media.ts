@@ -1,35 +1,59 @@
-import { pgTable, uuid, varchar, text, integer, timestamp, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, integer, timestamp, boolean, bigint, jsonb, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 /**
  * Global Media Assets - Content-Addressable Image Storage & Deduplication Registry
  *
- * Ensures that if multiple clients (or the same client across multiple scraping runs)
- * scrape the exact same product image, the binary file is downloaded ONCE.
- * Subsquent references are resolved instantly via content-hash or canonical URL match.
+ * Ensures that if multiple clients scrape the exact same product image,
+ * the binary file is downloaded ONCE. Subsequent references are resolved instantly.
  */
 export const globalMediaAssets = pgTable('global_media_assets', {
   id: uuid('id').defaultRandom().primaryKey(),
-  // SHA-256 binary hash of the image content
   contentHash: varchar('content_hash', { length: 64 }).notNull(),
-  // Canonical normalized origin URL (stripped of volatile query params)
   canonicalUrl: text('canonical_url').notNull(),
-  // Original first-seen URL
   originalUrl: text('original_url').notNull(),
-  // Persistent local or cloud CDN storage URI (e.g. /media/assets/sha256.jpg)
   storageUri: text('storage_uri').notNull(),
-  // MIME type, e.g. 'image/jpeg', 'image/png', 'image/webp'
   mimeType: varchar('mime_type', { length: 50 }).notNull().default('image/jpeg'),
-  // Pixel dimensions & file size
   byteSize: integer('byte_size').notNull().default(0),
   width: integer('width'),
   height: integer('height'),
-  // Count of how many product listings or tenant products are referencing this media asset
   referenceCount: integer('reference_count').notNull().default(1),
+  status: varchar('status', { length: 20 }).notNull().default('active'), // 'active' | 'orphan_candidate'
+  orphanMarkedAt: timestamp('orphan_marked_at', { withTimezone: true }),
   lastReferencedAt: timestamp('last_referenced_at', { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   uniqueIndex('idx_gma_content_hash').on(table.contentHash),
   index('idx_gma_canonical_url').on(table.canonicalUrl),
+  index('idx_gma_status').on(table.status),
 ]);
+
+/**
+ * System Platform Storage & Retention Settings
+ */
+export const systemStorageSettings = pgTable('system_storage_settings', {
+  id: varchar('id', { length: 50 }).primaryKey().default('default'),
+  tempDataRetentionHours: integer('temp_data_retention_hours').notNull().default(24),
+  failedJobRetentionDays: integer('failed_job_retention_days').notNull().default(14),
+  completedJobRetentionHours: integer('completed_job_retention_hours').notNull().default(24),
+  aiHistoryRetentionDays: integer('ai_history_retention_days').notNull().default(30),
+  orphanAssetGracePeriodDays: integer('orphan_asset_grace_period_days').notNull().default(7),
+  maxProductVersions: integer('max_product_versions').notNull().default(10),
+  autoGcEnabled: boolean('auto_gc_enabled').notNull().default(true),
+  lastGcRunAt: timestamp('last_gc_run_at', { withTimezone: true }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
+ * Garbage Collection & Maintenance Logs
+ */
+export const garbageCollectionLogs = pgTable('garbage_collection_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  runType: varchar('run_type', { length: 20 }).notNull().default('automatic'), // 'automatic' | 'manual'
+  bytesReclaimed: bigint('bytes_reclaimed', { mode: 'number' }).notNull().default(0),
+  filesDeleted: integer('files_deleted').notNull().default(0),
+  dbRecordsPruned: integer('db_records_pruned').notNull().default(0),
+  details: jsonb('details').notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});

@@ -832,6 +832,28 @@ export class DashboardApiClient {
       method: 'POST',
     }, 'client');
   }
+
+  // --- Storage & Garbage Collection Telemetry ---
+  async getStorageTelemetry(): Promise<any> {
+    return this.fetchJson('/storage/telemetry', {}, 'admin');
+  }
+
+  async getStorageSettings(): Promise<any> {
+    return this.fetchJson('/storage/settings', {}, 'admin');
+  }
+
+  async updateStorageSettings(settings: any): Promise<any> {
+    return this.fetchJson('/storage/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }, 'admin');
+  }
+
+  async triggerGarbageCollection(): Promise<any> {
+    return this.fetchJson('/storage/gc/trigger', {
+      method: 'POST',
+    }, 'admin');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

@@ -17,6 +17,7 @@ import { integrationsRouter } from './routes/integration.routes';
 import { organizationRouter } from './routes/organization.routes';
 import { billingRouter } from './routes/billing.routes';
 import { feedbackRouter } from './routes/feedback.routes';
+import { storageRouter } from './routes/storage.routes';
 import { ServiceHealth } from '@saas/shared-types';
 
 const app = express();
@@ -68,13 +69,30 @@ app.use('/api/v1/integrations', integrationsRouter);
 app.use('/api/v1/organizations', organizationRouter);
 app.use('/api/v1/billing', billingRouter);
 app.use('/api/v1/feedback', feedbackRouter);
+app.use('/api/v1/storage', storageRouter);
 
-// 4. Start Server
+// 4. Start Server & Background Storage Garbage Collection Worker
 if (process.env.NODE_ENV !== 'test') {
   app.listen(config.port, () => {
     console.log(`[Core REST API] Running on http://localhost:${config.port}`);
     console.log(`[OpenAPI Docs] Swagger UI at http://localhost:${config.port}/api/docs`);
   });
+
+  // Automated Safe Garbage Collection cron (runs every 6 hours)
+  const GC_INTERVAL_MS = 6 * 60 * 60 * 1000;
+  setInterval(async () => {
+    try {
+      const { GarbageCollectionService } = await import('./services/garbage-collection.service');
+      const settings = await GarbageCollectionService.getSettings();
+      if (settings.autoGcEnabled) {
+        console.log('[Scheduled GC] Running background storage garbage collection...');
+        const result = await GarbageCollectionService.executeGarbageCollection('automatic');
+        console.log(`[Scheduled GC] Completed. Reclaimed ${result.bytesReclaimed} bytes, pruned ${result.dbRecordsPruned} records.`);
+      }
+    } catch (gcErr) {
+      console.error('[Scheduled GC] Error during automated execution:', gcErr);
+    }
+  }, GC_INTERVAL_MS);
 }
 
 export default app;
