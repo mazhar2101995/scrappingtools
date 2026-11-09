@@ -16,7 +16,7 @@ import {
   storeProductMappings,
   connectedStores,
 } from '@saas/database';
-import { eq, ilike, and, sql, inArray, or } from 'drizzle-orm';
+import { eq, ilike, and, sql, inArray, or, desc } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { quotaMiddleware } from '../middleware/quota.middleware';
 import { evaluateProductQuality } from '../utils/validation';
@@ -899,14 +899,64 @@ productsRouter.post('/:id/reprocess', async (req: Request, res: Response) => {
     let brandProfile: any = null;
 
     if (product.brandId) {
-      const [bp] = await db
+      // 1. Try direct brand profile id match
+      const [bpDirect] = await db
         .select()
         .from(tenantBrandProfiles)
         .where(and(eq(tenantBrandProfiles.organizationId, orgId), eq(tenantBrandProfiles.id, product.brandId)))
         .limit(1);
-      if (bp) {
-        brandProfile = bp;
-        brandName = bp.name;
+      if (bpDirect) {
+        brandProfile = bpDirect;
+        brandName = bpDirect.name;
+      }
+    }
+
+    // 2. If not found by direct id, match by brand normalized name
+    if (!brandProfile && brandName) {
+      const normBrand = brandName.toLowerCase().trim();
+      const [bpName] = await db
+        .select()
+        .from(tenantBrandProfiles)
+        .where(and(eq(tenantBrandProfiles.organizationId, orgId), eq(tenantBrandProfiles.normalizedName, normBrand)))
+        .limit(1);
+      if (bpName) {
+        brandProfile = bpName;
+        brandName = bpName.name;
+      }
+    }
+
+    // 3. Fallback: If only one active brand profile exists for this tenant, use it
+    if (!brandProfile) {
+      const allProfiles = await db
+        .select()
+        .from(tenantBrandProfiles)
+        .where(eq(tenantBrandProfiles.organizationId, orgId))
+        .limit(2);
+      if (allProfiles.length === 1) {
+        brandProfile = allProfiles[0];
+        brandName = brandProfile.name;
+      }
+    }
+
+    // Also look up scraping job to ensure all original customFields/attributes are fully captured
+    let effectiveRawData = { ...rawData };
+    if (customAttrs.productUrl) {
+      const [job] = await db
+        .select()
+        .from(scrapingJobs)
+        .where(eq(scrapingJobs.targetUrl, customAttrs.productUrl))
+        .orderBy(desc(scrapingJobs.createdAt))
+        .limit(1);
+      if (job && job.brandProfileId && !brandProfile) {
+        const [bpJob] = await db
+          .select()
+          .from(tenantBrandProfiles)
+          .where(and(eq(tenantBrandProfiles.organizationId, orgId), eq(tenantBrandProfiles.id, job.brandProfileId)))
+          .limit(1);
+        if (bpJob) {
+          brandProfile = bpJob;
+          brandName = bpJob.name;
+        }
       }
     }
 
@@ -915,19 +965,19 @@ productsRouter.post('/:id/reprocess', async (req: Request, res: Response) => {
       organizationId: orgId,
       brandId: brandProfile?.id,
       brandName,
-      rawTitle: rawData.rawTitle || product.canonicalTitle,
-      modelNumber: rawData.rawModelNumber || product.modelNumber || undefined,
-      sku: rawData.rawSku || undefined,
-      price: rawData.rawPrice || undefined,
-      rawDescription: rawData.rawDescription || undefined,
-      attributes: rawData.rawAttributes || {},
-      customFields: rawData.rawCustomData || {},
+      rawTitle: effectiveRawData.rawTitle || product.canonicalTitle,
+      modelNumber: effectiveRawData.rawModelNumber || product.modelNumber || undefined,
+      sku: effectiveRawData.rawSku || undefined,
+      price: effectiveRawData.rawPrice || undefined,
+      rawDescription: effectiveRawData.rawDescription || undefined,
+      attributes: effectiveRawData.rawAttributes || {},
+      customFields: effectiveRawData.rawCustomData || {},
       isExplicitRequest: true,
     });
 
     const aiOutput = aiRes?.output;
-    const finalTitle = aiOutput?.enhancedTitle || rawData.rawTitle || product.canonicalTitle;
-    const finalDesc = aiOutput?.enhancedDescription || rawData.rawDescription || product.standardizedDescription;
+    const finalTitle = aiOutput?.enhancedTitle || effectiveRawData.rawTitle || product.canonicalTitle;
+    const finalDesc = aiOutput?.enhancedDescription || effectiveRawData.rawDescription || product.standardizedDescription;
     const finalFeatures = aiOutput?.features || (aiOutput?.keyHighlights ? aiOutput.keyHighlights : []);
     const finalCompatibleModels = aiOutput?.compatibleModels || (rawData.rawCustomData?.compatible_models ? (Array.isArray(rawData.rawCustomData.compatible_models) ? rawData.rawCustomData.compatible_models : [String(rawData.rawCustomData.compatible_models)]) : []);
     const finalSpecifications = aiOutput?.specifications && Object.keys(aiOutput.specifications).length > 0 ? aiOutput.specifications : (rawData.rawAttributes || {});
@@ -940,13 +990,42 @@ productsRouter.post('/:id/reprocess', async (req: Request, res: Response) => {
       { step: 'QualityValidation', label: 'Data quality re-validated', status: 'completed', timestamp: new Date().toISOString() },
     ];
 
+    // 4. Resolve Brand Field Groups mapping with values
+    let fieldGroupsData: any[] = [];
+    if (brandProfile && Array.isArray(brandProfile.fieldGroups) && brandProfile.fieldGroups.length > 0) {
+      const allExtractedSource = {
+        title: effectiveRawData.rawTitle || product.canonicalTitle,
+        description: effectiveRawData.rawDescription || product.standardizedDescription,
+        modelNumber: effectiveRawData.rawModelNumber || product.modelNumber,
+        sku: effectiveRawData.rawSku || effectiveRawData.rawModelNumber,
+        price: effectiveRawData.rawPrice,
+        ...(effectiveRawData.rawAttributes || {}),
+        ...(effectiveRawData.rawCustomData || {}),
+      };
+
+      fieldGroupsData = (brandProfile.fieldGroups as any[]).map((grp: any) => ({
+        id: grp.id,
+        name: grp.name,
+        description: grp.description || '',
+        fields: (grp.fields || []).map((fKey: string) => ({
+          key: fKey,
+          label: fKey.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+          value: (allExtractedSource as any)[fKey] ?? (allExtractedSource as any)[fKey.toLowerCase()] ?? null,
+        })),
+      }));
+    } else if (Array.isArray(customAttrs.fieldGroupsData)) {
+      fieldGroupsData = customAttrs.fieldGroupsData;
+    }
+
     const updatedCustomAttrs = {
       ...customAttrs,
-      rawScrapedData: rawData,
+      rawScrapedData: effectiveRawData,
       aiProcessedData: aiOutput,
       features: finalFeatures,
       compatibleModels: finalCompatibleModels,
       specifications: finalSpecifications,
+      fieldGroupsData,
+      brandAiRules: brandProfile?.aiPromptRules || customAttrs.brandAiRules || null,
       processingHistory,
       reprocessedAt: new Date().toISOString(),
     };

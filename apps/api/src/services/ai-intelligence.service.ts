@@ -255,17 +255,24 @@ export class AiIntelligenceService {
       }
     }
 
+    // Clean raw description to eliminate placeholder text like (Not found on tested page)
+    const cleanRawDesc = (rawDescription || '')
+      .replace(/\(Not found on tested page\)/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
     // 4. Compose Prompts with strict JSON Schema
     const systemPrompt = `You are a high-precision E-Commerce Product Intelligence Engine.
 Follow this strict hierarchy:
 1. Preserve all factual specifications, model numbers, and SKUs exactly without fabricating details.
 2. Apply Workspace Global Rules.
-3. Apply Brand Profile Rules.
-4. Generate structured content with clear sections: enhancedTitle, enhancedDescription, features, compatibleModels, specifications, keyHighlights.
+3. Apply Brand Profile Rules and Field Grouping instructions.
+4. If the Brand Profile Rules, Field Groups, or Global Rules request HTML formatting or combining description, compatible models, specifications, and features into the description, generate a complete, beautifully structured semantic HTML document inside "enhancedDescription" (using <h2>, <h3>, <p>, <ul>, <li>, and <table> with clean layout).
+5. Generate structured content with clear sections: enhancedTitle, enhancedDescription, features, compatibleModels, specifications, keyHighlights.
 Return ONLY valid JSON matching this schema:
 {
   "enhancedTitle": "string",
-  "enhancedDescription": "string",
+  "enhancedDescription": "string (semantic HTML if requested by prompt/rules, otherwise professional text)",
   "features": ["string"],
   "compatibleModels": ["string"],
   "specifications": { "key": "value" },
@@ -280,7 +287,7 @@ Raw Title: ${rawTitle}
 Model: ${modelNumber || 'N/A'}
 SKU: ${sku || 'N/A'}
 Price: ${price || 'N/A'}
-Raw Description: ${rawDescription || 'N/A'}
+Raw Description: ${cleanRawDesc || 'N/A'}
 Features: ${JSON.stringify(features || [])}
 Specs: ${JSON.stringify(attributes || {})}
 Custom Attributes: ${JSON.stringify(customFields || {})}
@@ -331,15 +338,118 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
         : '';
       const modelSfx = modelNumber && !cleanTitle.includes(modelNumber) ? ` (${modelNumber})` : '';
 
-      rawOutput = {
-        enhancedTitle: `${brandPfx}${cleanTitle}${modelSfx}`.trim(),
-        enhancedDescription: rawDescription && rawDescription.length > 25
-          ? `Engineered by ${resolvedBrandName || 'the manufacturer'}, the ${cleanTitle} provides standard-setting performance.\n\n${rawDescription}`
-          : `${cleanTitle} delivers dependable performance and verified manufacturer specifications.`,
-        keyHighlights: Array.isArray(features) && features.length > 0 ? features.slice(0, 5) : [
+      // Check if prompt or rules specifically ask to assemble HTML description with desc, compatible models, specs, features
+      const combinedRulesText = `${brandAiPromptRules} ${globalDescriptionPrompt} ${globalRules}`.toLowerCase();
+      const wantsHtmlCombined =
+        combinedRulesText.includes('html') ||
+        combinedRulesText.includes('descbtion') ||
+        combinedRulesText.includes('description') ||
+        combinedRulesText.includes('fld grouping') ||
+        combinedRulesText.includes('field grouping') ||
+        combinedRulesText.includes('compatible') ||
+        combinedRulesText.includes('specification');
+
+      // Resolve compatible models
+      let compModelsList: string[] = [];
+      if (customFields?.compatible_models) {
+        if (Array.isArray(customFields.compatible_models)) {
+          compModelsList = customFields.compatible_models;
+        } else {
+          compModelsList = String(customFields.compatible_models)
+            .split(/[,;\n]/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+        }
+      }
+
+      // Resolve features
+      const featuresRaw = customFields?.fetured || customFields?.featured || customFields?.features || features;
+      let featuresList: string[] = [];
+      if (Array.isArray(featuresRaw)) {
+        featuresList = featuresRaw.filter(Boolean);
+      } else if (typeof featuresRaw === 'string') {
+        featuresList = featuresRaw
+          .split(/\n|(?<=[a-z0-9\)])(?=[A-Z][a-z0-9])/)
+          .map((s) => s.trim())
+          .filter((s) => s.length > 5);
+      }
+      if (featuresList.length === 0) {
+        featuresList = [
           'High precision verified catalog entity',
           'OEM fitment and direct manufacturer compatibility',
-        ],
+        ];
+      }
+
+      // Resolve specs
+      const specsObj = { ...(attributes || {}), ...(customFields?.specifications || {}) };
+
+      let enhancedDesc = '';
+      if (wantsHtmlCombined) {
+        // Build rich HTML output combining Description, Compatible Models, Specifications, and Features
+        const baseIntro = cleanRawDesc && cleanRawDesc.length > 20
+          ? cleanRawDesc
+          : `Engineered by ${resolvedBrandName || 'the manufacturer'}, the ${cleanTitle} delivers dependable performance and verified specifications.`;
+
+        let htmlSections = `
+<div class="product-content-formatted space-y-6">
+  <div class="section-description">
+    <h3 class="text-base font-bold text-slate-900 mb-2">Product Description</h3>
+    <p class="text-slate-700 leading-relaxed text-sm">${baseIntro}</p>
+  </div>`;
+
+        if (compModelsList.length > 0) {
+          htmlSections += `
+  <div class="section-compatible-models">
+    <h3 class="text-base font-bold text-slate-900 mb-2">Compatible Models</h3>
+    <ul class="flex flex-wrap gap-2">
+      ${compModelsList.map((m) => `<li class="px-2.5 py-1 rounded bg-amber-50 text-amber-900 border border-amber-200 text-xs font-mono font-bold">${m}</li>`).join('')}
+    </ul>
+  </div>`;
+        }
+
+        if (featuresList.length > 0) {
+          htmlSections += `
+  <div class="section-features">
+    <h3 class="text-base font-bold text-slate-900 mb-2">Key Features</h3>
+    <ul class="list-disc list-inside space-y-1 text-slate-700 text-sm">
+      ${featuresList.slice(0, 10).map((f) => `<li>${f}</li>`).join('')}
+    </ul>
+  </div>`;
+        }
+
+        const specEntries = Object.entries(specsObj).filter(([_, v]) => !String(v).includes('(Not found on tested page)'));
+        if (specEntries.length > 0) {
+          htmlSections += `
+  <div class="section-specifications">
+    <h3 class="text-base font-bold text-slate-900 mb-2">Technical Specifications</h3>
+    <table class="w-full text-xs text-left border-collapse border border-slate-200">
+      <tbody>
+        ${specEntries.map(([k, v]) => `
+          <tr class="border-b border-slate-100">
+            <td class="py-1.5 px-3 font-semibold text-slate-700 bg-slate-50 w-1/3">${k}</td>
+            <td class="py-1.5 px-3 text-slate-900 font-mono">${String(v)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  </div>`;
+        }
+
+        htmlSections += `\n</div>`;
+        enhancedDesc = htmlSections.trim();
+      } else {
+        enhancedDesc = cleanRawDesc && cleanRawDesc.length > 25
+          ? `Engineered by ${resolvedBrandName || 'the manufacturer'}, the ${cleanTitle} provides standard-setting performance.\n\n${cleanRawDesc}`
+          : `${cleanTitle} delivers dependable performance and verified manufacturer specifications.`;
+      }
+
+      rawOutput = {
+        enhancedTitle: `${brandPfx}${cleanTitle}${modelSfx}`.trim(),
+        enhancedDescription: enhancedDesc,
+        features: featuresList.slice(0, 10),
+        compatibleModels: compModelsList,
+        specifications: specsObj,
+        keyHighlights: featuresList.slice(0, 5),
         seoKeywords: [resolvedBrandName, modelNumber, sku, 'OEM specifications'].filter(Boolean),
         technicalSummary: `Standardized via Centralized AI Engine for ${resolvedBrandName || 'Catalog'}.`,
         confidence: 0.95,

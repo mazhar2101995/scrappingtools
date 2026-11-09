@@ -606,9 +606,16 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                     <span>Edit Description</span>
                   </button>
                 </div>
-                <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-200 text-xs text-slate-700 leading-relaxed whitespace-pre-line max-h-60 overflow-y-auto">
-                  {product.standardizedDescription}
-                </div>
+                {/<[a-z][\s\S]*>/i.test(product.standardizedDescription) ? (
+                  <div
+                    className="p-5 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 leading-relaxed max-h-96 overflow-y-auto prose prose-slate prose-sm max-w-none shadow-xs"
+                    dangerouslySetInnerHTML={{ __html: product.standardizedDescription }}
+                  />
+                ) : (
+                  <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-200 text-xs text-slate-700 leading-relaxed whitespace-pre-line max-h-60 overflow-y-auto">
+                    {product.standardizedDescription}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -616,6 +623,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       </div>
 
       {/* MAIN STRUCTURED PRODUCT CONTENT SECTIONS (FEATURES, COMPATIBLE MODELS, SPECIFICATIONS) */}
+      {/* If description is rich HTML that already contains features/specs/compatibility, show collapsible or distinct view */}
       <div className="space-y-6">
         {/* 1. Features Section */}
         {((data.features && Array.isArray(data.features) && data.features.length > 0) ||
