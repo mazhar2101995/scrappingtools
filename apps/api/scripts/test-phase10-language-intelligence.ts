@@ -1,3 +1,4 @@
+import process from 'node:process';
 import {
   db,
   organizations,
@@ -204,3 +205,4 @@ runPhase10TestSuite().catch((err) => {
   console.error('\n❌ PHASE 10 TEST SUITE FAILED:', err);
   process.exit(1);
 });
+

@@ -1,3 +1,4 @@
+import process from 'node:process';
 import {
   db,
   organizations,
@@ -212,7 +213,7 @@ async function runPhase9CTestSuite() {
   // --- TEST K: Regression Verification ---
   console.log('--- TEST K: REGRESSION VERIFICATION ---');
   const [activeBrand] = await db.select().from(tenantBrandProfiles).where(eq(tenantBrandProfiles.organizationId, org.id)).limit(1);
-  console.log(`Brand Profile Operational: "${activeBrand?.brandName || 'Verified'}"`);
+  console.log(`Brand Profile Operational: "${activeBrand?.name || 'Verified'}"`);
   const [activePlan] = await db.select().from(storeChangePlans).where(eq(storeChangePlans.id, planDutch.planId)).limit(1);
   console.log(`Change Plan Status: "${activePlan?.status}"`);
   const [auditRecord] = await db.select().from(storeExportAuditLogs).where(eq(storeExportAuditLogs.organizationId, org.id)).limit(1);
@@ -229,3 +230,4 @@ runPhase9CTestSuite().catch(err => {
   console.error('\n❌ PHASE 9C TEST SUITE FAILED:', err);
   process.exit(1);
 });
+
