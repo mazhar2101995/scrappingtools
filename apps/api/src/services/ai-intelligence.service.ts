@@ -33,6 +33,14 @@ export interface StructuredAiOutput {
   compatibleModels?: string[];
   specifications?: Record<string, any>;
   seoKeywords: string[];
+  seoData?: {
+    metaTitle?: string;
+    metaDescription?: string;
+    targetKeywords?: string[];
+    ogTitle?: string;
+    ogDescription?: string;
+    urlSlug?: string;
+  } | null;
   technicalSummary: string;
   suggestedCategory?: string;
   confidence: number;
@@ -155,6 +163,7 @@ export class AiIntelligenceService {
       compatibleModels: Array.isArray(output.compatibleModels) ? output.compatibleModels : [],
       specifications: output.specifications && typeof output.specifications === 'object' ? output.specifications : {},
       seoKeywords: Array.isArray(output.seoKeywords) ? output.seoKeywords.slice(0, 10) : [],
+      seoData: output.seoData || undefined,
       technicalSummary: (output.technicalSummary || '').trim(),
       suggestedCategory: output.suggestedCategory || undefined,
       confidence: typeof output.confidence === 'number' ? Math.min(1.0, Math.max(0.0, output.confidence)) : 0.95,
@@ -230,15 +239,19 @@ export class AiIntelligenceService {
     const globalTitlePrompt = aiConfig.titlePrompt || '';
     const globalDescriptionPrompt = aiConfig.descriptionPrompt || '';
 
-    // 3. Fetch Brand-Specific Prompt Rules & Field Groups
+    // 3. Fetch Brand-Specific Prompt Rules, Model Pattern & SEO Settings
     let brandAiPromptRules = '';
     let resolvedBrandName = brandName || '';
+    let brandModelRules: any = {};
+    let brandSeoSettings: any = {};
 
     if (brandId) {
       const [brandProfile] = await db
         .select({
           name: tenantBrandProfiles.name,
           aiPromptRules: tenantBrandProfiles.aiPromptRules,
+          modelPatternRules: tenantBrandProfiles.modelPatternRules,
+          seoSettings: tenantBrandProfiles.seoSettings,
         })
         .from(tenantBrandProfiles)
         .where(
@@ -251,8 +264,25 @@ export class AiIntelligenceService {
 
       if (brandProfile) {
         brandAiPromptRules = brandProfile.aiPromptRules || '';
+        brandModelRules = (brandProfile.modelPatternRules as any) || {};
+        brandSeoSettings = (brandProfile.seoSettings as any) || {};
         if (!resolvedBrandName) resolvedBrandName = brandProfile.name;
       }
+    }
+
+    // Apply Model Pattern Normalization if configured in brand profile
+    let formattedModel = modelNumber;
+    if (modelNumber && brandModelRules?.enabled) {
+      const pfx = brandModelRules.prefix || '';
+      const sfx = brandModelRules.suffix || '';
+      let base = String(modelNumber).trim();
+      if (brandModelRules.transform === 'UPPERCASE') base = base.toUpperCase();
+      else if (brandModelRules.transform === 'LOWERCASE') base = base.toLowerCase();
+      else if (brandModelRules.transform === 'STRIP_SPECIAL') base = base.replace(/[^a-zA-Z0-9]/g, '');
+
+      if (!base.startsWith(pfx)) base = `${pfx}${base}`;
+      if (!base.endsWith(sfx)) base = `${base}${sfx}`;
+      formattedModel = base;
     }
 
     // Clean raw description to eliminate placeholder text like (Not found on tested page)
@@ -268,7 +298,8 @@ Follow this strict hierarchy:
 2. Apply Workspace Global Rules.
 3. Apply Brand Profile Rules and Field Grouping instructions.
 4. If the Brand Profile Rules, Field Groups, or Global Rules request HTML formatting or combining description, compatible models, specifications, and features into the description, generate a complete, beautifully structured semantic HTML document inside "enhancedDescription" (using <h2>, <h3>, <p>, <ul>, <li>, and <table> with clean layout).
-5. Generate structured content with clear sections: enhancedTitle, enhancedDescription, features, compatibleModels, specifications, keyHighlights.
+5. If Brand SEO settings have enabled=true, generate professional "seoData" matching the requested fields: metaTitle, metaDescription, targetKeywords, ogTitle, ogDescription, urlSlug. Do NOT generate SEO data if disabled.
+6. Generate structured content with clear sections: enhancedTitle, enhancedDescription, features, compatibleModels, specifications, keyHighlights, seoData.
 Return ONLY valid JSON matching this schema:
 {
   "enhancedTitle": "string",
@@ -278,6 +309,14 @@ Return ONLY valid JSON matching this schema:
   "specifications": { "key": "value" },
   "keyHighlights": ["string"],
   "seoKeywords": ["string"],
+  "seoData": {
+    "metaTitle": "string",
+    "metaDescription": "string",
+    "targetKeywords": ["string"],
+    "ogTitle": "string",
+    "ogDescription": "string",
+    "urlSlug": "string"
+  },
   "technicalSummary": "string",
   "confidence": 0.95
 }`;
@@ -443,6 +482,45 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
           : `${cleanTitle} delivers dependable performance and verified manufacturer specifications.`;
       }
 
+      // Generate SEO data if brand enables it
+      let generatedSeo: any = null;
+      if (brandSeoSettings?.enabled) {
+        const fields = brandSeoSettings.fields || ['metaTitle', 'metaDescription', 'targetKeywords', 'urlSlug'];
+        const seoObj: any = {};
+        const safeBrand = resolvedBrandName || 'Brand';
+        const safeModel = formattedModel || modelNumber || '';
+
+        if (fields.includes('metaTitle')) {
+          seoObj.metaTitle = `${cleanTitle} | Official ${safeBrand} Specifications`.substring(0, 70);
+        }
+        if (fields.includes('metaDescription')) {
+          seoObj.metaDescription = `Buy genuine ${cleanTitle}${safeModel ? ` (Part #${safeModel})` : ''}. Fast dispatch, guaranteed fitment, and verified manufacturer specifications.`.substring(0, 160);
+        }
+        if (fields.includes('targetKeywords')) {
+          seoObj.targetKeywords = [
+            safeBrand.toLowerCase(),
+            safeModel.toLowerCase(),
+            cleanTitle.toLowerCase(),
+            'oem parts',
+            'genuine replacement',
+          ].filter(Boolean);
+        }
+        if (fields.includes('ogTitle')) {
+          seoObj.ogTitle = `${cleanTitle} - ${safeBrand}`;
+        }
+        if (fields.includes('ogDescription')) {
+          seoObj.ogDescription = seoObj.metaDescription || `Explore verified specifications for ${cleanTitle}.`;
+        }
+        if (fields.includes('urlSlug')) {
+          seoObj.urlSlug = `${safeBrand}-${safeModel}-${cleanTitle}`
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '')
+            .substring(0, 80);
+        }
+        generatedSeo = seoObj;
+      }
+
       rawOutput = {
         enhancedTitle: `${brandPfx}${cleanTitle}${modelSfx}`.trim(),
         enhancedDescription: enhancedDesc,
@@ -450,7 +528,8 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
         compatibleModels: compModelsList,
         specifications: specsObj,
         keyHighlights: featuresList.slice(0, 5),
-        seoKeywords: [resolvedBrandName, modelNumber, sku, 'OEM specifications'].filter(Boolean),
+        seoKeywords: [resolvedBrandName, formattedModel || modelNumber, sku, 'OEM specifications'].filter(Boolean),
+        seoData: generatedSeo,
         technicalSummary: `Standardized via Centralized AI Engine for ${resolvedBrandName || 'Catalog'}.`,
         confidence: 0.95,
       };

@@ -133,6 +133,8 @@ brandsRouter.post('/', async (req: Request, res: Response) => {
         fieldGroups: fieldGroups || [],
         customFields: customFields || [],
         aiPromptRules: aiPromptRules || '',
+        modelPatternRules: req.body.modelPatternRules || {},
+        seoSettings: req.body.seoSettings || {},
       })
       .returning();
 
@@ -201,6 +203,8 @@ brandsRouter.put('/:id', async (req: Request, res: Response) => {
     if (fieldGroups !== undefined) updatePayload.fieldGroups = fieldGroups;
     if (customFields !== undefined) updatePayload.customFields = customFields;
     if (aiPromptRules !== undefined) updatePayload.aiPromptRules = aiPromptRules;
+    if (req.body.modelPatternRules !== undefined) updatePayload.modelPatternRules = req.body.modelPatternRules;
+    if (req.body.seoSettings !== undefined) updatePayload.seoSettings = req.body.seoSettings;
 
     const [updated] = await db
       .update(tenantBrandProfiles)

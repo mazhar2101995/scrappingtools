@@ -822,11 +822,16 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
     { step: 'QualityValidation', label: 'Data quality validated', status: 'completed', timestamp: product.createdAt },
   ];
 
+  const seoData = customAttrs.seoData || (aiProcessedData?.seoData ? aiProcessedData.seoData : null);
+  const formattedModelNumber = customAttrs.formattedModelNumber || product.modelNumber;
+
   return res.json({
     product: {
       ...product,
       canonicalTitle: override?.customTitle || product.canonicalTitle,
       standardizedDescription: override?.customDescription || product.standardizedDescription,
+      modelNumber: formattedModelNumber,
+      rawModelNumber: product.modelNumber,
       price: price ? (String(price).startsWith('$') ? String(price) : `$${price}`) : null,
       productUrl,
     },
@@ -840,6 +845,7 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
     fieldGroupsData,
     rawScrapedData,
     aiProcessedData,
+    seoData,
     features,
     compatibleModels,
     specifications,
@@ -1017,10 +1023,28 @@ productsRouter.post('/:id/reprocess', async (req: Request, res: Response) => {
       fieldGroupsData = customAttrs.fieldGroupsData;
     }
 
+    // Apply model pattern rules to canonical / override model number if configured
+    let finalModelNumber = effectiveRawData.rawModelNumber || product.modelNumber;
+    const brandModelRules = (brandProfile?.modelPatternRules as any) || {};
+    if (finalModelNumber && brandModelRules?.enabled) {
+      const pfx = brandModelRules.prefix || '';
+      const sfx = brandModelRules.suffix || '';
+      let base = String(finalModelNumber).trim();
+      if (brandModelRules.transform === 'UPPERCASE') base = base.toUpperCase();
+      else if (brandModelRules.transform === 'LOWERCASE') base = base.toLowerCase();
+      else if (brandModelRules.transform === 'STRIP_SPECIAL') base = base.replace(/[^a-zA-Z0-9]/g, '');
+
+      if (!base.startsWith(pfx)) base = `${pfx}${base}`;
+      if (!base.endsWith(sfx)) base = `${base}${sfx}`;
+      finalModelNumber = base;
+    }
+
     const updatedCustomAttrs = {
       ...customAttrs,
       rawScrapedData: effectiveRawData,
       aiProcessedData: aiOutput,
+      seoData: aiOutput?.seoData || customAttrs.seoData || null,
+      formattedModelNumber: finalModelNumber,
       features: finalFeatures,
       compatibleModels: finalCompatibleModels,
       specifications: finalSpecifications,

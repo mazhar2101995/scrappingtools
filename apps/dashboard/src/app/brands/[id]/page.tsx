@@ -30,7 +30,8 @@ import {
   CheckCircle,
   FolderKanban,
   FolderPlus,
-  Eye
+  Eye,
+  Sliders
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -71,7 +72,7 @@ export default function BrandProfileDetailPage() {
   const router = useRouter();
   const brandId = params.id as string;
 
-  const [activeTab, setActiveTab] = useState<'visual' | 'mappings' | 'groups' | 'sources' | 'custom' | 'ai_prompts' | 'test' | 'overview'>('visual');
+  const [activeTab, setActiveTab] = useState<'visual' | 'mappings' | 'groups' | 'sources' | 'custom' | 'ai_prompts' | 'model_rules' | 'seo' | 'test' | 'overview'>('visual');
   const [brand, setBrand] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -85,6 +86,18 @@ export default function BrandProfileDetailPage() {
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('active');
   const [aiPromptRules, setAiPromptRules] = useState('');
+
+  // Model Pattern Normalization Rules state
+  const [modelPatternEnabled, setModelPatternEnabled] = useState(false);
+  const [modelPrefix, setModelPrefix] = useState('');
+  const [modelSuffix, setModelSuffix] = useState('');
+  const [modelTransform, setModelTransform] = useState('NONE');
+  const [modelTestInput, setModelTestInput] = useState('77097-4');
+
+  // Dynamic AI SEO Settings state
+  const [seoEnabled, setSeoEnabled] = useState(false);
+  const [seoFields, setSeoFields] = useState<string[]>(['metaTitle', 'metaDescription', 'targetKeywords', 'urlSlug']);
+  const [customSeoPrompt, setCustomSeoPrompt] = useState('');
 
   // Dynamic field mappings state
   const [fieldMappings, setFieldMappings] = useState<any[]>([]);
@@ -180,6 +193,20 @@ export default function BrandProfileDetailPage() {
       setFieldGroups(Array.isArray(data.fieldGroups) ? data.fieldGroups : []);
       setSourceConfigs(Array.isArray(data.sourceConfigs) ? data.sourceConfigs : []);
       setCustomFields(Array.isArray(data.customFields) ? data.customFields : []);
+
+      // Load Model Pattern Rules
+      const mRules = data.modelPatternRules || {};
+      setModelPatternEnabled(Boolean(mRules.enabled));
+      setModelPrefix(mRules.prefix || '');
+      setModelSuffix(mRules.suffix || '');
+      setModelTransform(mRules.transform || 'NONE');
+
+      // Load SEO Settings
+      const sSettings = data.seoSettings || {};
+      setSeoEnabled(Boolean(sSettings.enabled));
+      setSeoFields(Array.isArray(sSettings.fields) && sSettings.fields.length > 0 ? sSettings.fields : ['metaTitle', 'metaDescription', 'targetKeywords', 'urlSlug']);
+      setCustomSeoPrompt(sSettings.customPrompt || '');
+
       if (data.officialWebsite) {
         setOfficialWebsite(data.officialWebsite);
         setTestUrl(data.officialWebsite);
@@ -263,6 +290,17 @@ export default function BrandProfileDetailPage() {
         sourceConfigs: finalSources,
         customFields,
         aiPromptRules,
+        modelPatternRules: {
+          enabled: modelPatternEnabled,
+          prefix: modelPrefix.trim(),
+          suffix: modelSuffix.trim(),
+          transform: modelTransform,
+        },
+        seoSettings: {
+          enabled: seoEnabled,
+          fields: seoFields,
+          customPrompt: customSeoPrompt.trim(),
+        },
       });
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
@@ -698,6 +736,8 @@ export default function BrandProfileDetailPage() {
           { key: 'groups', label: 'Field Groups', icon: FolderKanban, count: fieldGroups.length },
           { key: 'sources', label: 'Product Sources', icon: Layers, count: sourceConfigs.length },
           { key: 'custom', label: 'Custom Client Fields', icon: ListPlus, count: customFields.length },
+          { key: 'model_rules', label: 'Model Normalization', icon: Sliders, badge: modelPatternEnabled ? 'ON' : undefined },
+          { key: 'seo', label: 'AI SEO Settings', icon: Globe, badge: seoEnabled ? 'ON' : undefined },
           { key: 'ai_prompts', label: 'AI Prompt Rules', icon: Sparkles, badge: 'AI' },
           { key: 'test', label: 'Test & Preview', icon: Play },
           { key: 'overview', label: 'Brand Details', icon: Settings },
@@ -1899,6 +1939,262 @@ export default function BrandProfileDetailPage() {
               <p className="text-[11px] leading-relaxed">
                 When adding products for <strong>{brandName}</strong> in the Product Catalog, clicking &quot;Improve with AI&quot; will automatically apply these rules along with your Workspace Global Templates to polish the title, generate SEO descriptions, and extract key selling points.
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: MODEL PATTERN NORMALIZATION RULES */}
+      {activeTab === 'model_rules' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6 max-w-4xl">
+          <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
+                  Store SKU Alignment
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Inventory &amp; Import Matching</span>
+              </div>
+              <h2 className="text-lg font-black tracking-tight text-slate-900">
+                Model Number &amp; SKU Pattern Normalization
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Configure dynamic pattern formatting for {brandName} (e.g., adding store prefix like <code>Trx-</code>) to ensure 100% exact match when importing existing store products.
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleSaveChanges()}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
+            >
+              <Save className="w-4 h-4" />
+              <span>{saving ? 'Saving...' : 'Save Pattern Rules'}</span>
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {/* Enable switch */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-slate-900">Enable Model Pattern Formatting</span>
+                <p className="text-[11px] text-slate-500">
+                  When enabled, scraped raw model numbers will be standardized with your store&apos;s custom prefix/suffix and case transform.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={modelPatternEnabled}
+                  onChange={(e) => setModelPatternEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0d2a2c]"></div>
+              </label>
+            </div>
+
+            {/* Config inputs */}
+            <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${!modelPatternEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Prefix (e.g. Trx- or TRA-)
+                </label>
+                <input
+                  type="text"
+                  value={modelPrefix}
+                  onChange={(e) => setModelPrefix(e.target.value)}
+                  placeholder="Trx-"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Suffix (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={modelSuffix}
+                  onChange={(e) => setModelSuffix(e.target.value)}
+                  placeholder="-OEM"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Case Transformation
+                </label>
+                <select
+                  value={modelTransform}
+                  onChange={(e) => setModelTransform(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                >
+                  <option value="NONE">Preserve Original Case</option>
+                  <option value="UPPERCASE">ALL UPPERCASE (e.g. TRX-77097-4)</option>
+                  <option value="LOWERCASE">all lowercase (e.g. trx-77097-4)</option>
+                  <option value="STRIP_SPECIAL">Strip Hyphens/Spaces (e.g. TRX770974)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Live Interactive Pattern Tester */}
+            <div className="p-5 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                <h4 className="text-xs font-bold text-amber-950 uppercase tracking-wider">
+                  Live Pattern Simulator &amp; Store Match Preview
+                </h4>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                    Raw Scraped Model Sample:
+                  </label>
+                  <input
+                    type="text"
+                    value={modelTestInput}
+                    onChange={(e) => setModelTestInput(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-amber-200 bg-white font-mono text-xs text-slate-900"
+                  />
+                </div>
+
+                <div className="p-3 rounded-xl bg-white border border-amber-200">
+                  <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+                    Formatted Store Match Key:
+                  </span>
+                  <span className="font-mono text-sm font-black text-emerald-700">
+                    {(() => {
+                      if (!modelPatternEnabled) return modelTestInput;
+                      let b = modelTestInput.trim();
+                      if (modelTransform === 'UPPERCASE') b = b.toUpperCase();
+                      else if (modelTransform === 'LOWERCASE') b = b.toLowerCase();
+                      else if (modelTransform === 'STRIP_SPECIAL') b = b.replace(/[^a-zA-Z0-9]/g, '');
+                      if (!b.startsWith(modelPrefix)) b = `${modelPrefix}${b}`;
+                      if (!b.endsWith(modelSuffix)) b = `${b}${modelSuffix}`;
+                      return b;
+                    })()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: DYNAMIC AI SEO GENERATION SETTINGS */}
+      {activeTab === 'seo' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6 max-w-4xl">
+          <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
+                  SEO &amp; Discoverability
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Dynamic AI Metadata Generator</span>
+              </div>
+              <h2 className="text-lg font-black tracking-tight text-slate-900">
+                Brand AI SEO &amp; Meta Generation Settings
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Control whether the AI engine generates custom SEO data (Page Titles, Meta Descriptions, Keywords, URL Handles) instead of copying generic scraped tags.
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleSaveChanges()}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
+            >
+              <Save className="w-4 h-4" />
+              <span>{saving ? 'Saving...' : 'Save SEO Settings'}</span>
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {/* Master Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-slate-900">Generate AI SEO Metadata</span>
+                <p className="text-[11px] text-slate-500">
+                  When enabled, the Product Intelligence AI engine will create verified, high-CTR e-commerce SEO metadata specifically for {brandName}.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={seoEnabled}
+                  onChange={(e) => setSeoEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#0d2a2c]"></div>
+              </label>
+            </div>
+
+            {/* Selective Fields Checkbox Grid */}
+            <div className={`space-y-4 ${!seoEnabled ? 'opacity-50 pointer-events-none' : ''}`}>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Select Which SEO Fields To Generate:
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {[
+                  { id: 'metaTitle', label: 'SEO Meta Title', desc: 'Max 60-70 chars, includes Brand & Model' },
+                  { id: 'metaDescription', label: 'Meta Description', desc: '140-160 chars, high-CTR search snippet' },
+                  { id: 'targetKeywords', label: 'Target Search Keywords', desc: 'Array of high-intent tags for ranking' },
+                  { id: 'urlSlug', label: 'URL Handle / Slug', desc: 'Clean, hyphenated URL for store routing' },
+                  { id: 'ogTitle', label: 'OpenGraph Social Title', desc: 'Optimized for social sharing & WhatsApp' },
+                  { id: 'ogDescription', label: 'OpenGraph Social Description', desc: 'Social snippet for link previews' },
+                ].map((f) => {
+                  const isChecked = seoFields.includes(f.id);
+                  return (
+                    <div
+                      key={f.id}
+                      onClick={() => {
+                        if (isChecked) {
+                          setSeoFields(seoFields.filter((item) => item !== f.id));
+                        } else {
+                          setSeoFields([...seoFields, f.id]);
+                        }
+                      }}
+                      className={`p-3.5 rounded-xl border text-xs cursor-pointer transition flex items-start gap-2.5 ${
+                        isChecked
+                          ? 'bg-emerald-50/40 border-emerald-300 text-slate-900 shadow-2xs'
+                          : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}}
+                        className="mt-0.5 rounded text-[#0d2a2c] focus:ring-0"
+                      />
+                      <div>
+                        <div className="font-bold text-slate-900">{f.label}</div>
+                        <div className="text-[10px] text-slate-500 mt-0.5">{f.desc}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Brand-Specific SEO Guidelines Prompt */}
+              <div className="pt-2">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Custom Brand SEO Guidelines &amp; Keyword Strategy (Optional)
+                </label>
+                <textarea
+                  rows={4}
+                  value={customSeoPrompt}
+                  onChange={(e) => setCustomSeoPrompt(e.target.value)}
+                  placeholder={`Example for ${brandName}:
+- Always include 'Genuine OEM' and the official model number in the meta description.
+- Target keywords should focus on replacement parts and performance upgrades.
+- Format title as: [Product Name] - [Model] | Genuine Traxxas.`}
+                  className="w-full p-3.5 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white leading-relaxed"
+                />
+              </div>
             </div>
           </div>
         </div>

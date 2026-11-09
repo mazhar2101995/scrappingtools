@@ -751,6 +751,75 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           </div>
       )}
 
+      {/* 5. DEDICATED AI SEO & METADATA SECTION */}
+      {data?.seoData && typeof data.seoData === 'object' && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-emerald-600" />
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                AI Generated SEO &amp; Meta Data
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+              Verified SEO Output
+            </span>
+          </div>
+
+          {/* Google SERP Preview Box */}
+          <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-1.5 font-sans">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Google Search Engine Result Snippet (SERP Live Preview)
+            </span>
+            <div className="text-xs text-slate-500 font-mono truncate">
+              https://yourstore.com/products/{data.seoData.urlSlug || 'product-handle'}
+            </div>
+            <div className="text-base font-medium text-[#1a0dab] hover:underline cursor-pointer truncate">
+              {data.seoData.metaTitle || product.canonicalTitle}
+            </div>
+            <p className="text-xs text-[#4d5156] line-clamp-2 leading-relaxed">
+              {data.seoData.metaDescription || product.standardizedDescription}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            {data.seoData.metaTitle && (
+              <div className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 space-y-1">
+                <span className="font-bold text-slate-700 block">SEO Meta Title ({data.seoData.metaTitle.length} chars)</span>
+                <span className="text-slate-900 font-mono">{data.seoData.metaTitle}</span>
+              </div>
+            )}
+
+            {data.seoData.urlSlug && (
+              <div className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 space-y-1">
+                <span className="font-bold text-slate-700 block">Store URL Handle / Slug</span>
+                <span className="text-indigo-700 font-mono font-bold">{data.seoData.urlSlug}</span>
+              </div>
+            )}
+
+            {data.seoData.metaDescription && (
+              <div className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 space-y-1 md:col-span-2">
+                <span className="font-bold text-slate-700 block">SEO Meta Description ({data.seoData.metaDescription.length} chars)</span>
+                <span className="text-slate-900 leading-relaxed">{data.seoData.metaDescription}</span>
+              </div>
+            )}
+
+            {Array.isArray(data.seoData.targetKeywords) && data.seoData.targetKeywords.length > 0 && (
+              <div className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 space-y-2 md:col-span-2">
+                <span className="font-bold text-slate-700 block">Target Ranking Keywords ({data.seoData.targetKeywords.length})</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {data.seoData.targetKeywords.map((kw: string, kIdx: number) => (
+                    <span key={kIdx} className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-mono text-[11px] font-bold">
+                      #{kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Human Review Correction Modal (Phase 6) */}
       {showCorrectionModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">

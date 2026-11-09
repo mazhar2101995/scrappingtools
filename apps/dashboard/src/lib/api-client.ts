@@ -623,6 +623,8 @@ export class DashboardApiClient {
     fieldGroups?: any[];
     customFields?: any[];
     aiPromptRules?: string;
+    modelPatternRules?: any;
+    seoSettings?: any;
   }): Promise<any> {
     return this.fetchJson(`/brands/${id}`, {
       method: 'PUT',
