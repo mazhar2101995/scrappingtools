@@ -44,7 +44,7 @@ export default function AdminRevenueBillingPage() {
   const tiers = data?.tierDistribution || [];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans">
+    <div className="space-y-6 w-full font-sans">
       {/* Header */}
       <div className="p-7 rounded-3xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>

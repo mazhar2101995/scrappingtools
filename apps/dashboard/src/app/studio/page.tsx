@@ -89,7 +89,7 @@ export default function ScrapingStudioPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans text-slate-800">
+    <div className="space-y-6 w-full font-sans text-slate-800">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Scraping Studio &amp; Selector Debugger</h1>

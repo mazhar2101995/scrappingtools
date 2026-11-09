@@ -185,7 +185,7 @@ export default function SettingsSecurityPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans">
+    <div className="space-y-6 w-full font-sans">
       <div>
         <h1 className="text-2xl font-black tracking-tight text-slate-900">API Keys &amp; Tenant Security</h1>
         <p className="text-xs text-slate-500 mt-1 font-medium">

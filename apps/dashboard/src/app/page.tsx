@@ -88,7 +88,7 @@ export default function ClientDashboardOverview() {
   const needsAttentionList = data?.needsAttention || [];
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto font-sans text-slate-800 pb-16">
+    <div className="space-y-8 w-full font-sans text-slate-800 pb-16">
       {/* 1. Header & Greeting Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div className="flex items-center gap-3.5">

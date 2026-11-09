@@ -231,7 +231,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
   if (loading) {
     return (
-      <div className="space-y-6 max-w-7xl mx-auto p-6 font-sans">
+      <div className="space-y-6 w-full p-6 font-sans">
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <div className="w-24 h-4 bg-slate-200 rounded animate-pulse" />
         </div>
@@ -246,7 +246,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
   if (error || !data || !data.product) {
     return (
-      <div className="space-y-6 max-w-7xl mx-auto p-6 font-sans">
+      <div className="space-y-6 w-full p-6 font-sans">
         <Link
           href="/products"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition"
@@ -275,7 +275,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const completenessScore = qualityReport?.completenessScore ?? 100;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans pb-16">
+    <div className="space-y-6 w-full font-sans pb-16">
       {/* Back button and breadcrumb */}
       <div className="flex items-center justify-between">
         <Link

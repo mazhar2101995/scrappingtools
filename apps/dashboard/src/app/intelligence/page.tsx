@@ -70,7 +70,7 @@ export default function ProductIntelligencePage() {
   const pendingCount = metrics?.needsAttentionCount ?? candidates.filter(c => c.status === 'pending').length;
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans pb-12">
+    <div className="space-y-6 w-full font-sans pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>

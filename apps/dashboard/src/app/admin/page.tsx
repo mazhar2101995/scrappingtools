@@ -56,7 +56,7 @@ export default function PlatformAdminControlCenter() {
 
   if (loading) {
     return (
-      <div className="space-y-8 max-w-7xl mx-auto animate-pulse font-sans">
+      <div className="space-y-8 w-full animate-pulse font-sans">
         <div className="h-24 bg-white/80 rounded-3xl border border-[#ebdcb9]"></div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
@@ -70,7 +70,7 @@ export default function PlatformAdminControlCenter() {
 
   if (error || !data) {
     return (
-      <div className="max-w-7xl mx-auto space-y-4 font-sans">
+      <div className="w-full space-y-4 font-sans">
         <div className="p-6 rounded-3xl bg-rose-50 border border-rose-200 text-rose-700 shadow-sm">
           <div className="flex items-center gap-3">
             <AlertCircle className="w-5 h-5 shrink-0" />
@@ -99,7 +99,7 @@ export default function PlatformAdminControlCenter() {
   const successRate = totalJobs > 0 ? ((successJobs / totalJobs) * 100).toFixed(1) : '100.0';
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-16">
+    <div className="space-y-8 w-full font-sans pb-16">
       {/* Platform Banner */}
       <div className="p-7 rounded-3xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>

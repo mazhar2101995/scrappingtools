@@ -142,7 +142,7 @@ export default function StoresPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans text-slate-800 pb-12">
+    <div className="space-y-6 w-full font-sans text-slate-800 pb-12">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
