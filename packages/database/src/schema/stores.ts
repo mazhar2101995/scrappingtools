@@ -1,6 +1,7 @@
 import { pgTable, uuid, varchar, text, numeric, integer, boolean, jsonb, timestamp, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { organizations, users } from './tenants';
 import { globalProducts } from './products';
+import { tenantBrandProfiles } from './sources';
 
 // 1. Connected E-Commerce Stores (Multi-Tenant)
 export const connectedStores = pgTable('connected_stores', {
@@ -77,5 +78,57 @@ export const storeConflictLogs = pgTable('store_conflict_logs', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index('idx_scl_store_pending').on(table.connectedStoreId, table.resolution),
+]);
+
+// 5. Brand-Level Store Export Profiles (Phase 9A Foundation)
+export const brandStoreExportProfiles = pgTable('brand_store_export_profiles', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  brandProfileId: uuid('brand_profile_id').notNull().references(() => tenantBrandProfiles.id, { onDelete: 'cascade' }),
+  connectedStoreId: uuid('connected_store_id').notNull().references(() => connectedStores.id, { onDelete: 'cascade' }),
+  profileName: varchar('profile_name', { length: 255 }).notNull(),
+  status: varchar('status', { length: 50 }).notNull().default('draft'), // 'draft', 'valid', 'needs_attention', 'disabled'
+  fieldMappings: jsonb('field_mappings').notNull(), // Array of mapped fields with permissions
+  validationStatus: jsonb('validation_status').notNull(), // { isValid: boolean, errors: string[] }
+  lastValidatedAt: timestamp('last_validated_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('idx_bsep_brand_store').on(table.organizationId, table.brandProfileId, table.connectedStoreId),
+  index('idx_bsep_brand').on(table.brandProfileId),
+  index('idx_bsep_store').on(table.connectedStoreId),
+]);
+
+// 6. Store Schema Discovery Cache (Read-Only Discovered Fields)
+export const storeSchemaCache = pgTable('store_schema_cache', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  connectedStoreId: uuid('connected_store_id').notNull().references(() => connectedStores.id, { onDelete: 'cascade' }),
+  platformType: varchar('platform_type', { length: 50 }).notNull(),
+  discoveredFields: jsonb('discovered_fields').notNull(),
+  discoveredCategories: jsonb('discovered_categories').notNull(),
+  discoveredManufacturers: jsonb('discovered_manufacturers').notNull(),
+  discoveredAttributes: jsonb('discovered_attributes').notNull(),
+  discoveredCustomFields: jsonb('discovered_custom_fields').notNull(),
+  discoveredAt: timestamp('discovered_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+}, (table) => [
+  uniqueIndex('idx_ssc_store').on(table.connectedStoreId),
+  index('idx_ssc_org').on(table.organizationId),
+]);
+
+// 7. Store Export Audit Logs
+export const storeExportAuditLogs = pgTable('store_export_audit_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  brandProfileId: uuid('brand_profile_id').references(() => tenantBrandProfiles.id, { onDelete: 'set null' }),
+  connectedStoreId: uuid('connected_store_id').references(() => connectedStores.id, { onDelete: 'set null' }),
+  exportProfileId: uuid('export_profile_id').references(() => brandStoreExportProfiles.id, { onDelete: 'set null' }),
+  action: varchar('action', { length: 100 }).notNull(),
+  details: jsonb('details').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_seal_org_action').on(table.organizationId, table.action, table.createdAt),
 ]);
 

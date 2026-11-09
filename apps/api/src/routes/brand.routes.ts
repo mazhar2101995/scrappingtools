@@ -3,6 +3,7 @@ import { db, tenantBrandProfiles, brands, brandScrapingProfiles, sourceWebsites 
 import { eq, and, desc } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { SourceAccessService } from '../services/source-access.service';
+import { BrandStoreExportService } from '../services/brand-store-export.service';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import fs from 'fs';
@@ -1123,4 +1124,91 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
   } catch (err: any) {
     return res.status(500).json({ error: 'Failed to fetch and preview product page', details: err.message });
   }
+});
+
+// =========================================================================
+// PHASE 9A: BRAND-LEVEL STORE EXPORT MAPPING ENDPOINTS
+// =========================================================================
+
+// 1. Discover Connected Store Schema (Safe Read-Only)
+brandsRouter.get('/stores/:storeId/discover', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  if (!orgId) return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
+  const storeId = Array.isArray(req.params.storeId) ? req.params.storeId[0] : req.params.storeId;
+
+  try {
+    const discovery = await BrandStoreExportService.discoverStoreSchema(storeId, orgId);
+    return res.json({ success: true, discovery });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 2. List all Store Export Mappings for a Brand Profile
+brandsRouter.get('/:id/store-exports', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  if (!orgId) return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+
+  try {
+    const exportsList = await BrandStoreExportService.listBrandExportProfiles(orgId, id);
+    return res.json({ success: true, count: exportsList.length, exports: exportsList });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Get Specific Brand Store Export Mapping
+brandsRouter.get('/:id/store-exports/:storeId', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  if (!orgId) return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const storeId = Array.isArray(req.params.storeId) ? req.params.storeId[0] : req.params.storeId;
+
+  try {
+    const profile = await BrandStoreExportService.getBrandStoreExportProfile(orgId, id, storeId);
+    return res.json({ success: true, profile });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 4. Save or Update Brand Store Export Profile (with Compatibility & Policy Validation)
+brandsRouter.post('/:id/store-exports/:storeId', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  if (!orgId) return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const storeId = Array.isArray(req.params.storeId) ? req.params.storeId[0] : req.params.storeId;
+  const { profileName, fieldMappings } = req.body;
+
+  if (!profileName || !Array.isArray(fieldMappings)) {
+    return res.status(400).json({ error: 'profileName and fieldMappings array are required' });
+  }
+
+  try {
+    const saved = await BrandStoreExportService.saveBrandStoreExportProfile(orgId, id, storeId, {
+      profileName,
+      fieldMappings,
+      userId: (req as any).user?.userId,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Brand-level store export mapping profile saved successfully',
+      profile: saved,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// 5. Test / Validate Mapping Compatibility without saving
+brandsRouter.post('/store-exports/validate', async (req: Request, res: Response) => {
+  const { fieldMappings } = req.body;
+  if (!Array.isArray(fieldMappings)) {
+    return res.status(400).json({ error: 'fieldMappings array is required' });
+  }
+
+  const validation = BrandStoreExportService.validateMapping(fieldMappings);
+  return res.json({ success: true, validation });
 });

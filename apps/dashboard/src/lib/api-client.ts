@@ -896,6 +896,37 @@ export class DashboardApiClient {
       body: JSON.stringify({ status, resolutionNotes }),
     }, 'admin');
   }
+
+  // --- Phase 9A: Brand-Level Store Export Mapping Methods ---
+  async discoverStoreSchema(storeId: string): Promise<any> {
+    return this.fetchJson(`/brands/stores/${storeId}/discover`, {}, 'client');
+  }
+
+  async getBrandStoreExports(brandId: string): Promise<any> {
+    return this.fetchJson(`/brands/${brandId}/store-exports`, {}, 'client');
+  }
+
+  async getBrandStoreExportProfile(brandId: string, storeId: string): Promise<any> {
+    return this.fetchJson(`/brands/${brandId}/store-exports/${storeId}`, {}, 'client');
+  }
+
+  async saveBrandStoreExportProfile(
+    brandId: string,
+    storeId: string,
+    payload: { profileName: string; fieldMappings: any[] }
+  ): Promise<any> {
+    return this.fetchJson(`/brands/${brandId}/store-exports/${storeId}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async validateExportMapping(fieldMappings: any[]): Promise<any> {
+    return this.fetchJson('/brands/store-exports/validate', {
+      method: 'POST',
+      body: JSON.stringify({ fieldMappings }),
+    }, 'client');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

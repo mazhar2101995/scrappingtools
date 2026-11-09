@@ -31,7 +31,10 @@ import {
   FolderKanban,
   FolderPlus,
   Eye,
-  Sliders
+  Sliders,
+  ShoppingBag,
+  ShieldCheck,
+  AlertTriangle
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -72,7 +75,7 @@ export default function BrandProfileDetailPage() {
   const router = useRouter();
   const brandId = params.id as string;
 
-  const [activeTab, setActiveTab] = useState<'visual' | 'mappings' | 'groups' | 'sources' | 'custom' | 'ai_prompts' | 'model_rules' | 'seo' | 'test' | 'overview'>('visual');
+  const [activeTab, setActiveTab] = useState<'visual' | 'mappings' | 'groups' | 'sources' | 'store_export' | 'custom' | 'ai_prompts' | 'model_rules' | 'seo' | 'test' | 'overview'>('visual');
   const [brand, setBrand] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -146,6 +149,17 @@ export default function BrandProfileDetailPage() {
   const [testUrl, setTestUrl] = useState('');
   const [testLoading, setTestLoading] = useState(false);
   const [testResults, setTestResults] = useState<any>(null);
+
+  // --- Phase 9A: Store Export Mapping State ---
+  const [connectedStores, setConnectedStores] = useState<any[]>([]);
+  const [selectedExportStoreId, setSelectedExportStoreId] = useState<string>('');
+  const [storeSchema, setStoreSchema] = useState<any>(null);
+  const [storeSchemaLoading, setStoreSchemaLoading] = useState(false);
+  const [exportMappings, setExportMappings] = useState<any[]>([]);
+  const [exportProfileName, setExportProfileName] = useState<string>('Default Brand Store Mapping');
+  const [exportProfileSaving, setExportProfileSaving] = useState(false);
+  const [exportValidation, setExportValidation] = useState<any>(null);
+  const [exportStatusMsg, setExportStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // --- VISUAL AUTO MAPPER STATE ---
   const [visualProductUrl, setVisualProductUrl] = useState('');
@@ -230,6 +244,16 @@ export default function BrandProfileDetailPage() {
         setTestUrl(data.sourceConfigs[0].url);
         setVisualProductUrl(data.sourceConfigs[0].url);
       }
+
+      // Load connected stores for export mapping
+      apiClient.getStores().then((stores) => {
+        if (Array.isArray(stores)) {
+          setConnectedStores(stores);
+          if (stores.length > 0 && !selectedExportStoreId) {
+            setSelectedExportStoreId(stores[0].id);
+          }
+        }
+      }).catch(() => {});
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to load brand profile.');
     } finally {
@@ -657,6 +681,109 @@ export default function BrandProfileDetailPage() {
     }
   }
 
+  // --- Phase 9A Store Export Mapping Handlers ---
+  async function loadExportProfile(storeId: string) {
+    if (!storeId || !brandId) return;
+    try {
+      setStoreSchemaLoading(true);
+      setExportStatusMsg(null);
+
+      // 1. Discover or fetch cached schema
+      const discovery = await apiClient.discoverStoreSchema(storeId);
+      if (discovery?.schema) {
+        setStoreSchema(discovery.schema);
+      }
+
+      // 2. Fetch existing brand export profile for this store
+      const profile = await apiClient.getBrandStoreExportProfile(brandId, storeId);
+      if (profile && profile.fieldMappings && profile.fieldMappings.length > 0) {
+        setExportMappings(profile.fieldMappings);
+        if (profile.profileName) setExportProfileName(profile.profileName);
+      } else {
+        // Initialize with default safe mappings
+        const defaultMappings = [
+          { sourceField: 'name', storeTargetField: 'name', permission: 'new_and_existing', writePolicy: 'replace', transformType: 'direct', enabled: true },
+          { sourceField: 'description', storeTargetField: 'description', permission: 'new_and_existing', writePolicy: 'replace', transformType: 'direct', enabled: true },
+          { sourceField: 'price', storeTargetField: 'price', permission: 'new_only', writePolicy: 'create_only', transformType: 'direct', enabled: true },
+          { sourceField: 'model', storeTargetField: 'model', permission: 'new_and_existing', writePolicy: 'create_only', transformType: 'direct', enabled: true },
+          { sourceField: 'sku', storeTargetField: 'sku', permission: 'new_and_existing', writePolicy: 'create_only', transformType: 'direct', enabled: true },
+          { sourceField: 'images', storeTargetField: 'images', permission: 'new_and_existing', writePolicy: 'replace', transformType: 'direct', enabled: true },
+          { sourceField: 'compatible_models', storeTargetField: 'custom_fields', permission: 'new_and_existing', writePolicy: 'add_only', transformType: 'direct', enabled: true },
+        ];
+        setExportMappings(defaultMappings);
+        setExportProfileName(`${brandName || 'Brand'} - Store Mapping`);
+      }
+    } catch (err: any) {
+      setExportStatusMsg({ type: 'error', text: err.message || 'Failed to load store export schema' });
+    } finally {
+      setStoreSchemaLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'store_export' && selectedExportStoreId) {
+      loadExportProfile(selectedExportStoreId);
+    }
+  }, [activeTab, selectedExportStoreId]);
+
+  function handleUpdateExportMappingRow(index: number, key: string, value: any) {
+    const updated = [...exportMappings];
+    updated[index] = { ...updated[index], [key]: value };
+    setExportMappings(updated);
+  }
+
+  function handleAddExportMappingRow() {
+    setExportMappings([
+      ...exportMappings,
+      {
+        sourceField: 'name',
+        storeTargetField: '',
+        permission: 'new_and_existing',
+        writePolicy: 'replace',
+        transformType: 'direct',
+        enabled: true,
+      },
+    ]);
+  }
+
+  function handleRemoveExportMappingRow(index: number) {
+    setExportMappings(exportMappings.filter((_, i) => i !== index));
+  }
+
+  async function handleValidateAndSaveExportProfile() {
+    try {
+      setExportProfileSaving(true);
+      setExportStatusMsg(null);
+
+      // Step 1: Validate mappings first
+      const val = await apiClient.validateExportMapping(exportMappings);
+      setExportValidation(val);
+
+      if (!val.valid) {
+        setExportStatusMsg({
+          type: 'error',
+          text: `Export mapping validation failed with ${val.errors.length} error(s). Please review and correct.`,
+        });
+        return;
+      }
+
+      // Step 2: Save Brand Store Export Profile
+      await apiClient.saveBrandStoreExportProfile(brandId, selectedExportStoreId, {
+        profileName: exportProfileName,
+        fieldMappings: exportMappings,
+      });
+
+      setExportStatusMsg({
+        type: 'success',
+        text: 'Store export profile saved and validated successfully! Note: Store products will NOT be modified until Phase 9B.',
+      });
+    } catch (err: any) {
+      setExportStatusMsg({ type: 'error', text: err.message || 'Failed to save store export profile' });
+    } finally {
+      setExportProfileSaving(false);
+    }
+  }
+
   // --- Test Mapping Dry-run ---
   async function handleRunTestMapping(e: React.FormEvent) {
     e.preventDefault();
@@ -765,6 +892,7 @@ export default function BrandProfileDetailPage() {
             { key: 'mappings', label: 'Manual Field Mapping', icon: SlidersHorizontal, count: fieldMappings.length },
             { key: 'groups', label: 'Field Groups', icon: FolderKanban, count: fieldGroups.length },
             { key: 'sources', label: 'Product Sources', icon: Layers, count: sourceConfigs.length },
+            { key: 'store_export', label: 'Store Export Mapping', icon: ShoppingBag, badge: 'Phase 9A' },
             { key: 'custom', label: 'Custom Client Fields', icon: ListPlus, count: customFields.length },
             { key: 'model_rules', label: 'Model Normalization', icon: Sliders, badge: modelPatternEnabled ? 'ON' : undefined },
             { key: 'seo', label: 'AI SEO Settings', icon: Globe, badge: seoEnabled ? 'ON' : undefined },
@@ -2342,6 +2470,315 @@ export default function BrandProfileDetailPage() {
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: BRAND-LEVEL STORE EXPORT MAPPING (PHASE 9A) */}
+      {activeTab === 'store_export' && (
+        <div className="space-y-6">
+          {/* Header Card */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-[#0d2a2c]">
+                  <ShoppingBag className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-900">
+                      Brand-Level Store Export Mapping (Layer C)
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-[#0d2a2c]">
+                      Controlled Export
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Map final approved Product Intelligence data specifically for <strong className="text-slate-800">{brandName}</strong> to your store structure.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => loadExportProfile(selectedExportStoreId)}
+                  disabled={storeSchemaLoading || !selectedExportStoreId}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${storeSchemaLoading ? 'animate-spin' : ''}`} />
+                  <span>Discover / Refresh Store Fields</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleValidateAndSaveExportProfile}
+                  disabled={exportProfileSaving || !selectedExportStoreId}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[#0d2a2c] hover:bg-[#143d40] text-white rounded-xl text-xs font-bold transition shadow-sm"
+                >
+                  <Save className="w-3.5 h-3.5 text-[#fad982]" />
+                  <span>{exportProfileSaving ? 'Saving...' : 'Save & Validate Profile'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Read-Only Safety Banner */}
+            <div className="mt-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+              <div className="text-xs text-amber-900 leading-relaxed">
+                <strong className="font-bold">Safe Discovery & Staging Guarantee:</strong> Schema discovery inspects your store fields in a strictly read-only mode. Saving this mapping defines how product data is prepared, but will <em>never automatically modify or push products to your live store</em> until you explicitly initiate an export preview.
+              </div>
+            </div>
+
+            {/* Store Selector */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Connected Store
+                </label>
+                <select
+                  value={selectedExportStoreId}
+                  onChange={(e) => setSelectedExportStoreId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                >
+                  {connectedStores.length === 0 ? (
+                    <option value="">No connected stores found (Add in Stores menu)</option>
+                  ) : (
+                    connectedStores.map((st) => (
+                      <option key={st.id} value={st.id}>
+                        {st.name} ({st.platformType.toUpperCase()}) - {st.storeUrl}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Export Profile Name
+                </label>
+                <input
+                  type="text"
+                  value={exportProfileName}
+                  onChange={(e) => setExportProfileName(e.target.value)}
+                  placeholder="e.g. Traxxas -> OpenCart US Store"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                />
+              </div>
+            </div>
+
+            {/* Status alerts */}
+            {exportStatusMsg && (
+              <div
+                className={`mt-4 p-3 rounded-xl border text-xs font-bold flex items-center gap-2 ${
+                  exportStatusMsg.type === 'success'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                    : 'bg-rose-50 border-rose-200 text-rose-800'
+                }`}
+              >
+                {exportStatusMsg.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                )}
+                <span>{exportStatusMsg.text}</span>
+              </div>
+            )}
+
+            {/* Validation Warnings */}
+            {exportValidation && exportValidation.warnings && exportValidation.warnings.length > 0 && (
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-1">
+                <span className="text-[11px] font-bold text-amber-900 flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-700" />
+                  Configuration Warnings:
+                </span>
+                <ul className="text-[11px] text-amber-800 list-disc list-inside">
+                  {exportValidation.warnings.map((w: string, idx: number) => (
+                    <li key={idx}>{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Discovered Store Schema Overview */}
+          {storeSchema && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                    Discovered Schema for {storeSchema.platform?.toUpperCase()}
+                  </h4>
+                  <p className="text-[11px] text-slate-500">
+                    Discovered at {new Date(storeSchema.discoveredAt).toLocaleString()} ({storeSchema.readOnly ? 'Verified Read-Only' : ''})
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-mono font-bold text-slate-600">
+                  <span className="bg-slate-100 px-2 py-1 rounded-lg">
+                    {storeSchema.fields?.length || 0} Standard Fields
+                  </span>
+                  <span className="bg-slate-100 px-2 py-1 rounded-lg">
+                    {storeSchema.attributes?.length || 0} Attributes
+                  </span>
+                  <span className="bg-slate-100 px-2 py-1 rounded-lg">
+                    {storeSchema.categories?.length || 0} Categories
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Export Field Mappings Table */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">Brand Export Field Directives</h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Configure field target mappings, export permissions (new vs existing), and granular write policies.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddExportMappingRow}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-950 rounded-xl text-xs font-bold transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>+ Add Field Directive</span>
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs text-slate-700">
+                <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                  <tr>
+                    <th className="py-3 px-4">Source Field</th>
+                    <th className="py-3 px-4">Store Target Field</th>
+                    <th className="py-3 px-4">Export Permission</th>
+                    <th className="py-3 px-4">Write Policy</th>
+                    <th className="py-3 px-4">Transform</th>
+                    <th className="py-3 px-4 text-center">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {exportMappings.map((row, index) => (
+                    <tr key={index} className={`hover:bg-slate-50 transition ${!row.enabled ? 'opacity-50' : ''}`}>
+                      {/* Source Field */}
+                      <td className="py-3 px-4 font-semibold text-slate-900">
+                        <select
+                          value={row.sourceField}
+                          onChange={(e) => handleUpdateExportMappingRow(index, 'sourceField', e.target.value)}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none"
+                        >
+                          {STANDARD_TARGET_FIELDS.map((f) => (
+                            <option key={f.key} value={f.key}>
+                              {f.label} ({f.key})
+                            </option>
+                          ))}
+                          {customFields.map((cf) => (
+                            <option key={cf.key} value={cf.key}>
+                              [Custom] {cf.name} ({cf.key})
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+
+                      {/* Store Target Field */}
+                      <td className="py-3 px-4">
+                        <select
+                          value={row.storeTargetField}
+                          onChange={(e) => handleUpdateExportMappingRow(index, 'storeTargetField', e.target.value)}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none"
+                        >
+                          <option value="">-- Select Store Field --</option>
+                          {storeSchema?.fields ? (
+                            storeSchema.fields.map((sf: any) => (
+                              <option key={sf.name} value={sf.name}>
+                                {sf.label} ({sf.name}) [{sf.type}]
+                              </option>
+                            ))
+                          ) : (
+                            <>
+                              <option value="name">Product Name (name)</option>
+                              <option value="description">Description (description)</option>
+                              <option value="price">Price (price)</option>
+                              <option value="model">Model (model)</option>
+                              <option value="sku">SKU (sku)</option>
+                              <option value="ean">Barcode / EAN (ean)</option>
+                              <option value="images">Images Gallery (images)</option>
+                              <option value="custom_fields">Custom Attributes (custom_fields)</option>
+                            </>
+                          )}
+                        </select>
+                      </td>
+
+                      {/* Export Permission */}
+                      <td className="py-3 px-4">
+                        <select
+                          value={row.permission || 'new_and_existing'}
+                          onChange={(e) => handleUpdateExportMappingRow(index, 'permission', e.target.value)}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none"
+                        >
+                          <option value="new_and_existing">New & Existing Products</option>
+                          <option value="new_only">New Products Only</option>
+                          <option value="existing_only">Existing Products Only</option>
+                          <option value="disabled">Disabled</option>
+                        </select>
+                      </td>
+
+                      {/* Write Policy */}
+                      <td className="py-3 px-4">
+                        <select
+                          value={row.writePolicy || 'replace'}
+                          onChange={(e) => handleUpdateExportMappingRow(index, 'writePolicy', e.target.value)}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none"
+                        >
+                          <option value="replace">Replace (Overwrite)</option>
+                          <option value="create_only">Create Only (Skip if present)</option>
+                          <option value="update_existing">Update Existing Only</option>
+                          <option value="add_only">Add Only (Append)</option>
+                          <option value="disabled">Disabled (Do not touch)</option>
+                        </select>
+                      </td>
+
+                      {/* Transformation */}
+                      <td className="py-3 px-4">
+                        <select
+                          value={row.transformType || 'direct'}
+                          onChange={(e) => handleUpdateExportMappingRow(index, 'transformType', e.target.value)}
+                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none"
+                        >
+                          <option value="direct">Direct Value</option>
+                          <option value="json_to_text">Format JSON to Text</option>
+                          <option value="array_to_csv">Join List to Comma Text</option>
+                          <option value="html_to_markdown">HTML to Markdown</option>
+                        </select>
+                      </td>
+
+                      {/* Enabled Checkbox */}
+                      <td className="py-3 px-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={row.enabled !== false}
+                          onChange={(e) => handleUpdateExportMappingRow(index, 'enabled', e.target.checked)}
+                          className="w-4 h-4 rounded text-[#0d2a2c] focus:ring-teal-900"
+                        />
+                      </td>
+
+                      {/* Delete Action */}
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveExportMappingRow(index)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
