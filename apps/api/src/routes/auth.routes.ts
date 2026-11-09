@@ -143,7 +143,7 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   return res.json({
     accessToken,
     refreshToken,
-    user: { id: user.id, email: user.email, fullName: user.fullName },
+    user: { id: user.id, email: user.email, fullName: user.fullName, role, isSuperadmin: Boolean(user.isSuperadmin) },
     organization: membership ? { id: membership.organizationId, name: membership.orgName, slug: membership.orgSlug } : null,
   });
 });

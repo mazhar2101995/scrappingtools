@@ -56,20 +56,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [adminName, setAdminName] = useState('Platform Super Admin');
   const [adminEmail, setAdminEmail] = useState('admin@platform.internal');
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('saas_token') || localStorage.getItem('saas_token_admin');
+      if (!token) {
+        window.location.href = '/login';
+        return;
+      }
+
       const stored = localStorage.getItem('saas_current_user');
       if (stored) {
         try {
           const u = JSON.parse(stored);
           if (u.fullName) setAdminName(u.fullName);
           if (u.email) setAdminEmail(u.email);
+
+          // If regular client user navigates to /admin, send them back to client dashboard
+          if (u.role !== 'super_admin' && u.role !== 'admin' && !u.isSuperadmin) {
+            window.location.href = '/';
+            return;
+          }
         } catch (_) {}
       }
+      setAuthChecked(true);
     }
-  }, []);
+  }, [pathname]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -87,6 +101,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     .join('')
     .substring(0, 2)
     .toUpperCase() || 'SA';
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-[#f8faf9] flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-amber-300 border-t-[#0d2a2c] rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-[#f8faf9] text-slate-900 font-sans antialiased overflow-hidden select-none">

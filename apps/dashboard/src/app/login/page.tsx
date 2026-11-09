@@ -18,8 +18,13 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError(null);
-      await apiClient.login(email, password);
-      router.push('/');
+      const res = await apiClient.login(email, password);
+      // If user is platform super admin or admin, redirect to /admin
+      if (res?.user?.role === 'super_admin' || res?.user?.role === 'admin' || res?.user?.isSuperadmin) {
+        window.location.href = '/admin';
+      } else {
+        window.location.href = '/';
+      }
     } catch (err: any) {
       setError(err.message || 'Invalid email or password.');
     } finally {

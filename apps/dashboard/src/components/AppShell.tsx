@@ -131,6 +131,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setNotificationsOpen(false);
   }, [pathname]);
 
+  // If unauthenticated on a protected page, render nothing while redirecting to /login
+  if (!authChecked && !isAuthPage && !isAdminPage) {
+    return (
+      <div className="min-h-screen bg-[#f4f7f6] flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-slate-300 border-t-[#0d2a2c] rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
   if (isAuthPage || isAdminPage) {
     return <>{children}</>;
   }
