@@ -71,9 +71,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // If browsing an Admin page, AppShell must NOT handle authentication or redirects;
+      // AdminLayout has its own dedicated admin auth guard and /admin/login redirect.
+      if (isAdminPage) {
+        setAuthChecked(true);
+        return;
+      }
+
       const token = localStorage.getItem('saas_token');
 
-      // Mandatory Auth Check: Redirect unauthenticated user to login immediately
+      // Mandatory Auth Check for Client Portal: Redirect unauthenticated user to /login
       if (!token && !isAuthPage) {
         window.location.href = '/login';
         return;
@@ -86,12 +93,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           if (u.fullName) setUserName(u.fullName);
           if (u.email) setUserEmail(u.email);
           if (u.organizationName) setWorkspaceName(u.organizationName);
-
-          // Role check: If regular client tries to access /admin, redirect back to client portal
-          if (isAdminPage && u.role !== 'super_admin' && u.role !== 'admin') {
-            window.location.href = '/';
-            return;
-          }
         } catch (_) {}
       }
 

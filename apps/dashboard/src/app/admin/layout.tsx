@@ -53,6 +53,7 @@ const ADMIN_SUBSYSTEM_ITEMS = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const isAdminLoginPage = pathname === '/admin/login';
   const [adminName, setAdminName] = useState('Platform Super Admin');
   const [adminEmail, setAdminEmail] = useState('admin@platform.internal');
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -61,9 +62,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      if (isAdminLoginPage) {
+        setAuthChecked(true);
+        return;
+      }
+
       const token = localStorage.getItem('saas_token') || localStorage.getItem('saas_token_admin');
       if (!token) {
-        window.location.href = '/login';
+        window.location.href = '/admin/login';
         return;
       }
 
@@ -76,14 +82,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           // If regular client user navigates to /admin, send them back to client dashboard
           if (u.role !== 'super_admin' && u.role !== 'admin' && !u.isSuperadmin) {
-            window.location.href = '/';
+            window.location.href = '/admin/login';
             return;
           }
         } catch (_) {}
       }
       setAuthChecked(true);
     }
-  }, [pathname]);
+  }, [pathname, isAdminLoginPage]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -101,6 +107,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     .join('')
     .substring(0, 2)
     .toUpperCase() || 'SA';
+
+  if (isAdminLoginPage) {
+    return <>{children}</>;
+  }
 
   if (!authChecked) {
     return (

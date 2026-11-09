@@ -314,9 +314,10 @@ export class DashboardApiClient {
     const token = typeof window !== 'undefined' ? localStorage.getItem('saas_token') || localStorage.getItem(`saas_token_${targetRole}`) : null;
 
     if (!token && typeof window !== 'undefined') {
-      const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register' || window.location.pathname === '/forgot-password' || window.location.pathname === '/reset-password';
+      const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register' || window.location.pathname === '/forgot-password' || window.location.pathname === '/reset-password' || window.location.pathname === '/admin/login';
       if (!isAuthPage) {
-        window.location.href = '/login';
+        const redirectUrl = window.location.pathname.startsWith('/admin') ? '/admin/login' : '/login';
+        window.location.href = redirectUrl;
         throw new Error('Authentication required. Redirecting to login...');
       }
     }
@@ -338,7 +339,7 @@ export class DashboardApiClient {
     });
 
     if ((response.status === 401 || response.status === 403) && typeof window !== 'undefined') {
-      const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register' || window.location.pathname === '/forgot-password' || window.location.pathname === '/reset-password';
+      const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register' || window.location.pathname === '/forgot-password' || window.location.pathname === '/reset-password' || window.location.pathname === '/admin/login';
       if (!isAuthPage) {
         // Attempt silent token refresh before kicking to login
         const storedRefreshToken = localStorage.getItem('saas_refresh_token');
@@ -377,7 +378,8 @@ export class DashboardApiClient {
         localStorage.removeItem('saas_token_client');
         localStorage.removeItem('saas_token_admin');
         localStorage.removeItem('saas_refresh_token');
-        window.location.href = '/login';
+        const redirectUrl = window.location.pathname.startsWith('/admin') ? '/admin/login' : '/login';
+        window.location.href = redirectUrl;
         throw new Error('Session expired or unauthorized. Redirecting to login...');
       }
     }

@@ -18,13 +18,16 @@ export default function LoginPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await apiClient.login(email, password);
-      // If user is platform super admin or admin, redirect to /admin
-      if (res?.user?.role === 'super_admin' || res?.user?.role === 'admin' || res?.user?.isSuperadmin) {
-        window.location.href = '/admin';
-      } else {
-        window.location.href = '/';
+      const res = await apiClient.login(email.trim(), password);
+
+      // If user is a Platform Super Admin, inform them to use the separate Admin portal
+      const isSuperAdmin = res?.user?.role === 'super_admin' || res?.user?.role === 'admin' || res?.user?.isSuperadmin;
+      if (isSuperAdmin) {
+        throw new Error('This account belongs to Platform Administration. Please sign in via the Admin Portal at /admin/login.');
       }
+
+      // Hard redirect to Client Portal Dashboard
+      window.location.href = '/';
     } catch (err: any) {
       setError(err.message || 'Invalid email or password.');
     } finally {
@@ -98,11 +101,18 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="text-center pt-2 border-t border-slate-100">
-            <span className="text-xs text-slate-500 font-medium">Need a new organization? </span>
-            <Link href="/register" className="text-xs text-[#0d2a2c] font-bold hover:underline">
-              Register Account
-            </Link>
+          <div className="text-center pt-2 border-t border-slate-100 flex items-center justify-between">
+            <div>
+              <span className="text-xs text-slate-500 font-medium">Need an organization? </span>
+              <Link href="/register" className="text-xs text-[#0d2a2c] font-bold hover:underline">
+                Register
+              </Link>
+            </div>
+            <div>
+              <a href="/admin/login" className="text-xs text-amber-700 font-bold hover:underline">
+                Admin Portal →
+              </a>
+            </div>
           </div>
         </div>
       </div>
