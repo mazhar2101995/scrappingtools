@@ -41,9 +41,19 @@ reviewRouter.get('/quality/:productId', async (req: Request, res: Response) => {
 reviewRouter.post('/quality/:productId/correct', async (req: Request, res: Response) => {
   const productId = req.params.productId as string;
   const userId = (req as any).user?.userId;
-  const { corrections, correctionReason } = req.body;
+  const orgId = getOrgId(req);
+  
+  // Support both payload structures:
+  // 1. { corrections: { canonicalTitle, modelNumber, standardizedDescription }, correctionReason: '...' }
+  // 2. { canonicalTitle?, modelNumber?, standardizedDescription?, reason?: '...' } (direct format sent by frontend)
+  const corrections = req.body.corrections || {
+    ...(req.body.canonicalTitle !== undefined ? { canonicalTitle: req.body.canonicalTitle } : {}),
+    ...(req.body.modelNumber !== undefined ? { modelNumber: req.body.modelNumber } : {}),
+    ...(req.body.standardizedDescription !== undefined ? { standardizedDescription: req.body.standardizedDescription } : {}),
+  };
+  const correctionReason = req.body.correctionReason || req.body.reason || 'Human review approval';
 
-  if (!corrections || !correctionReason) {
+  if (!corrections || Object.keys(corrections).length === 0) {
     return res.status(400).json({ error: 'corrections object and correctionReason are required' });
   }
 
@@ -51,6 +61,7 @@ reviewRouter.post('/quality/:productId/correct', async (req: Request, res: Respo
     const result = await ProductDataQualityService.applyHumanCorrection({
       productId,
       userId,
+      orgId: orgId || undefined,
       corrections,
       correctionReason,
     });

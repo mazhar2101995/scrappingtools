@@ -8,6 +8,7 @@ import {
   sourceWebsites,
   fieldProvenance,
   identityReviewQueue,
+  customerProductOverrides,
 } from '@saas/database';
 import { eq, and, sql, desc, inArray } from 'drizzle-orm';
 import { validateGtinChecksum } from '../utils/validation';
@@ -253,6 +254,7 @@ export class ProductDataQualityService {
   public static async applyHumanCorrection(params: {
     productId: string;
     userId?: string;
+    orgId?: string;
     corrections: {
       canonicalTitle?: string;
       modelNumber?: string;
@@ -260,7 +262,7 @@ export class ProductDataQualityService {
     };
     correctionReason: string;
   }) {
-    const { productId, userId, corrections, correctionReason } = params;
+    const { productId, userId, orgId, corrections, correctionReason } = params;
 
     const [existing] = await db
       .select()
@@ -272,7 +274,7 @@ export class ProductDataQualityService {
       throw new Error(`Product ${productId} not found`);
     }
 
-    // Update global product
+    // Update global canonical product
     const [updated] = await db
       .update(globalProducts)
       .set({
@@ -287,6 +289,45 @@ export class ProductDataQualityService {
       })
       .where(eq(globalProducts.id, productId))
       .returning();
+
+    // If tenant context exists, also update tenant customerProductOverrides so client immediately sees edited value
+    if (orgId) {
+      const [existingOverride] = await db
+        .select()
+        .from(customerProductOverrides)
+        .where(
+          and(
+            eq(customerProductOverrides.organizationId, orgId),
+            eq(customerProductOverrides.globalProductId, productId)
+          )
+        )
+        .limit(1);
+
+      if (existingOverride) {
+        await db
+          .update(customerProductOverrides)
+          .set({
+            customTitle: corrections.canonicalTitle || existingOverride.customTitle,
+            customDescription: corrections.standardizedDescription || existingOverride.customDescription,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(customerProductOverrides.organizationId, orgId),
+              eq(customerProductOverrides.globalProductId, productId)
+            )
+          );
+      } else {
+        await db
+          .insert(customerProductOverrides)
+          .values({
+            organizationId: orgId,
+            globalProductId: productId,
+            customTitle: corrections.canonicalTitle || existing.canonicalTitle,
+            customDescription: corrections.standardizedDescription || existing.standardizedDescription,
+          });
+      }
+    }
 
     // Record Human Provenance
     if (corrections.canonicalTitle) {
