@@ -2651,7 +2651,7 @@ export default function BrandProfileDetailPage() {
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <tr>
-                    <th className="py-3 px-4">Source Field</th>
+                    <th className="py-3 px-4">Portal Field</th>
                     <th className="py-3 px-4">Store Target Field</th>
                     <th className="py-3 px-4">Export Permission</th>
                     <th className="py-3 px-4">Write Policy</th>
@@ -2661,25 +2661,55 @@ export default function BrandProfileDetailPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {exportMappings.map((row, index) => (
+                  {exportMappings.map((row, index) => {
+                    // Extract all field keys that are encapsulated in a field group
+                    const groupedFieldKeys = new Set(
+                      (fieldGroups || []).flatMap((g: any) => (Array.isArray(g.fields) ? g.fields : []))
+                    );
+
+                    // If a standard field is inside a group, filter it out from individual display
+                    const availableStandardFields = STANDARD_TARGET_FIELDS.filter((f) => !groupedFieldKeys.has(f.key));
+                    const availableCustomFields = (customFields || []).filter((cf: any) => !groupedFieldKeys.has(cf.key));
+
+                    return (
                     <tr key={index} className={`hover:bg-slate-50 transition ${!row.enabled ? 'opacity-50' : ''}`}>
-                      {/* Source Field */}
+                      {/* Portal Field (Standard, Custom, or Field Group Name) */}
                       <td className="py-3 px-4 font-semibold text-slate-900">
                         <select
                           value={row.sourceField}
                           onChange={(e) => handleUpdateExportMappingRow(index, 'sourceField', e.target.value)}
                           className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none"
                         >
-                          {STANDARD_TARGET_FIELDS.map((f) => (
-                            <option key={f.key} value={f.key}>
-                              {f.label} ({f.key})
-                            </option>
-                          ))}
-                          {customFields.map((cf) => (
-                            <option key={cf.key} value={cf.key}>
-                              [Custom] {cf.name} ({cf.key})
-                            </option>
-                          ))}
+                          {/* Standard Ungrouped Fields */}
+                          <optgroup label="Standard Portal Fields">
+                            {availableStandardFields.map((f) => (
+                              <option key={f.key} value={f.key}>
+                                {f.label} ({f.key})
+                              </option>
+                            ))}
+                          </optgroup>
+
+                          {/* Field Groups (Display Group Name instead of individual grouped fields) */}
+                          {fieldGroups && fieldGroups.length > 0 && (
+                            <optgroup label="Brand Field Groups">
+                              {fieldGroups.map((g: any) => (
+                                <option key={g.id || g.name} value={g.name || g.id}>
+                                  📁 {g.name} (Field Group)
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
+
+                          {/* Ungrouped Custom Fields */}
+                          {availableCustomFields.length > 0 && (
+                            <optgroup label="Custom Attributes">
+                              {availableCustomFields.map((cf: any) => (
+                                <option key={cf.key} value={cf.key}>
+                                  [Custom] {cf.name} ({cf.key})
+                                </option>
+                              ))}
+                            </optgroup>
+                          )}
                         </select>
                       </td>
 
@@ -2776,7 +2806,8 @@ export default function BrandProfileDetailPage() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
