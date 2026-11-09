@@ -278,6 +278,24 @@ organizationRouter.get('/ai-settings', async (req: Request, res: Response) => {
       .where(eq(organizations.id, orgId))
       .limit(1);
 
+    const defaultLanguagePrompts = {
+      hi: {
+        rules: 'एक आधिकारिक और तकनीकी ई-कॉमर्स विशेषज्ञ के रूप में कार्य करें। उत्पाद की गुणवत्ता, विश्वसनीयता, मूल विनिर्देशों (OEM specifications), और मॉडल संगतता पर जोर दें। भाषा स्वाभाविक, आधुनिक ई-कॉमर्स हिंदी (जैसे अमेज़न/फ्लिपकार्ट) होनी चाहिए। ब्रांड नाम और तकनीकी मॉडल नंबर (जैसे 10951-ORNG, 4WD, LiPo) को अंग्रेजी/मानक रूप में ही सुरक्षित रखें।',
+        titlePrompt: '[ब्रांड नाम] + [उत्पाद का नाम / हिंदी विवरण] + [मुख्य रंग/वेरिएंट] + (आधिकारिक मॉडल या पार्ट नंबर)। शीर्षक संक्षिप्त, आकर्षक और सर्च इंजन (SEO) के अनुकूल होना चाहिए।',
+        descriptionPrompt: 'पेशेवर ई-कॉमर्स कॉपीराइटर के रूप में कार्य करें। सत्यापित निर्माता डेटा का उपयोग करके 3 सुव्यवस्थित पैराग्राफ और बुलेट पॉइंट्स तैयार करें:\n1. उत्पाद परिचय: उत्पाद का मुख्य उद्देश्य, टिकाऊपन और प्रीमियम विशेषताएं।\n2. मुख्य विशेषताएं (Key Features): तकनीकी लाभों को स्पष्ट बुलेट पॉइंट्स में प्रस्तुत करें।\n3. अनुकूलता और विनिर्देश (Compatibility & Specs): संगत मॉडल और सामग्री (जैसे 6061-T6 एल्युमीनियम) को शुद्धता से लिखें।',
+      },
+      ar: {
+        rules: 'تصرف كخبير تجارة إلكترونية تقني ومعتمد للأسواق العربية والخليجية. ركز على دقة المواصفات المصنعية الأصلية، الجودة والمتانة العالية، وملاءمة القطع للأجهزة الأصلية (OEM Compatibility). حافظ على أسماء الماركات التجارية وأرقام الموديلات والقطع الفنية (مثل 10951-ORNG, 4WD, LiPo, ESC) بلغتها الإنجليزية القياسية دون تعريب مشوه.',
+        titlePrompt: '[اسم الماركة] + [اسم المنتج بالعربية الفصحى للتجارة الإلكترونية] + [اللون أو المواصفة الرئيسية] + (رقم الموديل / القطعة المصنعية). العنوان يجب أن يكون دقيقاً، جذاباً ومحسناً لمحركات البحث (SEO).',
+        descriptionPrompt: 'اكتب وصفاً تسويقياً وتقنياً متكاملاً للمنتج بصيغة التجارة الإلكترونية الاحترافية، يتضمن:\n1. نظرة عامة: مقدمة تشرح مزايا المنتج، الأداء العالي والمواد المصنعة المتينة.\n2. الميزات والخصائص الرئيسية: قائمة نقطية تسلط الضوء على نقاط القوة العملية وتفاصيل التصنيع.\n3. التوافق والمواصفات الفنية: توضيح الموديلات المتوافقة والمقاسات الدقيقة لضمان ثقة المشتري.',
+      },
+      nl: {
+        rules: 'Handel als een professionele technische e-commerce specialist. Focus op geverifieerde fabrieksspecificaties, duurzaamheid en gegarandeerde pasvorm (OEM-compatibiliteit). Behoud merknamen en onderdeelnummers exact.',
+        titlePrompt: '[Merk] + [Productnaam] + [Kleur/Variant] + (Onderdeelnummer). Beknopt, informatief en geoptimaliseerd voor zoekmachines.',
+        descriptionPrompt: 'Schrijf een professionele e-commerce productbeschrijving met duidelijke secties: productoverzicht, belangrijkste kenmerken in overzichtelijke opsommingstekens en compatibele modellen met technische specificaties.',
+      },
+    };
+
     const defaultAiSettings = {
       model: 'gemini-1.5-pro',
       provider: 'Google AI',
@@ -286,11 +304,15 @@ organizationRouter.get('/ai-settings', async (req: Request, res: Response) => {
       globalRules: 'Act as an authoritative technical e-commerce specialist. Maintain strict factual precision. Clean bullet-point formatting. High SEO value.',
       titlePrompt: 'Format: [Brand] + [Model Name] + [Scale/Category] + [Key Specification/Color]. Maintain strict manufacturer part numbers.',
       descriptionPrompt: 'Act as an expert technical e-commerce copywriter. Using the provided manufacturer specifications and features, craft a compelling, SEO-optimized product title and 3-paragraph product description highlighting durability, scale specifications, and compatibility.',
-      languagePrompts: {},
+      languagePrompts: defaultLanguagePrompts,
     };
 
     const existingAi = (org?.settings as any)?.ai || {};
-    const aiConfig = { ...defaultAiSettings, ...existingAi };
+    const mergedLanguagePrompts = {
+      ...defaultLanguagePrompts,
+      ...(existingAi.languagePrompts || {}),
+    };
+    const aiConfig = { ...defaultAiSettings, ...existingAi, languagePrompts: mergedLanguagePrompts };
 
     return res.json({ success: true, data: aiConfig });
   } catch (err: any) {
