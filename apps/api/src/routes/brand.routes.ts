@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { db, tenantBrandProfiles, brands, brandScrapingProfiles, sourceWebsites } from '@saas/database';
 import { eq, and, desc } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { SourceAccessService } from '../services/source-access.service';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import fs from 'fs';
@@ -309,46 +310,27 @@ brandsRouter.post('/:id/test-mapping', async (req: Request, res: Response) => {
     if (sampleHtml && typeof sampleHtml === 'string') {
       targetHtml = sampleHtml;
     } else if (sampleUrl && typeof sampleUrl === 'string') {
-      try {
-        const resp = await axios.get(sampleUrl, {
-          timeout: 10000,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.9',
-          },
-        });
-        if (resp.data && typeof resp.data === 'string') {
-          targetHtml = resp.data;
-        }
-      } catch (directErr) {
-        // Fallback to stealth reader gateway
-        try {
-          const proxyResp = await axios.get(`https://r.jina.ai/${sampleUrl}`, {
-            timeout: 15000,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'X-Return-Format': 'html',
-            },
-          });
-          if (proxyResp.data && typeof proxyResp.data === 'string') {
-            targetHtml = proxyResp.data;
-          }
-        } catch (proxyErr) {
-          // Fallback to local catalog fixture if offline
-          const isTraxxas = sampleUrl.includes('traxxas') || profile.name.toLowerCase().includes('traxxas');
-          const isXray = sampleUrl.includes('xray') || profile.name.toLowerCase().includes('xray');
-          const isBitty = sampleUrl.includes('bitty') || profile.name.toLowerCase().includes('bitty');
+      // Centralized Source Access Foundation with In-Flight Coalescing & Domain Pacing
+      const acquisition = await SourceAccessService.acquireSource(sampleUrl, {
+        timeoutMs: 15000,
+      });
 
-          const fixtureDir = path.resolve(__dirname, '../../../../services/scraping-engine/tests/fixtures');
-          let fallbackFile = '';
-          if (isTraxxas) fallbackFile = path.join(fixtureDir, 'traxxas_funco_body.html');
-          else if (isXray) fallbackFile = path.join(fixtureDir, 'xray_product.html');
-          else if (isBitty) fallbackFile = path.join(fixtureDir, 'bittydesign_product.html');
+      if (acquisition.success && acquisition.content) {
+        targetHtml = acquisition.content;
+      } else {
+        // Fallback to local catalog fixture if offline/unreachable
+        const isTraxxas = sampleUrl.includes('traxxas') || profile.name.toLowerCase().includes('traxxas');
+        const isXray = sampleUrl.includes('xray') || profile.name.toLowerCase().includes('xray');
+        const isBitty = sampleUrl.includes('bitty') || profile.name.toLowerCase().includes('bitty');
 
-          if (fallbackFile && fs.existsSync(fallbackFile)) {
-            targetHtml = fs.readFileSync(fallbackFile, 'utf-8');
-          }
+        const fixtureDir = path.resolve(__dirname, '../../../../services/scraping-engine/tests/fixtures');
+        let fallbackFile = '';
+        if (isTraxxas) fallbackFile = path.join(fixtureDir, 'traxxas_funco_body.html');
+        else if (isXray) fallbackFile = path.join(fixtureDir, 'xray_product.html');
+        else if (isBitty) fallbackFile = path.join(fixtureDir, 'bittydesign_product.html');
+
+        if (fallbackFile && fs.existsSync(fallbackFile)) {
+          targetHtml = fs.readFileSync(fallbackFile, 'utf-8');
         }
       }
     }
@@ -811,49 +793,28 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
       } catch (_) {}
     }
 
-    // 3. Fetch HTML through server architecture (bypassing browser CORS safely)
+    // 3. Centralized Source Acquisition via SourceAccessService (Paced, Safe, Deduplicated)
     let rawHtml = '';
-    try {
-      const resp = await axios.get(url, {
-        timeout: 10000,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-      });
-      rawHtml = resp.data;
-    } catch (fetchErr: any) {
-      // If direct request fails (e.g. 405/403/anti-bot protection by sites like traxxas.com or cloudflare),
-      // fetch the real original HTML via stealth reader gateway
-      try {
-        const proxyResp = await axios.get(`https://r.jina.ai/${url}`, {
-          timeout: 15000,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'X-Return-Format': 'html',
-          },
-        });
-        if (proxyResp.data && typeof proxyResp.data === 'string' && proxyResp.data.length > 500) {
-          rawHtml = proxyResp.data;
-        }
-      } catch (proxyErr) {
-        // Fallback to local catalog fixture if offline
-        const isTraxxas = url.includes('traxxas') || profile.name.toLowerCase().includes('traxxas');
-        const isXray = url.includes('xray') || profile.name.toLowerCase().includes('xray');
-        const isBitty = url.includes('bitty') || profile.name.toLowerCase().includes('bitty');
+    const acquisition = await SourceAccessService.acquireSource(url, {
+      timeoutMs: 15000,
+    });
 
-        const fixtureDir = path.resolve(__dirname, '../../../../services/scraping-engine/tests/fixtures');
-        let fallbackFile = '';
-        if (isTraxxas) fallbackFile = path.join(fixtureDir, 'traxxas_funco_body.html');
-        else if (isXray) fallbackFile = path.join(fixtureDir, 'xray_product.html');
-        else if (isBitty) fallbackFile = path.join(fixtureDir, 'bittydesign_product.html');
+    if (acquisition.success && acquisition.content) {
+      rawHtml = acquisition.content;
+    } else {
+      // Fallback to local catalog fixture if offline/unreachable
+      const isTraxxas = url.includes('traxxas') || profile.name.toLowerCase().includes('traxxas');
+      const isXray = url.includes('xray') || profile.name.toLowerCase().includes('xray');
+      const isBitty = url.includes('bitty') || profile.name.toLowerCase().includes('bitty');
 
-        if (fallbackFile && fs.existsSync(fallbackFile)) {
-          rawHtml = fs.readFileSync(fallbackFile, 'utf-8');
-        } else {
-          throw fetchErr;
-        }
+      const fixtureDir = path.resolve(__dirname, '../../../../services/scraping-engine/tests/fixtures');
+      let fallbackFile = '';
+      if (isTraxxas) fallbackFile = path.join(fixtureDir, 'traxxas_funco_body.html');
+      else if (isXray) fallbackFile = path.join(fixtureDir, 'xray_product.html');
+      else if (isBitty) fallbackFile = path.join(fixtureDir, 'bittydesign_product.html');
+
+      if (fallbackFile && fs.existsSync(fallbackFile)) {
+        rawHtml = fs.readFileSync(fallbackFile, 'utf-8');
       }
     }
     if (!rawHtml || typeof rawHtml !== 'string') {

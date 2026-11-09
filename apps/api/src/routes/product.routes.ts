@@ -24,6 +24,7 @@ import { ProductIntelligenceService } from '../services/product-intelligence.ser
 import { ProductDiscoveryService } from '../services/product-discovery.service';
 import { AiIntelligenceService } from '../services/ai-intelligence.service';
 import { MediaDeduplicationService } from '../services/media-deduplication.service';
+import { SourceAccessService } from '../services/source-access.service';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
@@ -1427,38 +1428,18 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
             .set({ status: 'running', startedAt: new Date() })
             .where(eq(scrapingJobs.id, job.id));
 
-          // Fetch product page with anti-bot fallback
-          let pageHtml = '';
-          try {
-            const resp = await axios.get(job.targetUrl, {
-              headers: {
-                'User-Agent':
-                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              },
-              timeout: 15000,
-            });
-            if (resp.data && typeof resp.data === 'string') {
-              pageHtml = resp.data;
-            }
-          } catch (directErr) {
-            // Anti-bot bypass fallback via stealth reader
-            const proxyResp = await axios.get(`https://r.jina.ai/${job.targetUrl}`, {
-              timeout: 20000,
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'X-Return-Format': 'html',
-              },
-            });
-            if (proxyResp.data && typeof proxyResp.data === 'string') {
-              pageHtml = proxyResp.data;
-            }
+          // Centralized Source Acquisition via SourceAccessService (Paced, Deduplicated, Structured)
+          const acquisition = await SourceAccessService.acquireSource(job.targetUrl, {
+            timeoutMs: 15000,
+          });
+
+          if (!acquisition.success || !acquisition.content) {
+            const errCategory = acquisition.error?.category || 'ACQUISITION_FAILED';
+            const errMsg = acquisition.error?.message || `HTTP ${acquisition.statusCode}`;
+            throw new Error(`[SourceAccess:${errCategory}] ${errMsg}`);
           }
 
-          if (!pageHtml) {
-            throw new Error('Unable to retrieve HTML content from target URL');
-          }
-
+          const pageHtml = acquisition.content;
           const $ = cheerio.load(pageHtml);
           const extracted: Record<string, any> = {};
 
