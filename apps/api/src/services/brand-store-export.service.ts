@@ -19,6 +19,7 @@ export interface DiscoveredStoreField {
   dataType: ExportFieldDataType;
   description?: string;
   isCustomField?: boolean;
+  table?: string;
 }
 
 export interface StoreSchemaDiscoveryResult {
@@ -68,36 +69,34 @@ export class BrandStoreExportService {
       throw new Error('Connected store not found or access denied');
     }
 
-    // Default canonical e-commerce fields discovered for any platform
-    const baseDiscoveredFields: DiscoveredStoreField[] = [
-      { key: 'name', label: 'Product Name / Title', dataType: 'string', description: 'Primary store product title' },
-      { key: 'description', label: 'HTML Description', dataType: 'text', description: 'Full rich HTML body' },
-      { key: 'short_description', label: 'Short Description / Teaser', dataType: 'string' },
-      { key: 'model', label: 'Model / MPN', dataType: 'string', description: 'Manufacturer part / model code' },
-      { key: 'sku', label: 'SKU (Stock Keeping Unit)', dataType: 'string' },
-      { key: 'price', label: 'Regular Selling Price', dataType: 'price' },
-      { key: 'cost_price', label: 'Cost / Baseline Price', dataType: 'price' },
-      { key: 'quantity', label: 'Inventory / Stock Level', dataType: 'number' },
-      { key: 'manufacturer_id', label: 'Brand / Manufacturer', dataType: 'string' },
-      { key: 'category_ids', label: 'Assigned Categories', dataType: 'json' },
-      { key: 'images', label: 'Product Image Gallery', dataType: 'image' },
-      { key: 'meta_title', label: 'SEO Meta Title', dataType: 'string' },
-      { key: 'meta_description', label: 'SEO Meta Description', dataType: 'string' },
-    ];
-
+    // Canonical e-commerce fields discovered for the store platform
+    let baseDiscoveredFields: DiscoveredStoreField[] = [];
     let platformFields: DiscoveredStoreField[] = [];
-    let discoveredCustomFields: Array<{ key: string; label: string; dataType: ExportFieldDataType }> = [];
+    let discoveredCustomFields: Array<{ key: string; label: string; dataType: ExportFieldDataType; table?: string }> = [];
     let discoveredCategories: Array<{ id: string; name: string }> = [];
     let discoveredManufacturers: Array<{ id: string; name: string }> = [];
     let discoveredAttributes: Array<{ id: string; name: string; group?: string }> = [];
 
     if (store.platformType === 'opencart') {
-      platformFields = [
-        { key: 'mpn', label: 'OpenCart MPN', dataType: 'string' },
-        { key: 'upc', label: 'OpenCart UPC / Barcode', dataType: 'string' },
-        { key: 'ean', label: 'OpenCart EAN Code', dataType: 'string' },
-        { key: 'location', label: 'Warehouse / Location Code', dataType: 'string' },
-        { key: 'tag', label: 'Search Tags', dataType: 'string' },
+      baseDiscoveredFields = [
+        { key: 'name', label: 'Product Name', dataType: 'string', description: 'Primary store product title', table: 'oc_product_description' },
+        { key: 'description', label: 'Full Description', dataType: 'text', description: 'Full rich HTML body', table: 'oc_product_description' },
+        { key: 'tag', label: 'Product Search Tags', dataType: 'string', table: 'oc_product_description' },
+        { key: 'meta_title', label: 'SEO Meta Title', dataType: 'string', description: 'Search engine preview title', table: 'oc_product_description' },
+        { key: 'meta_description', label: 'SEO Meta Description', dataType: 'string', description: 'Search engine preview description', table: 'oc_product_description' },
+        { key: 'meta_keyword', label: 'SEO Keywords', dataType: 'string', description: 'Comma-separated meta keywords', table: 'oc_product_description' },
+        { key: 'keyword', label: 'SEO URL Handle / Slug', dataType: 'string', description: 'Friendly SEF URL query slug', table: 'oc_seo_url' },
+        { key: 'model', label: 'Model Number / MPN', dataType: 'string', description: 'Unique internal model/part number', table: 'oc_product' },
+        { key: 'sku', label: 'SKU (Stock Keeping Unit)', dataType: 'string', table: 'oc_product' },
+        { key: 'upc', label: 'UPC Barcode', dataType: 'string', table: 'oc_product' },
+        { key: 'ean', label: 'EAN Barcode', dataType: 'string', table: 'oc_product' },
+        { key: 'mpn', label: 'Manufacturer Part Number', dataType: 'string', table: 'oc_product' },
+        { key: 'price', label: 'Regular Selling Price', dataType: 'price', table: 'oc_product' },
+        { key: 'quantity', label: 'Inventory / Stock Level', dataType: 'number', table: 'oc_product' },
+        { key: 'image', label: 'Primary Catalog Image', dataType: 'image', table: 'oc_product' },
+        { key: 'location', label: 'Warehouse / Location Code', dataType: 'string', table: 'oc_product' },
+        { key: 'images', label: 'Additional Gallery Images', dataType: 'image', description: 'Extra photo gallery rows', table: 'oc_product_image' },
+        { key: 'custom_fields', label: 'Attribute Specifications', dataType: 'text', description: 'Technical specifications attributes', table: 'oc_product_attribute' },
       ];
       discoveredAttributes = [
         { id: 'attr_compatible_models', name: 'Compatible Models List', group: 'Compatibility' },
@@ -105,28 +104,37 @@ export class BrandStoreExportService {
         { id: 'attr_material', name: 'Chassis / Body Material', group: 'Specifications' },
       ];
       discoveredCustomFields = [
-        { key: 'custom_field_compatible_models', label: 'Compatible Models (Rich List)', dataType: 'text' },
-        { key: 'custom_field_ai_highlights', label: 'AI Bullet Highlights', dataType: 'text' },
+        { key: 'custom_field_compatible_models', label: 'Compatible Models (Rich List)', dataType: 'text', table: 'oc_product_attribute' },
+        { key: 'custom_field_ai_highlights', label: 'AI Bullet Highlights', dataType: 'text', table: 'oc_product_description' },
       ];
     } else if (store.platformType === 'shopify') {
-      platformFields = [
-        { key: 'handle', label: 'URL Slug Handle', dataType: 'string' },
-        { key: 'tags', label: 'Product Tags', dataType: 'string' },
-        { key: 'vendor', label: 'Vendor / Brand', dataType: 'string' },
-        { key: 'barcode', label: 'Barcode (GTIN/UPC)', dataType: 'string' },
+      baseDiscoveredFields = [
+        { key: 'title', label: 'Product Title', dataType: 'string', table: 'Product' },
+        { key: 'body_html', label: 'Description (HTML)', dataType: 'text', table: 'Product' },
+        { key: 'handle', label: 'URL Handle / Slug', dataType: 'string', table: 'Product' },
+        { key: 'vendor', label: 'Vendor / Brand', dataType: 'string', table: 'Product' },
+        { key: 'tags', label: 'Tags', dataType: 'string', table: 'Product' },
+        { key: 'price', label: 'Variant Price', dataType: 'price', table: 'ProductVariant' },
+        { key: 'sku', label: 'Variant SKU', dataType: 'string', table: 'ProductVariant' },
+        { key: 'barcode', label: 'Barcode (GTIN/UPC)', dataType: 'string', table: 'ProductVariant' },
+        { key: 'images', label: 'Product Images', dataType: 'image', table: 'ProductImage' },
       ];
       discoveredCustomFields = [
-        { key: 'metafield_compatibility', label: 'Metafield: compatible_models (JSON)', dataType: 'json' },
-        { key: 'metafield_specs', label: 'Metafield: specifications (JSON)', dataType: 'json' },
+        { key: 'metafield_compatibility', label: 'Metafield: compatible_models (JSON)', dataType: 'json', table: 'Metafield' },
+        { key: 'metafield_specs', label: 'Metafield: specifications (JSON)', dataType: 'json', table: 'Metafield' },
       ];
     } else if (store.platformType === 'woocommerce') {
-      platformFields = [
-        { key: 'slug', label: 'Product Slug', dataType: 'string' },
-        { key: 'regular_price', label: 'Regular Price', dataType: 'price' },
-        { key: 'sale_price', label: 'Sale Price', dataType: 'price' },
+      baseDiscoveredFields = [
+        { key: 'name', label: 'Product Name', dataType: 'string', table: 'wp_posts (post_title)' },
+        { key: 'description', label: 'Product Description', dataType: 'text', table: 'wp_posts (post_content)' },
+        { key: 'slug', label: 'Product Slug', dataType: 'string', table: 'wp_posts (post_name)' },
+        { key: 'regular_price', label: 'Regular Price', dataType: 'price', table: 'wp_postmeta (_regular_price)' },
+        { key: 'sale_price', label: 'Sale Price', dataType: 'price', table: 'wp_postmeta (_sale_price)' },
+        { key: 'sku', label: 'SKU', dataType: 'string', table: 'wp_postmeta (_sku)' },
+        { key: 'images', label: 'Product Images', dataType: 'image', table: 'wp_posts (attachment)' },
       ];
       discoveredCustomFields = [
-        { key: 'post_meta_compatible_models', label: 'Post Meta: _compatible_models', dataType: 'text' },
+        { key: 'post_meta_compatible_models', label: 'Post Meta: _compatible_models', dataType: 'text', table: 'wp_postmeta' },
       ];
     }
 

@@ -50,6 +50,10 @@ const STANDARD_TARGET_FIELDS = [
   { key: 'images', label: 'Image Gallery URLs', desc: 'Primary and secondary product image assets' },
   { key: 'attributes', label: 'Technical Specifications', desc: 'Key-value specification pairs table' },
   { key: 'compatible_models', label: 'Compatible Models', desc: 'Associated fitment or compatibility list' },
+  { key: 'meta_title', label: 'SEO Meta Title', desc: 'Search engine preview title' },
+  { key: 'meta_description', label: 'SEO Meta Description', desc: 'Search engine preview summary text' },
+  { key: 'meta_keyword', label: 'SEO Keywords / Tags', desc: 'Comma-separated search keywords' },
+  { key: 'seo_keyword', label: 'SEO URL Handle / Slug', desc: 'Unique SEF URL keyword' },
 ];
 
 const SOURCE_TYPES = [
@@ -2721,22 +2725,46 @@ export default function BrandProfileDetailPage() {
                           className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none"
                         >
                           <option value="">-- Select Store Field --</option>
-                          {storeSchema?.fields ? (
+                          {storeSchema?.fields && storeSchema.fields.length > 0 ? (
                             storeSchema.fields.map((sf: any) => (
-                              <option key={sf.name} value={sf.name}>
-                                {sf.label} ({sf.name}) [{sf.type}]
+                              <option key={sf.name || sf.key} value={sf.name || sf.key}>
+                                {sf.table ? `[${sf.table}] ` : ''}{sf.name || sf.key} ({sf.label || sf.name || sf.key})
                               </option>
                             ))
                           ) : (
                             <>
-                              <option value="name">Product Name (name)</option>
-                              <option value="description">Description (description)</option>
-                              <option value="price">Price (price)</option>
-                              <option value="model">Model (model)</option>
-                              <option value="sku">SKU (sku)</option>
-                              <option value="ean">Barcode / EAN (ean)</option>
-                              <option value="images">Images Gallery (images)</option>
-                              <option value="custom_fields">Custom Attributes (custom_fields)</option>
+                              <optgroup label="Table: oc_product (Catalog Item)">
+                                <option value="model">[oc_product] model (Model Number)</option>
+                                <option value="sku">[oc_product] sku (Stock Keeping Unit)</option>
+                                <option value="upc">[oc_product] upc (Universal Product Code)</option>
+                                <option value="ean">[oc_product] ean (EAN Barcode)</option>
+                                <option value="mpn">[oc_product] mpn (Manufacturer Part Number)</option>
+                                <option value="price">[oc_product] price (Selling Price)</option>
+                                <option value="quantity">[oc_product] quantity (Stock Level)</option>
+                                <option value="image">[oc_product] image (Primary Asset)</option>
+                                <option value="location">[oc_product] location (Warehouse Code)</option>
+                              </optgroup>
+
+                              <optgroup label="Table: oc_product_description (Localized & SEO)">
+                                <option value="name">[oc_product_description] name (Product Name)</option>
+                                <option value="description">[oc_product_description] description (Full HTML Description)</option>
+                                <option value="tag">[oc_product_description] tag (Product Tags)</option>
+                                <option value="meta_title">[oc_product_description] meta_title (SEO Meta Title)</option>
+                                <option value="meta_description">[oc_product_description] meta_description (SEO Meta Description)</option>
+                                <option value="meta_keyword">[oc_product_description] meta_keyword (SEO Keywords)</option>
+                              </optgroup>
+
+                              <optgroup label="Table: oc_seo_url (SEF URL Routing)">
+                                <option value="keyword">[oc_seo_url] keyword (SEO URL Handle / Slug)</option>
+                              </optgroup>
+
+                              <optgroup label="Table: oc_product_image (Gallery Assets)">
+                                <option value="images">[oc_product_image] image (Additional Photo Assets)</option>
+                              </optgroup>
+
+                              <optgroup label="Table: oc_product_attribute (Specifications)">
+                                <option value="custom_fields">[oc_product_attribute] text (Technical Specification Values)</option>
+                              </optgroup>
                             </>
                           )}
                         </select>
