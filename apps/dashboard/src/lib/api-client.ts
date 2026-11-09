@@ -705,6 +705,16 @@ export class DashboardApiClient {
     return this.fetchJson('/jobs');
   }
 
+  async getJobDetail(jobId: string): Promise<any> {
+    return this.fetchJson(`/jobs/${jobId}`);
+  }
+
+  async retryJob(jobId: string): Promise<any> {
+    return this.fetchJson(`/jobs/${jobId}/retry`, {
+      method: 'POST',
+    });
+  }
+
   async getHealth(): Promise<any> {
     return this.fetchJson('/jobs/monitoring/health');
   }

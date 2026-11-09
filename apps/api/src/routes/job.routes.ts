@@ -112,8 +112,99 @@ jobsRouter.get('/stats', async (req: Request, res: Response) => {
   return res.json(health);
 });
 
-// 2. Get Job Status and Logs
+// Helper: Map internal job state and logs to structured client-friendly processing stages
+function mapClientProcessingState(job: any, logs: any[] = []) {
+  const stageDefinitions = [
+    { key: 'SUBMITTED', label: 'Product Request Accepted', internalStatus: ['queued', 'active', 'completed', 'failed'] },
+    { key: 'SOURCE_PREPARATION', label: 'Preparing Source & Route Access', internalStatus: ['active', 'completed', 'failed'] },
+    { key: 'COLLECTING_DATA', label: 'Collecting Product Data', internalStatus: ['active', 'completed', 'failed'] },
+    { key: 'EXTRACTING', label: 'Extracting Specifications & Media', internalStatus: ['active', 'completed', 'failed'] },
+    { key: 'AI_RULES', label: 'Processing Global & Brand Rules', internalStatus: ['completed', 'failed'] },
+    { key: 'QUALITY_CHECK', label: 'Checking Data Quality & Completeness', internalStatus: ['completed', 'failed'] },
+    { key: 'IDENTITY_MATCH', label: 'Checking Product Identity', internalStatus: ['completed', 'failed'] },
+    { key: 'SAVED', label: 'Saved to Product Catalog', internalStatus: ['completed'] },
+  ];
+
+  let currentStage = 'SUBMITTED';
+  let clientMessage = 'Your product request has been accepted and is waiting for processing.';
+  let clientStatus: 'waiting' | 'in_progress' | 'completed' | 'failed' = 'waiting';
+
+  if (job.status === 'queued') {
+    currentStage = 'SUBMITTED';
+    clientStatus = 'waiting';
+    clientMessage = 'Your product request is queued and will begin processing shortly.';
+  } else if (job.status === 'active' || job.status === 'running') {
+    clientStatus = 'in_progress';
+    currentStage = 'COLLECTING_DATA';
+    clientMessage = 'Acquiring source HTML and extracting product attributes.';
+  } else if (job.status === 'completed') {
+    currentStage = 'SAVED';
+    clientStatus = 'completed';
+    clientMessage = `Product successfully extracted (${job.itemsExtracted || 1} attributes identified) and saved.`;
+  } else if (job.status === 'failed') {
+    clientStatus = 'failed';
+    // Translate technical error into client-safe message
+    const err = job.errorMessage || '';
+    if (err.includes('404') || err.includes('NOT_FOUND')) {
+      clientMessage = 'This product page could not be found on the target website. Please verify the URL.';
+    } else if (err.includes('429') || err.includes('cooldown') || err.includes('traffic')) {
+      clientMessage = 'The target website is receiving heavy traffic. Processing will be retried automatically.';
+    } else if (err.includes('timeout') || err.includes('TIMEOUT')) {
+      clientMessage = 'The target store took too long to respond. The request is eligible for retry.';
+    } else if (err.includes('extraction') || err.includes('EXTRACTION')) {
+      clientMessage = 'The product page was reached, but required product details could not be parsed.';
+    } else {
+      clientMessage = 'Product processing could not be completed. You can try again or check the URL.';
+    }
+  }
+
+  // Calculate stage progress
+  const stages = stageDefinitions.map((s, idx) => {
+    let status: 'completed' | 'current' | 'pending' | 'failed' = 'pending';
+    if (job.status === 'completed') {
+      status = 'completed';
+    } else if (job.status === 'failed') {
+      if (s.key === currentStage) status = 'failed';
+      else if (idx < 2) status = 'completed';
+      else status = 'pending';
+    } else if (job.status === 'active' || job.status === 'running') {
+      if (idx <= 2) status = 'completed';
+      else if (idx === 3) status = 'current';
+      else status = 'pending';
+    } else {
+      // queued
+      if (idx === 0) status = 'current';
+      else status = 'pending';
+    }
+
+    return {
+      key: s.key,
+      label: s.label,
+      status,
+    };
+  });
+
+  return {
+    jobId: job.id,
+    targetUrl: job.targetUrl,
+    clientStatus,
+    currentStage,
+    clientMessage,
+    itemsExtracted: job.itemsExtracted,
+    stages,
+    timing: {
+      submittedAt: job.createdAt,
+      startedAt: job.startedAt,
+      completedAt: job.completedAt,
+    },
+    canRetry: job.status === 'failed',
+  };
+}
+
+// 2. Get Job Status and Logs (with Client Transparency Enrichment)
 jobsRouter.get('/:id', async (req: Request, res: Response) => {
+  const organizationId = req.user!.organizationId;
+  const isPlatformAdmin = ['super_admin', 'platform_admin'].includes(req.user?.role || '');
   const id = req.params.id as string;
   if (!id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
     return res.status(400).json({ error: 'Invalid Job UUID format' });
@@ -122,6 +213,11 @@ jobsRouter.get('/:id', async (req: Request, res: Response) => {
   const [job] = await db.select().from(scrapingJobs).where(eq(scrapingJobs.id, id)).limit(1);
   if (!job) {
     return res.status(404).json({ error: 'Scraping job not found' });
+  }
+
+  // Strict Multi-Tenant Isolation: Tenant users can ONLY view their own jobs
+  if (!isPlatformAdmin && job.organizationId && organizationId && job.organizationId !== organizationId) {
+    return res.status(403).json({ error: 'Access denied: You cannot view another organization’s job' });
   }
 
   const logs = await db
@@ -131,11 +227,15 @@ jobsRouter.get('/:id', async (req: Request, res: Response) => {
     .orderBy(desc(scrapingJobLogs.loggedAt))
     .limit(50);
 
-  return res.json({ job, logs });
+  const clientTransparency = mapClientProcessingState(job, logs);
+
+  return res.json({ job, logs, clientTransparency });
 });
 
 // 3. Retry a Failed Job
 jobsRouter.post('/:id/retry', async (req: Request, res: Response) => {
+  const organizationId = req.user!.organizationId;
+  const isPlatformAdmin = ['super_admin', 'platform_admin'].includes(req.user?.role || '');
   const id = req.params.id as string;
   if (!id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
     return res.status(400).json({ error: 'Invalid Job UUID format' });
@@ -144,6 +244,11 @@ jobsRouter.post('/:id/retry', async (req: Request, res: Response) => {
   const [job] = await db.select().from(scrapingJobs).where(eq(scrapingJobs.id, id)).limit(1);
   if (!job) {
     return res.status(404).json({ error: 'Scraping job not found' });
+  }
+
+  // Strict Multi-Tenant Isolation: Tenant users can ONLY retry their own jobs
+  if (!isPlatformAdmin && job.organizationId && organizationId && job.organizationId !== organizationId) {
+    return res.status(403).json({ error: 'Access denied: You cannot retry another organization’s job' });
   }
 
   // Reset status in DB
