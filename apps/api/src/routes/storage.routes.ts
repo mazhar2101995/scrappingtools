@@ -3,6 +3,7 @@ import { authMiddleware, adminOnlyMiddleware } from '../middleware/auth.middlewa
 import { GarbageCollectionService } from '../services/garbage-collection.service';
 import { SourceHealthService } from '../services/source-health.service';
 import { BrowserIsolationManager } from '../services/browser-isolation.service';
+import { NetworkRouteManager } from '../services/network-route-manager.service';
 import { createRedisConnection, getQueueMetrics, scrapingQueue, browserScrapingQueue } from '@saas/queue';
 
 export const storageRouter = Router();
@@ -190,5 +191,34 @@ storageRouter.post('/browser-config', async (req: Request, res: Response) => {
     });
   } catch (err: any) {
     return res.status(500).json({ error: 'Failed to update browser configuration', details: err.message });
+  }
+});
+
+/**
+ * GET /api/v1/storage/network-routes
+ * List all network routes, real operational health metrics, and active concurrency for Platform Admin
+ */
+storageRouter.get('/network-routes', async (req: Request, res: Response) => {
+  try {
+    const routes = await NetworkRouteManager.listRoutesTelemetry();
+    return res.json({ success: true, data: routes });
+  } catch (err: any) {
+    console.error('[StorageRouter] Network Routes Error:', err);
+    return res.status(500).json({ error: 'Failed to fetch network routes', details: err.message });
+  }
+});
+
+/**
+ * GET /api/v1/storage/network-routes/:routeId/incidents
+ * Get recent operational incidents for a specific route
+ */
+storageRouter.get('/network-routes/:routeId/incidents', async (req: Request, res: Response) => {
+  try {
+    const routeId = Array.isArray(req.params.routeId) ? req.params.routeId[0] : req.params.routeId;
+    const incidents = await NetworkRouteManager.getRecentRouteIncidents(routeId);
+    return res.json({ success: true, data: incidents });
+  } catch (err: any) {
+    console.error('[StorageRouter] Route Incidents Error:', err);
+    return res.status(500).json({ error: 'Failed to fetch route incidents', details: err.message });
   }
 });

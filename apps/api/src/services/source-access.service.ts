@@ -4,6 +4,7 @@ import { eq, sql, lt } from 'drizzle-orm';
 import crypto from 'crypto';
 import { SourceHealthService } from './source-health.service';
 import { BrowserIsolationManager, BrowserFailureCategory } from './browser-isolation.service';
+import { NetworkRouteManager, RouteDecision } from './network-route-manager.service';
 
 export type AcquisitionMethod = 'DIRECT_HTTP' | 'CONTROLLED_BROWSER' | 'CACHED_INFLIGHT' | 'VERIFIED_CACHE';
 
@@ -35,6 +36,8 @@ export interface AcquisitionOptions {
   tenantId?: string; // Multi-tenant fairness quota identifier
   waitForSelector?: string;
   captureSnapshot?: boolean;
+  bypassProxy?: boolean; // Force direct connection
+  forceProxy?: boolean; // Force proxy route testing
 }
 
 export interface AcquisitionResult {
@@ -52,6 +55,12 @@ export interface AcquisitionResult {
   isCached?: boolean;
   contentHash?: string;
   versionNumber?: number;
+  route?: {
+    type: 'DIRECT' | 'PROXY' | 'DEFERRED';
+    routeId: string;
+    providerId: string;
+    reason: string;
+  };
   error?: {
     category: AcquisitionErrorCategory;
     message: string;
@@ -224,10 +233,14 @@ export class SourceAccessService {
       }
     }
 
-    // --- STEP 3: PRE-FLIGHT SOURCE HEALTH & COOLDOWN GATE ---
-    const cooldownCheck = await SourceHealthService.isDomainCooledDown(norm.normalizedDomain);
-    if (cooldownCheck.cooledDown) {
-      console.warn(`[SourceAccess] Domain ${norm.normalizedDomain} is cooled down. Deferring acquisition (${cooldownCheck.remainingSec}s left)`);
+    // --- STEP 3: NETWORK ROUTE MANAGER & PRE-FLIGHT DECISION ---
+    const routeDecision = await NetworkRouteManager.determineRoute(norm.normalizedDomain, {
+      bypassProxy: options.bypassProxy,
+      forceProxy: options.forceProxy,
+    });
+
+    if (routeDecision.type === 'DEFERRED') {
+      console.warn(`[SourceAccess] Route deferred for ${norm.normalizedDomain}: ${routeDecision.reason}`);
       return {
         success: false,
         originalUrl: rawUrl,
@@ -240,12 +253,18 @@ export class SourceAccessService {
         contentType: '',
         byteSize: 0,
         durationMs: Date.now() - startTime,
+        route: {
+          type: 'DEFERRED',
+          routeId: routeDecision.routeId,
+          providerId: routeDecision.providerId,
+          reason: routeDecision.reason,
+        },
         error: {
           category: 'RATE_LIMITED_429',
           message: SourceHealthService.getClientFriendlyMessage('RATE_LIMITED_429', 429),
           isRetryable: true,
-          suggestedDelaySec: cooldownCheck.remainingSec,
-          rawError: cooldownCheck.reason,
+          suggestedDelaySec: routeDecision.deferralDelaySec || 60,
+          rawError: routeDecision.reason,
         },
       };
     }
@@ -253,6 +272,7 @@ export class SourceAccessService {
     // --- STEP 4: EXECUTE ACQUISITION UNDER MANAGED DOMAIN CONCURRENCY ---
     const acquisitionPromise = (async (): Promise<AcquisitionResult> => {
       const releaseSlot = await this.acquireDomainSlot(norm.normalizedDomain);
+      const releaseRouteSlot = NetworkRouteManager.acquireRouteSlot(routeDecision.routeId);
       try {
         let result: AcquisitionResult;
         if (options.useBrowser) {
@@ -261,9 +281,17 @@ export class SourceAccessService {
           result = await this.executeDirectHttp(norm, options);
         }
 
-        // --- STEP 5: RECORD HEALTH INTELLIGENCE & UPDATE CACHE ---
+        result.route = {
+          type: routeDecision.type,
+          routeId: routeDecision.routeId,
+          providerId: routeDecision.providerId,
+          reason: routeDecision.reason,
+        };
+
+        // --- STEP 5: RECORD ROUTE & DOMAIN HEALTH INTELLIGENCE ---
         if (result.success && result.content) {
           await SourceHealthService.recordSuccess(norm.normalizedDomain, result.durationMs, result.statusCode);
+          await NetworkRouteManager.recordRouteSuccess(routeDecision.routeId, routeDecision.providerId, result.durationMs);
           await this.saveOrUpdateCache(norm, result, defaultTtlHours);
         } else if (!result.success && result.error) {
           await SourceHealthService.recordFailure(
@@ -273,12 +301,19 @@ export class SourceAccessService {
             result.statusCode,
             result.error.suggestedDelaySec
           );
+          await NetworkRouteManager.recordRouteFailure(
+            routeDecision.routeId,
+            routeDecision.providerId,
+            result.error.message,
+            result.statusCode
+          );
           // SAFE FAILURE HANDLING: Never overwrite valid cached data with failure!
           await this.recordCacheFailure(norm, result.error);
         }
 
         return result;
       } finally {
+        releaseRouteSlot();
         releaseSlot();
       }
     })();

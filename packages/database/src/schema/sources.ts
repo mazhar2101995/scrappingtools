@@ -171,3 +171,39 @@ export const sourceIncidentEvents = pgTable('source_incident_events', {
   index('idx_sie_domain').on(table.domain, table.createdAt),
 ]);
 
+export const networkRoutes = pgTable('network_routes', {
+  routeId: varchar('route_id', { length: 64 }).primaryKey(),
+  providerId: varchar('provider_id', { length: 64 }).notNull(),
+  routeType: varchar('route_type', { length: 32 }).notNull().default('DIRECT'), // DIRECT, PROXY, INTERNAL_RESIDENTIAL
+  status: varchar('status', { length: 32 }).notNull().default('AVAILABLE'), // AVAILABLE, DEGRADED, TEMPORARILY_UNAVAILABLE, DISABLED
+  concurrencyLimit: integer('concurrency_limit').notNull().default(5),
+  activeRequests: integer('active_requests').notNull().default(0),
+  totalRequests: integer('total_requests').notNull().default(0),
+  successfulRequests: integer('successful_requests').notNull().default(0),
+  failedRequests: integer('failed_requests').notNull().default(0),
+  consecutiveFailures: integer('consecutive_failures').notNull().default(0),
+  avgLatencyMs: integer('avg_latency_ms').notNull().default(0),
+  cooldownUntil: timestamp('cooldown_until', { withTimezone: true }),
+  lastErrorMessage: text('last_error_message'),
+  lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
+  lastFailureAt: timestamp('last_failure_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_nr_provider_type').on(table.providerId, table.routeType),
+  index('idx_nr_status').on(table.status),
+]);
+
+export const networkRouteIncidents = pgTable('network_route_incidents', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  routeId: varchar('route_id', { length: 64 }).notNull(),
+  eventType: varchar('event_type', { length: 64 }).notNull(),
+  severity: varchar('severity', { length: 32 }).notNull().default('INFO'),
+  statusCode: integer('status_code'),
+  message: text('message').notNull(),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_nri_route_id').on(table.routeId, table.createdAt),
+]);
+

@@ -377,3 +377,4 @@ export class BrowserIsolationManager {
     return deleted;
   }
 }
+
