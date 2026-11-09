@@ -356,3 +356,91 @@ organizationRouter.put('/ai-settings', async (req: Request, res: Response) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
+// GET /api/v1/organizations/languages - Fetch tenant store languages configuration
+organizationRouter.get('/languages', async (req: Request, res: Response) => {
+  try {
+    const orgId = (req as any).user?.organizationId;
+    if (!orgId) {
+      return res.status(400).json({ error: 'Organization context required' });
+    }
+
+    const [org] = await db
+      .select({ id: organizations.id, name: organizations.name, settings: organizations.settings })
+      .from(organizations)
+      .where(eq(organizations.id, orgId))
+      .limit(1);
+
+    const defaultLanguages = {
+      primary: 'en',
+      supported: ['en'],
+    };
+
+    const orgSettings = (org?.settings as any) || {};
+    const languages = { ...defaultLanguages, ...(orgSettings.languages || {}) };
+
+    // Ensure primary is inside supported
+    if (!languages.supported.includes(languages.primary)) {
+      languages.supported = [languages.primary, ...languages.supported];
+    }
+
+    return res.json({ success: true, languages });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/v1/organizations/languages - Update tenant store languages configuration
+organizationRouter.put('/languages', async (req: Request, res: Response) => {
+  try {
+    const orgId = (req as any).user?.organizationId;
+    if (!orgId) {
+      return res.status(400).json({ error: 'Organization context required' });
+    }
+
+    const { primary, supported } = req.body;
+
+    const [currentOrg] = await db
+      .select({ settings: organizations.settings })
+      .from(organizations)
+      .where(eq(organizations.id, orgId))
+      .limit(1);
+
+    const currentSettings = (currentOrg?.settings as any) || {};
+    const validPrimary = (primary && typeof primary === 'string' && primary.trim()) ? primary.trim().toLowerCase() : (currentSettings.languages?.primary || 'en');
+    
+    let supportedList: string[] = [validPrimary];
+    if (Array.isArray(supported) && supported.length > 0) {
+      supportedList = Array.from(new Set([validPrimary, ...supported.map((l: any) => String(l).trim().toLowerCase()).filter(Boolean)]));
+    } else if (currentSettings.languages?.supported) {
+      supportedList = Array.from(new Set([validPrimary, ...(currentSettings.languages.supported || [])]));
+    }
+
+    const updatedLanguages = {
+      primary: validPrimary,
+      supported: supportedList,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const updatedSettings = {
+      ...currentSettings,
+      languages: updatedLanguages,
+    };
+
+    await db
+      .update(organizations)
+      .set({
+        settings: updatedSettings,
+        updatedAt: new Date(),
+      })
+      .where(eq(organizations.id, orgId));
+
+    return res.json({
+      success: true,
+      message: 'Store languages updated successfully',
+      languages: updatedLanguages,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});

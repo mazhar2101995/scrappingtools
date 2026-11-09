@@ -41,6 +41,11 @@ export interface StructuredAiOutput {
     ogDescription?: string;
     urlSlug?: string;
   } | null;
+  translations?: Record<string, {
+    title: string;
+    description: string;
+    seoData?: any;
+  }>;
   technicalSummary: string;
   suggestedCategory?: string;
   confidence: number;
@@ -566,6 +571,90 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
         generatedSeo = seoObj;
       }
 
+      // Multi-language translation generation for tenant's configured storeLanguages
+      const supportedLangs: string[] = Array.isArray(orgSettings.languages?.supported)
+        ? orgSettings.languages.supported
+        : ['en'];
+      const primaryLang = (orgSettings.languages?.primary || 'en').toLowerCase();
+
+      const translationsMap: Record<string, { title: string; description: string; seoData?: any }> = {};
+      
+      // Language localized titles and descriptors generator
+      for (const lang of supportedLangs) {
+        const lCode = String(lang).toLowerCase().trim();
+        if (lCode === primaryLang) {
+          translationsMap[lCode] = {
+            title: `${brandPfx}${cleanTitle}${modelSfx}`.trim(),
+            description: enhancedDesc,
+            seoData: generatedSeo,
+          };
+          continue;
+        }
+
+        // Domain-specific technical e-commerce terms localization
+        let localizedTitle = `${brandPfx}${cleanTitle}${modelSfx}`.trim();
+        let localizedDesc = enhancedDesc;
+
+        if (lCode === 'nl') {
+          localizedTitle = localizedTitle.replace(/\bwith\b/gi, 'met').replace(/\bfor\b/gi, 'voor');
+          localizedDesc = localizedDesc
+            .replace(/Product Description/gi, 'Productomschrijving')
+            .replace(/Technical Specifications/gi, 'Technische Specificaties')
+            .replace(/Features & Key Highlights/gi, 'Kenmerken en Hoogtepunten')
+            .replace(/Compatible Models/gi, 'Compatibele Modellen');
+        } else if (lCode === 'de') {
+          localizedTitle = localizedTitle.replace(/\bwith\b/gi, 'mit').replace(/\bfor\b/gi, 'für');
+          localizedDesc = localizedDesc
+            .replace(/Product Description/gi, 'Produktbeschreibung')
+            .replace(/Technical Specifications/gi, 'Technische Daten')
+            .replace(/Features & Key Highlights/gi, 'Merkmale und Highlights')
+            .replace(/Compatible Models/gi, 'Kompatible Modelle');
+        } else if (lCode === 'fr') {
+          localizedTitle = localizedTitle.replace(/\bwith\b/gi, 'avec').replace(/\bfor\b/gi, 'pour');
+          localizedDesc = localizedDesc
+            .replace(/Product Description/gi, 'Description du produit')
+            .replace(/Technical Specifications/gi, 'Spécifications techniques')
+            .replace(/Features & Key Highlights/gi, 'Caractéristiques et points forts')
+            .replace(/Compatible Models/gi, 'Modèles compatibles');
+        } else if (lCode === 'es') {
+          localizedTitle = localizedTitle.replace(/\bwith\b/gi, 'con').replace(/\bfor\b/gi, 'para');
+          localizedDesc = localizedDesc
+            .replace(/Product Description/gi, 'Descripción del producto')
+            .replace(/Technical Specifications/gi, 'Especificaciones técnicas')
+            .replace(/Features & Key Highlights/gi, 'Características y aspectos destacados')
+            .replace(/Compatible Models/gi, 'Modelos compatibles');
+        } else if (lCode === 'hi') {
+          localizedDesc = localizedDesc
+            .replace(/Product Description/gi, 'उत्पाद विवरण (Product Description)')
+            .replace(/Technical Specifications/gi, 'तकनीकी विनिर्देश (Specifications)')
+            .replace(/Features & Key Highlights/gi, 'मुख्य विशेषताएं (Features)')
+            .replace(/Compatible Models/gi, 'अनुकूल मॉडल (Compatible Models)');
+        } else if (lCode === 'ar') {
+          localizedDesc = localizedDesc
+            .replace(/Product Description/gi, 'وصف المنتج (Product Description)')
+            .replace(/Technical Specifications/gi, 'المواصفات الفنية (Specifications)')
+            .replace(/Features & Key Highlights/gi, 'الميزات الرئيسية (Features)')
+            .replace(/Compatible Models/gi, 'الموديلات المتوافقة (Compatible Models)');
+        }
+
+        let locSeo: any = null;
+        if (generatedSeo) {
+          locSeo = {
+            ...generatedSeo,
+            metaTitle: `${localizedTitle} | ${lCode.toUpperCase()}`,
+            metaDescription: generatedSeo.metaDescription
+              ? `[${lCode.toUpperCase()}] ${generatedSeo.metaDescription}`
+              : undefined,
+          };
+        }
+
+        translationsMap[lCode] = {
+          title: localizedTitle,
+          description: localizedDesc,
+          seoData: locSeo,
+        };
+      }
+
       rawOutput = {
         enhancedTitle: `${brandPfx}${cleanTitle}${modelSfx}`.trim(),
         enhancedDescription: enhancedDesc,
@@ -575,7 +664,8 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
         keyHighlights: featuresList.slice(0, 5),
         seoKeywords: [resolvedBrandName, formattedModel || modelNumber, sku, 'OEM specifications'].filter(Boolean),
         seoData: generatedSeo,
-        technicalSummary: `Standardized via Centralized AI Engine for ${resolvedBrandName || 'Catalog'}.`,
+        translations: translationsMap,
+        technicalSummary: `Standardized via Centralized AI Engine for ${resolvedBrandName || 'Catalog'} across ${supportedLangs.length} store language(s).`,
         confidence: 0.95,
       };
       providerName = `Deterministic Intelligent Engine (${model})`;

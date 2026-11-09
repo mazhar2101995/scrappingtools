@@ -232,7 +232,14 @@ export class DashboardApiClient {
     return data;
   }
 
-  async register(payload: { email: string; password: string; fullName: string; organizationName: string }): Promise<any> {
+  async register(payload: {
+    email: string;
+    password: string;
+    fullName: string;
+    organizationName: string;
+    primaryLanguage?: string;
+    storeLanguages?: string[];
+  }): Promise<any> {
     const res = await fetch(`${this.baseUrl}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -486,6 +493,18 @@ export class DashboardApiClient {
   async getMyTeam(): Promise<any[]> {
     const res = await this.fetchJson<any>('/organizations/my-team', {}, 'client');
     return res.members || [];
+  }
+
+  async getStoreLanguages(): Promise<{ primary: string; supported: string[] }> {
+    const res = await this.fetchJson<any>('/organizations/languages', {}, 'client');
+    return res.languages || { primary: 'en', supported: ['en'] };
+  }
+
+  async updateStoreLanguages(payload: { primary: string; supported: string[] }): Promise<any> {
+    return this.fetchJson('/organizations/languages', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }, 'client');
   }
 
   async getStores(): Promise<StoreItem[]> {

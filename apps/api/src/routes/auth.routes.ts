@@ -11,7 +11,7 @@ export const authRouter = Router();
 
 // 1. User Registration & Initial Tenant Setup
 authRouter.post('/register', async (req: Request, res: Response) => {
-  const { email, password, fullName, organizationName } = req.body;
+  const { email, password, fullName, organizationName, storeLanguages, primaryLanguage } = req.body;
 
   if (!email || !password || !fullName) {
     return res.status(400).json({ error: 'Email, password, and full name are required' });
@@ -26,6 +26,22 @@ authRouter.post('/register', async (req: Request, res: Response) => {
   const passwordHash = await bcrypt.hash(password, 10);
   const orgSlug = (organizationName || `${fullName}-org`).toLowerCase().replace(/[^a-z0-9]/g, '-') + `-${Date.now().toString().slice(-4)}`;
 
+  // Default languages configuration
+  const validPrimary = (primaryLanguage && typeof primaryLanguage === 'string' && primaryLanguage.trim()) ? primaryLanguage.trim() : 'en';
+  let supportedList: string[] = ['en'];
+  if (Array.isArray(storeLanguages) && storeLanguages.length > 0) {
+    supportedList = Array.from(new Set([validPrimary, ...storeLanguages.map((l: any) => String(l).trim().toLowerCase()).filter(Boolean)]));
+  } else {
+    supportedList = [validPrimary];
+  }
+
+  const initialSettings = {
+    languages: {
+      primary: validPrimary,
+      supported: supportedList,
+    },
+  };
+
   try {
     const result = await db.transaction(async (tx) => {
       const [newUser] = await tx.insert(users).values({
@@ -37,6 +53,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       const [newOrg] = await tx.insert(organizations).values({
         name: organizationName || `${fullName}'s Organization`,
         slug: orgSlug,
+        settings: initialSettings,
       }).returning();
 
       await tx.insert(organizationMemberships).values({
@@ -65,7 +82,12 @@ authRouter.post('/register', async (req: Request, res: Response) => {
       accessToken,
       refreshToken,
       user: { id: result.user.id, email: result.user.email, fullName: result.user.fullName },
-      organization: { id: result.organization.id, name: result.organization.name, slug: result.organization.slug },
+      organization: {
+        id: result.organization.id,
+        name: result.organization.name,
+        slug: result.organization.slug,
+        settings: result.organization.settings,
+      },
     });
   } catch (err: any) {
     return res.status(500).json({ error: 'Internal server error during registration', details: err.message });
