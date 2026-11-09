@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { MediaDeduplicationService } from '../src/services/media-deduplication.service';
 import { GarbageCollectionService } from '../src/services/garbage-collection.service';
 import { db, globalMediaAssets } from '@saas/database';
