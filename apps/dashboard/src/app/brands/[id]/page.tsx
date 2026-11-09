@@ -706,7 +706,7 @@ export default function BrandProfileDetailPage() {
   const initials = brandName.substring(0, 2).toUpperCase() || 'BP';
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto font-sans text-slate-800 pb-16">
+    <div className="space-y-6 w-full font-sans text-slate-800 pb-16">
       {/* Top Breadcrumb & Action Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
@@ -750,55 +750,73 @@ export default function BrandProfileDetailPage() {
         </div>
       )}
 
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto">
-        {[
-          { key: 'visual', label: 'Visual Auto Mapping (Click-to-Map)', icon: MousePointerClick, badge: 'NEW' },
-          { key: 'mappings', label: 'Manual Field Mapping', icon: SlidersHorizontal, count: fieldMappings.length },
-          { key: 'groups', label: 'Field Groups', icon: FolderKanban, count: fieldGroups.length },
-          { key: 'sources', label: 'Product Sources', icon: Layers, count: sourceConfigs.length },
-          { key: 'custom', label: 'Custom Client Fields', icon: ListPlus, count: customFields.length },
-          { key: 'model_rules', label: 'Model Normalization', icon: Sliders, badge: modelPatternEnabled ? 'ON' : undefined },
-          { key: 'seo', label: 'AI SEO Settings', icon: Globe, badge: seoEnabled ? 'ON' : undefined },
-          { key: 'ai_prompts', label: 'AI Prompt Rules', icon: Sparkles, badge: 'AI' },
-          { key: 'test', label: 'Test & Preview', icon: Play },
-          { key: 'overview', label: 'Brand Details', icon: Settings },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.key;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => {
-                setActiveTab(tab.key as any);
-                if (tab.key === 'test' && visualProductUrl && (!testUrl || testUrl === officialWebsite)) {
-                  setTestUrl(visualProductUrl);
-                }
-              }}
-              className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition -mb-px ${
-                isActive
-                  ? 'border-[#0d2a2c] text-[#0d2a2c]'
-                  : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-300'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{tab.label}</span>
-              {tab.badge && (
-                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-[#fad982] text-slate-950">
-                  {tab.badge}
-                </span>
-              )}
-              {tab.count !== undefined && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                  isActive ? 'bg-[#fad982] text-slate-950 font-black' : 'bg-slate-100 text-slate-600'
-                }`}>
-                  {tab.count}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* Two Column Layout: Left Vertical Vertical Tab Navigation + Right Content Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left Column: Vertical Tab Menu (Khada Sidebar Style) */}
+        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-2.5 shadow-sm space-y-1 sticky top-6">
+          <div className="px-3 py-2 border-b border-slate-100 mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Configuration Modules
+            </span>
+          </div>
+
+          {[
+            { key: 'visual', label: 'Visual Auto Mapping', icon: MousePointerClick, badge: 'NEW' },
+            { key: 'mappings', label: 'Manual Field Mapping', icon: SlidersHorizontal, count: fieldMappings.length },
+            { key: 'groups', label: 'Field Groups', icon: FolderKanban, count: fieldGroups.length },
+            { key: 'sources', label: 'Product Sources', icon: Layers, count: sourceConfigs.length },
+            { key: 'custom', label: 'Custom Client Fields', icon: ListPlus, count: customFields.length },
+            { key: 'model_rules', label: 'Model Normalization', icon: Sliders, badge: modelPatternEnabled ? 'ON' : undefined },
+            { key: 'seo', label: 'AI SEO Settings', icon: Globe, badge: seoEnabled ? 'ON' : undefined },
+            { key: 'ai_prompts', label: 'AI Prompt Rules', icon: Sparkles, badge: 'AI' },
+            { key: 'test', label: 'Test & Preview', icon: Play },
+            { key: 'overview', label: 'Brand Details', icon: Settings },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setActiveTab(tab.key as any);
+                  if (tab.key === 'test' && visualProductUrl && (!testUrl || testUrl === officialWebsite)) {
+                    setTestUrl(visualProductUrl);
+                  }
+                }}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left ${
+                  isActive
+                    ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm'
+                    : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#fad982]' : 'text-slate-400'}`} />
+                  <span className="truncate">{tab.label}</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                  {tab.badge && (
+                    <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-extrabold ${
+                      isActive ? 'bg-[#fad982] text-slate-950' : 'bg-amber-100 text-amber-900'
+                    }`}>
+                      {tab.badge}
+                    </span>
+                  )}
+                  {tab.count !== undefined && (
+                    <span className={`px-2 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                      isActive ? 'bg-teal-900 text-[#fad982]' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right Column: Tab Content Body */}
+        <div className="lg:col-span-9 space-y-6">
 
       {/* TAB 1: VISUAL AUTO MAPPING (CLICK-TO-MAP) */}
       {activeTab === 'visual' && (
@@ -1897,7 +1915,7 @@ export default function BrandProfileDetailPage() {
 
       {/* TAB: BRAND AI PROMPT RULES */}
       {activeTab === 'ai_prompts' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6 max-w-4xl">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -2015,7 +2033,7 @@ export default function BrandProfileDetailPage() {
 
       {/* TAB: MODEL PATTERN NORMALIZATION RULES */}
       {activeTab === 'model_rules' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6 max-w-4xl">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -2154,7 +2172,7 @@ export default function BrandProfileDetailPage() {
 
       {/* TAB: DYNAMIC AI SEO GENERATION SETTINGS */}
       {activeTab === 'seo' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6 max-w-4xl">
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -2474,6 +2492,8 @@ export default function BrandProfileDetailPage() {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }

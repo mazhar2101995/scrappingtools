@@ -391,8 +391,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Scrollable Body */}
-        <main className="flex-1 overflow-y-auto p-8 bg-[#f4f7f6]">
-          {children}
+        <main className="flex-1 overflow-y-auto px-6 py-6 lg:px-8 bg-[#f4f7f6]">
+          <div className="w-full">
+            {children}
+          </div>
         </main>
       </div>
 
