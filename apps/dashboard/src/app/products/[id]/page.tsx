@@ -895,36 +895,6 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         );
       })()}
 
-            {data.seoData.urlSlug && (
-              <div className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 space-y-1">
-                <span className="font-bold text-slate-700 block">Store URL Handle / Slug</span>
-                <span className="text-indigo-700 font-mono font-bold">{data.seoData.urlSlug}</span>
-              </div>
-            )}
-
-            {data.seoData.metaDescription && (
-              <div className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 space-y-1 md:col-span-2">
-                <span className="font-bold text-slate-700 block">SEO Meta Description ({data.seoData.metaDescription.length} chars)</span>
-                <span className="text-slate-900 leading-relaxed">{data.seoData.metaDescription}</span>
-              </div>
-            )}
-
-            {Array.isArray(data.seoData.targetKeywords) && data.seoData.targetKeywords.length > 0 && (
-              <div className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 space-y-2 md:col-span-2">
-                <span className="font-bold text-slate-700 block">Target Ranking Keywords ({data.seoData.targetKeywords.length})</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {data.seoData.targetKeywords.map((kw: string, kIdx: number) => (
-                    <span key={kIdx} className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 font-mono text-[11px] font-bold">
-                      #{kw}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Human Review Correction Modal (Phase 6) */}
       {showCorrectionModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
