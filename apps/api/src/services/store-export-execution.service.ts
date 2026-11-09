@@ -11,9 +11,12 @@ import {
   storeChangePlans,
   storeExportAuditLogs,
   storeSyncHistory,
+  productLanguageVersions,
+  storeLanguages,
 } from '@saas/database';
 import { eq, and, sql } from 'drizzle-orm';
 import crypto from 'crypto';
+import { MultiStoreExportService } from './multi-store-export.service';
 
 export type ChangePlanAction =
   | 'CREATE'
@@ -176,18 +179,20 @@ export class StoreExportExecutionService {
     organizationId: string,
     globalProductId: string,
     connectedStoreId: string,
-    userId?: string
+    userId?: string,
+    targetLanguage = 'en'
   ): Promise<GeneratedChangePlan> {
-    // 1. Verify organization store access
-    const [store] = await db
-      .select()
-      .from(connectedStores)
-      .where(and(eq(connectedStores.id, connectedStoreId), eq(connectedStores.organizationId, organizationId)))
-      .limit(1);
+    // Phase 9C: Target & Multi-Language Validation Check
+    const targetValidation = await MultiStoreExportService.validateExportTarget(
+      organizationId,
+      globalProductId,
+      connectedStoreId,
+      targetLanguage
+    );
 
-    if (!store) {
-      throw new Error('Connected store not found or access denied');
-    }
+    // 1. Verify organization store access
+    const store = targetValidation.store;
+    const langVersion = targetValidation.langVersion;
 
     // 2. Fetch approved product details
     const [product] = await db
@@ -267,14 +272,17 @@ export class StoreExportExecutionService {
       imagesList.push(product.primaryImageUrl);
     }
 
+    // Phase 9C: Reusable Product Language Version overrides standard values for localized fields
     const sourceValues: Record<string, any> = {
-      name: override?.customTitle || product.canonicalTitle,
-      description: override?.customDescription || product.standardizedDescription || 'High-performance model.',
+      name: langVersion?.title || override?.customTitle || product.canonicalTitle,
+      description: langVersion?.description || override?.customDescription || product.standardizedDescription || 'High-performance model.',
       model: product.modelNumber || 'MOD-101',
       sku: product.modelNumber || `SKU-${Date.now().toString().slice(-4)}`,
       price: customAttrs.price ? parseFloat(String(customAttrs.price).replace(/[^0-9.]/g, '')) || 499.99 : 499.99,
       images: imagesList,
       compatible_models: customFields.compatible_models || ['Traxxas Slash', 'Traxxas Rustler'],
+      seo_title: langVersion?.seoTitle || product.canonicalTitle,
+      seo_description: langVersion?.seoDescription || product.standardizedDescription || '',
     };
 
     // 6. Calculate Field Changes per Policy & Target Type

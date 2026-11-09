@@ -25,6 +25,7 @@ import { ProductDiscoveryService } from '../services/product-discovery.service';
 import { AiIntelligenceService } from '../services/ai-intelligence.service';
 import { MediaDeduplicationService } from '../services/media-deduplication.service';
 import { SourceAccessService } from '../services/source-access.service';
+import { MultiStoreExportService } from '../services/multi-store-export.service';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
@@ -1845,5 +1846,48 @@ productsRouter.post('/:id/monitoring', async (req: Request, res: Response) => {
     return res.status(500).json({ error: err.message });
   }
 });
+
+// Phase 9C: Reusable Product Language Versions Endpoints
+// GET /api/v1/products/:id/languages - Get all reusable language versions for a product
+productsRouter.get('/:id/languages', async (req: Request, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const versions = await MultiStoreExportService.getProductLanguageVersions(id);
+    return res.json({ success: true, count: versions.length, languages: versions });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/v1/products/:id/languages/:lang - Create or update a language version
+productsRouter.post('/:id/languages/:lang', async (req: Request, res: Response) => {
+  try {
+    const id = String(req.params.id);
+    const lang = String(req.params.lang);
+    const { title, description, features, specifications, seoTitle, seoDescription, status } = req.body;
+    if (!title) {
+      return res.status(400).json({ error: 'title is required for product language version' });
+    }
+
+    const saved = await MultiStoreExportService.saveProductLanguageVersion(
+      id,
+      lang,
+      {
+        title,
+        description,
+        features,
+        specifications,
+        seoTitle,
+        seoDescription,
+        status,
+      }
+    );
+
+    return res.status(201).json({ success: true, languageVersion: saved });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
 
 

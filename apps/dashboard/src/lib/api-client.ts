@@ -931,10 +931,10 @@ export class DashboardApiClient {
   }
 
   // --- Phase 9B: Store Change Preview & Controlled Manual Push Methods ---
-  async generateStoreChangePlan(productId: string, storeId: string): Promise<any> {
+  async generateStoreChangePlan(productId: string, storeId: string, targetLanguage = 'en'): Promise<any> {
     return this.fetchJson('/stores/change-plan', {
       method: 'POST',
-      body: JSON.stringify({ productId, storeId }),
+      body: JSON.stringify({ productId, storeId, targetLanguage }),
     }, 'client');
   }
 
@@ -943,6 +943,54 @@ export class DashboardApiClient {
       method: 'POST',
       body: JSON.stringify({ planId }),
     }, 'client');
+  }
+
+  // --- Phase 9C: Multi-Store & Multi-Language Architecture Methods ---
+  async getSpecificStoreLanguages(storeId: string): Promise<any> {
+    return this.fetchJson(`/stores/${storeId}/languages`, {}, 'client');
+  }
+
+  async configureStoreLanguage(storeId: string, payload: {
+    languageCode: string;
+    isDefault?: boolean;
+    exportEnabled?: boolean;
+    platformLocaleCode?: string;
+  }): Promise<any> {
+    return this.fetchJson(`/stores/${storeId}/languages`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async getStoreHealth(storeId: string): Promise<any> {
+    return this.fetchJson(`/stores/${storeId}/health`, {}, 'client');
+  }
+
+  async getProductDistribution(productId: string): Promise<any> {
+    return this.fetchJson(`/stores/products/${productId}/distribution`, {}, 'client');
+  }
+
+  async getProductLanguageVersions(productId: string): Promise<any> {
+    return this.fetchJson(`/products/${productId}/languages`, {}, 'client');
+  }
+
+  async saveProductLanguageVersion(productId: string, lang: string, payload: {
+    title: string;
+    description?: string;
+    features?: string[];
+    specifications?: Record<string, any>;
+    seoTitle?: string;
+    seoDescription?: string;
+    status?: string;
+  }): Promise<any> {
+    return this.fetchJson(`/products/${productId}/languages/${lang}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async getTenantIntegrationHealth(): Promise<any> {
+    return this.fetchJson('/stores/integration-health/summary', {}, 'client');
   }
 }
 

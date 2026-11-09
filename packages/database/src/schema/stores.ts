@@ -16,6 +16,9 @@ export const connectedStores = pgTable('connected_stores', {
   status: varchar('status', { length: 50 }).notNull().default('connected'), // 'connected', 'error', 'paused', 'syncing'
   syncSchedule: varchar('sync_schedule', { length: 50 }).default('HOURLY'), // 'MANUAL', 'HOURLY', 'DAILY', 'REALTIME_WEBHOOK'
   capabilities: jsonb('capabilities').notNull(), // Array of declared capability flags
+  healthStatus: varchar('health_status', { length: 50 }).notNull().default('healthy'), // 'healthy' | 'warning' | 'degraded' | 'offline' | 'auth_required'
+  lastHealthCheckAt: timestamp('last_health_check_at', { withTimezone: true }),
+  healthDetails: jsonb('health_details'),
   lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
   lastError: text('last_error'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -87,6 +90,7 @@ export const brandStoreExportProfiles = pgTable('brand_store_export_profiles', {
   brandProfileId: uuid('brand_profile_id').notNull().references(() => tenantBrandProfiles.id, { onDelete: 'cascade' }),
   connectedStoreId: uuid('connected_store_id').notNull().references(() => connectedStores.id, { onDelete: 'cascade' }),
   profileName: varchar('profile_name', { length: 255 }).notNull(),
+  languageCode: varchar('language_code', { length: 20 }).notNull().default('en'),
   status: varchar('status', { length: 50 }).notNull().default('draft'), // 'draft', 'valid', 'needs_attention', 'disabled'
   fieldMappings: jsonb('field_mappings').notNull(), // Array of mapped fields with permissions
   validationStatus: jsonb('validation_status').notNull(), // { isValid: boolean, errors: string[] }
@@ -152,5 +156,23 @@ export const storeChangePlans = pgTable('store_change_plans', {
   index('idx_scp_org_store').on(table.organizationId, table.connectedStoreId),
   index('idx_scp_product').on(table.globalProductId),
 ]);
+
+// 9. Store Languages (Phase 9C Foundation: 1 Store -> Many Languages)
+export const storeLanguages = pgTable('store_languages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  connectedStoreId: uuid('connected_store_id').notNull().references(() => connectedStores.id, { onDelete: 'cascade' }),
+  languageCode: varchar('language_code', { length: 20 }).notNull(), // 'en', 'nl', 'hi', 'ar', 'fr'
+  isDefault: boolean('is_default').notNull().default(false),
+  exportEnabled: boolean('export_enabled').notNull().default(true),
+  platformLocaleCode: varchar('platform_locale_code', { length: 50 }), // e.g. 'en-US', 'nl-NL', 'hi-IN'
+  status: varchar('status', { length: 50 }).notNull().default('healthy'), // 'healthy' | 'warning' | 'disabled'
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('idx_sl_store_lang').on(table.connectedStoreId, table.languageCode),
+  index('idx_sl_org').on(table.organizationId),
+]);
+
 
 

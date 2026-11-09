@@ -7,6 +7,7 @@ import { SynchronizationEngine, CredentialSecurity, OpenCartConnector, ShopifyCo
 import { authMiddleware } from '../middleware/auth.middleware';
 import { quotaMiddleware } from '../middleware/quota.middleware';
 import { StoreExportExecutionService } from '../services/store-export-execution.service';
+import { MultiStoreExportService } from '../services/multi-store-export.service';
 
 export const storeRouter = Router();
 
@@ -361,7 +362,7 @@ storeRouter.post('/change-plan', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Tenant context required' });
     }
 
-    const { productId, storeId } = req.body;
+    const { productId, storeId, targetLanguage } = req.body;
     if (!productId || !storeId) {
       return res.status(400).json({ error: 'productId and storeId are required' });
     }
@@ -370,7 +371,8 @@ storeRouter.post('/change-plan', async (req: Request, res: Response) => {
       orgId,
       productId,
       storeId,
-      (req as any).user?.userId
+      (req as any).user?.userId,
+      targetLanguage || 'en'
     );
 
     return res.status(200).json({
@@ -409,6 +411,84 @@ storeRouter.post('/controlled-push', async (req: Request, res: Response) => {
     return res.status(400).json({ error: err.message });
   }
 });
+
+// Phase 9C: Multi-Store & Store Languages Management Endpoints
+// GET /api/v1/stores/:id/languages - List supported languages for a store
+storeRouter.get('/:id/languages', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+
+    const languages = await MultiStoreExportService.listStoreLanguages(String(req.params.id), orgId);
+    return res.json({ success: true, count: languages.length, languages });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/v1/stores/:id/languages - Add or update a language for a store
+storeRouter.post('/:id/languages', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+
+    const { languageCode, isDefault, exportEnabled, platformLocaleCode } = req.body;
+    if (!languageCode) {
+      return res.status(400).json({ error: 'languageCode is required (e.g. en, nl, hi, ar)' });
+    }
+
+    const saved = await MultiStoreExportService.configureStoreLanguage(String(req.params.id), orgId, {
+      languageCode,
+      isDefault,
+      exportEnabled,
+      platformLocaleCode,
+    });
+
+    return res.status(201).json({ success: true, language: saved });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/v1/stores/:id/health - Check and return store connection health
+storeRouter.get('/:id/health', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+
+    const health = await MultiStoreExportService.checkStoreHealth(String(req.params.id), orgId);
+    return res.json({ success: true, health });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/v1/stores/integration-health - Organization-wide Integration Health
+storeRouter.get('/integration-health/summary', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+
+    const summary = await MultiStoreExportService.getTenantIntegrationHealth(orgId);
+    return res.json({ success: true, summary });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/v1/stores/products/:productId/distribution - Product distribution across stores & languages
+storeRouter.get('/products/:productId/distribution', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+
+    const distribution = await MultiStoreExportService.getProductDistribution(String(req.params.productId), orgId);
+    return res.json({ success: true, distribution });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
 
 
 

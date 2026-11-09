@@ -89,3 +89,26 @@ export const productImages = pgTable('product_images', {
   index('idx_pimg_hash').on(table.imageHash),
 ]);
 
+// Phase 9C: Master Product + Reusable Product Language Versions
+export const productLanguageVersions = pgTable('product_language_versions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  globalProductId: uuid('global_product_id').notNull().references(() => globalProducts.id, { onDelete: 'cascade' }),
+  languageCode: varchar('language_code', { length: 20 }).notNull(),
+  title: varchar('title', { length: 500 }).notNull(),
+  description: text('description'),
+  features: jsonb('features').default([]),
+  specifications: jsonb('specifications').default({}),
+  seoTitle: varchar('seo_title', { length: 500 }),
+  seoDescription: text('seo_description'),
+  status: varchar('status', { length: 50 }).notNull().default('current'), // 'current' | 'needs_review' | 'outdated' | 'processing' | 'failed'
+  version: integer('version').notNull().default(1),
+  lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('idx_plv_product_lang').on(table.globalProductId, table.languageCode),
+  index('idx_plv_lang').on(table.languageCode),
+  index('idx_plv_status').on(table.status),
+]);
+
+
