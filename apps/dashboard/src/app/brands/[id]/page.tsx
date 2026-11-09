@@ -279,7 +279,7 @@ export default function BrandProfileDetailPage() {
       const finalMappings = mappingsOverride || fieldMappings;
       const finalGroups = groupsOverride || fieldGroups;
       const finalSources = sourcesOverride || sourceConfigs;
-      await apiClient.updateBrand(brandId, {
+      const res = await apiClient.updateBrand(brandId, {
         name: brandName,
         officialWebsite,
         logoUrl,
@@ -292,8 +292,8 @@ export default function BrandProfileDetailPage() {
         aiPromptRules,
         modelPatternRules: {
           enabled: modelPatternEnabled,
-          prefix: modelPrefix.trim(),
-          suffix: modelSuffix.trim(),
+          prefix: modelPrefix,
+          suffix: modelSuffix,
           transform: modelTransform,
         },
         seoSettings: {
@@ -302,6 +302,13 @@ export default function BrandProfileDetailPage() {
           customPrompt: customSeoPrompt.trim(),
         },
       });
+      if (res?.brand?.modelPatternRules) {
+        const mRules = res.brand.modelPatternRules;
+        setModelPatternEnabled(Boolean(mRules.enabled));
+        setModelPrefix(mRules.prefix || '');
+        setModelSuffix(mRules.suffix || '');
+        setModelTransform(mRules.transform || 'NONE');
+      }
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (err: any) {

@@ -842,15 +842,43 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
     { step: 'QualityValidation', label: 'Data quality validated', status: 'completed', timestamp: product.createdAt },
   ];
 
+  // Fetch brand profile pattern rules dynamically for consistent display
+  let dynamicFormattedModel = customAttrs.formattedModelNumber || product.modelNumber;
+  if (product.brandId && orgId) {
+    const [bp] = await db
+      .select({ modelPatternRules: tenantBrandProfiles.modelPatternRules })
+      .from(tenantBrandProfiles)
+      .where(
+        or(
+          and(eq(tenantBrandProfiles.organizationId, orgId), eq(tenantBrandProfiles.id, product.brandId)),
+          and(eq(tenantBrandProfiles.organizationId, orgId), eq(tenantBrandProfiles.normalizedName, (product.brandName || '').toLowerCase().trim()))
+        )
+      )
+      .limit(1);
+
+    const mRules = (bp?.modelPatternRules as any) || {};
+    if (mRules?.enabled && product.modelNumber) {
+      const pfx = mRules.prefix || '';
+      const sfx = mRules.suffix || '';
+      let base = String(product.modelNumber).trim();
+      if (mRules.transform === 'UPPERCASE') base = base.toUpperCase();
+      else if (mRules.transform === 'LOWERCASE') base = base.toLowerCase();
+      else if (mRules.transform === 'STRIP_SPECIAL') base = base.replace(/[^a-zA-Z0-9]/g, '');
+
+      if (!base.startsWith(pfx)) base = `${pfx}${base}`;
+      if (!base.endsWith(sfx)) base = `${base}${sfx}`;
+      dynamicFormattedModel = base;
+    }
+  }
+
   const seoData = customAttrs.seoData || (aiProcessedData?.seoData ? aiProcessedData.seoData : null);
-  const formattedModelNumber = customAttrs.formattedModelNumber || product.modelNumber;
 
   return res.json({
     product: {
       ...product,
       canonicalTitle: override?.customTitle || product.canonicalTitle,
       standardizedDescription: override?.customDescription || product.standardizedDescription,
-      modelNumber: formattedModelNumber,
+      modelNumber: dynamicFormattedModel,
       rawModelNumber: product.modelNumber,
       price: price ? (String(price).startsWith('$') ? String(price) : `$${price}`) : null,
       productUrl,
