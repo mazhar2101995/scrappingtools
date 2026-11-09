@@ -478,7 +478,7 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
   <div class="section-compatible-models p-4 rounded-2xl bg-slate-50/70 border border-slate-200">
     <div class="flex items-center gap-2 mb-3">
       <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold">✓</span>
-      <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Past op de volgende modellen / Compatible Models (${compModelsList.length})</h3>
+      <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Compatible Models (${compModelsList.length})</h3>
     </div>
     <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-800">
       ${compModelsList.map((m) => `
