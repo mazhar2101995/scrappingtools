@@ -60,6 +60,13 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [pushErrorMsg, setPushErrorMsg] = useState<string | null>(null);
   const [selectedSyncInfo, setSelectedSyncInfo] = useState<any | null>(null);
 
+  // Phase 9B: Controlled Change Plan Preview State
+  const [showChangePlanModal, setShowChangePlanModal] = useState(false);
+  const [changePlan, setChangePlan] = useState<any | null>(null);
+  const [loadingChangePlan, setLoadingChangePlan] = useState(false);
+  const [confirmingPush, setConfirmingPush] = useState(false);
+  const [selectedPreviewStoreId, setSelectedPreviewStoreId] = useState<string>('');
+
   // Price & Stock Monitoring State
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
   const [monitoringFreq, setMonitoringFreq] = useState('DAILY');
@@ -181,24 +188,49 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     }
   }
 
-  async function handlePushToStore(storeId: string) {
+  // --- Phase 9B: Controlled Change Plan & Manual Push Handlers ---
+  async function handleOpenChangePreview(storeId: string) {
     if (!data?.product?.id) return;
     try {
-      setPushingStoreId(storeId);
-      setPushSuccessMsg(null);
+      setSelectedPreviewStoreId(storeId);
+      setLoadingChangePlan(true);
+      setChangePlan(null);
       setPushErrorMsg(null);
-      const res = await apiClient.pushProductToStore({
-        storeId,
-        productId: data.product.id,
-      });
-      setPushSuccessMsg(res.message || 'Product pushed to store successfully!');
-      setTimeout(() => setPushSuccessMsg(null), 4000);
-      await fetchProduct();
+      setShowChangePlanModal(true);
+
+      const res = await apiClient.generateStoreChangePlan(data.product.id, storeId);
+      if (res?.changePlan) {
+        setChangePlan(res.changePlan);
+      }
     } catch (err: any) {
-      setPushErrorMsg(err.message || 'Failed to push product to store');
+      setPushErrorMsg(err.message || 'Failed to generate Change Plan');
     } finally {
-      setPushingStoreId(null);
+      setLoadingChangePlan(false);
     }
+  }
+
+  async function handleConfirmAndPush() {
+    if (!changePlan?.planId) return;
+    try {
+      setConfirmingPush(true);
+      setPushErrorMsg(null);
+      const res = await apiClient.executeControlledStorePush(changePlan.planId);
+      if (res?.result) {
+        setPushSuccessMsg(res.result.message || 'Controlled push successfully verified and executed!');
+        setShowChangePlanModal(false);
+        setTimeout(() => setPushSuccessMsg(null), 5000);
+        await fetchProduct();
+      }
+    } catch (err: any) {
+      setPushErrorMsg(err.message || 'Controlled push failed');
+    } finally {
+      setConfirmingPush(false);
+    }
+  }
+
+  async function handlePushToStore(storeId: string) {
+    // Phase 9B Rule: No blind product push. Always route via Change Plan Preview.
+    handleOpenChangePreview(storeId);
   }
 
   function handleOpenCorrection(field: 'canonicalTitle' | 'modelNumber' | 'standardizedDescription', currentVal: string) {
@@ -1385,6 +1417,235 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   className="px-4 py-2 bg-[#fad982] hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl transition disabled:opacity-50"
                 >
                   {savingMonitoring ? 'Saving...' : 'Save Watcher'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PHASE 9B: CONTROLLED STORE CHANGE PLAN PREVIEW MODAL */}
+      {showChangePlanModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-3xl w-full shadow-2xl border border-slate-200 p-6 space-y-5 animate-scaleUp max-h-[90vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-start justify-between border-b border-slate-100 pb-4 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900">
+                  <ShoppingBag className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <span>Store Change Preview &amp; Verification Plan</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 font-bold text-slate-700">
+                      Phase 9B
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Server-side dry run verifying field-level permissions and latest store baseline.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowChangePlanModal(false)}
+                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="space-y-4 overflow-y-auto pr-1 flex-1">
+              {loadingChangePlan && (
+                <div className="py-12 text-center space-y-3">
+                  <div className="inline-block w-6 h-6 border-2 border-slate-300 border-t-[#0d2a2c] rounded-full animate-spin" />
+                  <p className="text-xs font-semibold text-slate-500">
+                    Inspecting store state and calculating safe field delta...
+                  </p>
+                </div>
+              )}
+
+              {pushErrorMsg && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="font-bold block">Preview Warning / Conflict:</strong>
+                    <span>{pushErrorMsg}</span>
+                  </div>
+                </div>
+              )}
+
+              {changePlan && (
+                <div className="space-y-4">
+                  {/* Export Metadata Summary */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Target Store</span>
+                      <span className="text-xs font-bold text-slate-900 truncate block">{changePlan.storeName}</span>
+                      <span className="text-[10px] text-slate-500 font-mono">[{changePlan.platformType?.toUpperCase()}]</span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Target Classification</span>
+                      <span className={`text-xs font-bold inline-flex items-center gap-1 ${
+                        changePlan.targetType === 'new_product'
+                          ? 'text-teal-700'
+                          : changePlan.targetType === 'existing_product'
+                          ? 'text-blue-700'
+                          : 'text-rose-700'
+                      }`}>
+                        {changePlan.targetType === 'new_product' && '✨ New Product'}
+                        {changePlan.targetType === 'existing_product' && '🔄 Existing Product'}
+                        {changePlan.targetType === 'ambiguous' && '⚠️ Ambiguous Match'}
+                      </span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Export Profile</span>
+                      <span className="text-xs font-bold text-slate-800 truncate block">{changePlan.exportProfileName}</span>
+                    </div>
+
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Store Fingerprint</span>
+                      <span className="text-[10px] font-mono text-slate-600 truncate block">{changePlan.storeFingerprint?.slice(0, 16)}...</span>
+                      <span className="text-[9px] text-emerald-700 font-semibold">Fresh Baseline Read</span>
+                    </div>
+                  </div>
+
+                  {/* Ambiguity Alert */}
+                  {changePlan.targetType === 'ambiguous' && (
+                    <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 space-y-1">
+                      <div className="flex items-center gap-2 font-bold text-rose-800">
+                        <AlertTriangle className="w-4 h-4 text-rose-600" />
+                        <span>Ambiguous Match — Automatic Push Prohibited</span>
+                      </div>
+                      <p>
+                        Multiple store products matched this identifier. Per safety policy, the system will never guess. Please verify or update the product SKU.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Field Changes Table */}
+                  <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                    <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Planned Field Operations ({changePlan.fieldChanges?.length || 0})
+                      </span>
+                      <div className="flex items-center gap-2 text-[10px] font-bold">
+                        <span className="bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-full">
+                          {changePlan.summary?.willChangeCount || 0} Write
+                        </span>
+                        <span className="bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">
+                          {changePlan.summary?.skippedCount || 0} Skipped
+                        </span>
+                        <span className="bg-rose-100 text-rose-900 px-2 py-0.5 rounded-full">
+                          {changePlan.summary?.blockedCount || 0} Blocked
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs text-slate-700">
+                        <thead className="bg-slate-100/60 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                          <tr>
+                            <th className="py-2.5 px-3">Field</th>
+                            <th className="py-2.5 px-3">Current Store Value</th>
+                            <th className="py-2.5 px-3">Proposed Value</th>
+                            <th className="py-2.5 px-3">Policy / Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {changePlan.fieldChanges?.map((fc: any, idx: number) => {
+                            const isWrite = fc.action === 'CREATE' || fc.action === 'UPDATE' || fc.action === 'ADD';
+                            const isSkip = fc.action === 'SKIP';
+                            const isBlocked = fc.action === 'BLOCKED';
+
+                            return (
+                              <tr key={idx} className={`hover:bg-slate-50 transition ${isBlocked ? 'opacity-50' : ''}`}>
+                                <td className="py-2.5 px-3 font-semibold text-slate-900">
+                                  <span>{fc.productIntelligenceField}</span>
+                                  <span className="text-[10px] text-slate-400 block font-mono">→ {fc.storeDestinationField}</span>
+                                </td>
+
+                                <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600 max-w-[180px] truncate">
+                                  {fc.currentStoreValue !== null && fc.currentStoreValue !== undefined ? (
+                                    typeof fc.currentStoreValue === 'object' ? (
+                                      JSON.stringify(fc.currentStoreValue)
+                                    ) : (
+                                      String(fc.currentStoreValue)
+                                    )
+                                  ) : (
+                                    <span className="text-slate-400 italic">None (Empty)</span>
+                                  )}
+                                </td>
+
+                                <td className="py-2.5 px-3 font-mono text-[11px] text-slate-900 max-w-[180px] truncate">
+                                  {fc.proposedValue !== null && fc.proposedValue !== undefined ? (
+                                    typeof fc.proposedValue === 'object' ? (
+                                      JSON.stringify(fc.proposedValue)
+                                    ) : (
+                                      String(fc.proposedValue)
+                                    )
+                                  ) : (
+                                    <span className="text-slate-400 italic">None</span>
+                                  )}
+                                </td>
+
+                                <td className="py-2.5 px-3">
+                                  <div className="flex items-center gap-1.5">
+                                    <span
+                                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                        isWrite
+                                          ? 'bg-emerald-100 text-emerald-800'
+                                          : isSkip
+                                          ? 'bg-amber-100 text-amber-800'
+                                          : isBlocked
+                                          ? 'bg-rose-100 text-rose-800'
+                                          : 'bg-slate-100 text-slate-600'
+                                      }`}
+                                    >
+                                      {fc.action}
+                                    </span>
+                                  </div>
+                                  {fc.reason && (
+                                    <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">{fc.reason}</p>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer with Explicit Confirmation Action */}
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 shrink-0">
+              <span className="text-[11px] text-slate-500">
+                🔒 Safe Execution Guarantee: Only allowed fields will be sent in minimal payload.
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowChangePlanModal(false)}
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  disabled={confirmingPush || !changePlan || changePlan.targetType === 'ambiguous'}
+                  onClick={handleConfirmAndPush}
+                  className="px-5 py-2.5 bg-[#0d2a2c] hover:bg-[#143d40] text-white font-bold text-xs rounded-xl transition shadow flex items-center gap-2 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-[#fad982]" />
+                  <span>{confirmingPush ? 'Executing & Verifying...' : 'Confirm and Push to Store'}</span>
                 </button>
               </div>
             </div>

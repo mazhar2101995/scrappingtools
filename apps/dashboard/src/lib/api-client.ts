@@ -929,6 +929,21 @@ export class DashboardApiClient {
       body: JSON.stringify({ fieldMappings }),
     }, 'client');
   }
+
+  // --- Phase 9B: Store Change Preview & Controlled Manual Push Methods ---
+  async generateStoreChangePlan(productId: string, storeId: string): Promise<any> {
+    return this.fetchJson('/stores/change-plan', {
+      method: 'POST',
+      body: JSON.stringify({ productId, storeId }),
+    }, 'client');
+  }
+
+  async executeControlledStorePush(planId: string): Promise<any> {
+    return this.fetchJson('/stores/controlled-push', {
+      method: 'POST',
+      body: JSON.stringify({ planId }),
+    }, 'client');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

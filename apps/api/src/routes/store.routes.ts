@@ -6,6 +6,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { SynchronizationEngine, CredentialSecurity, OpenCartConnector, ShopifyConnector, WooCommerceConnector } from '@saas/connectors';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { quotaMiddleware } from '../middleware/quota.middleware';
+import { StoreExportExecutionService } from '../services/store-export-execution.service';
 
 export const storeRouter = Router();
 
@@ -347,6 +348,68 @@ storeRouter.post('/push-product', async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Failed to push product to store', details: err.message });
   }
 });
+
+// =========================================================================
+// PHASE 9B: STORE CHANGE PREVIEW & CONTROLLED MANUAL PUSH ENGINE
+// =========================================================================
+
+// POST /api/v1/stores/change-plan - Generate Server-Side Change Plan
+storeRouter.post('/change-plan', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) {
+      return res.status(401).json({ error: 'Tenant context required' });
+    }
+
+    const { productId, storeId } = req.body;
+    if (!productId || !storeId) {
+      return res.status(400).json({ error: 'productId and storeId are required' });
+    }
+
+    const changePlan = await StoreExportExecutionService.generateChangePlan(
+      orgId,
+      productId,
+      storeId,
+      (req as any).user?.userId
+    );
+
+    return res.status(200).json({
+      success: true,
+      changePlan,
+    });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/v1/stores/controlled-push - Explicit Client Confirmation & Controlled Minimal Push
+storeRouter.post('/controlled-push', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) {
+      return res.status(401).json({ error: 'Tenant context required' });
+    }
+
+    const { planId } = req.body;
+    if (!planId) {
+      return res.status(400).json({ error: 'planId is required' });
+    }
+
+    const result = await StoreExportExecutionService.executeControlledPush(
+      orgId,
+      planId,
+      (req as any).user?.userId
+    );
+
+    return res.status(200).json({
+      success: true,
+      result,
+    });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
 
 
 

@@ -132,3 +132,25 @@ export const storeExportAuditLogs = pgTable('store_export_audit_logs', {
   index('idx_seal_org_action').on(table.organizationId, table.action, table.createdAt),
 ]);
 
+// 8. Server-Side Store Change Plans (Phase 9B Foundation)
+export const storeChangePlans = pgTable('store_change_plans', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  globalProductId: uuid('global_product_id').notNull().references(() => globalProducts.id, { onDelete: 'cascade' }),
+  connectedStoreId: uuid('connected_store_id').notNull().references(() => connectedStores.id, { onDelete: 'cascade' }),
+  brandProfileId: uuid('brand_profile_id').references(() => tenantBrandProfiles.id, { onDelete: 'set null' }),
+  targetType: varchar('target_type', { length: 50 }).notNull(), // 'new_product' | 'existing_product' | 'ambiguous'
+  externalProductId: varchar('external_product_id', { length: 255 }),
+  storeFingerprint: varchar('store_fingerprint', { length: 255 }).notNull(),
+  planDetails: jsonb('plan_details').notNull(),
+  status: varchar('status', { length: 50 }).notNull().default('preview'), // 'preview', 'executed', 'expired', 'stale'
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_scp_org_store').on(table.organizationId, table.connectedStoreId),
+  index('idx_scp_product').on(table.globalProductId),
+]);
+
+
