@@ -445,6 +445,22 @@ productsRouter.post('/', async (req: Request, res: Response, next) => {
       { step: 'QualityValidation', label: 'Data quality validated', status: 'completed', timestamp: new Date().toISOString() },
     ];
 
+    // Apply brand model normalization pattern if enabled
+    let effectiveModel = cleanModel;
+    const brandModelRules = (brandProfile?.modelPatternRules as any) || {};
+    if (effectiveModel && brandModelRules?.enabled) {
+      const pfx = brandModelRules.prefix || '';
+      const sfx = brandModelRules.suffix || '';
+      let base = String(effectiveModel).trim();
+      if (brandModelRules.transform === 'UPPERCASE') base = base.toUpperCase();
+      else if (brandModelRules.transform === 'LOWERCASE') base = base.toLowerCase();
+      else if (brandModelRules.transform === 'STRIP_SPECIAL') base = base.replace(/[^a-zA-Z0-9]/g, '');
+
+      if (!base.startsWith(pfx)) base = `${pfx}${base}`;
+      if (!base.endsWith(sfx)) base = `${base}${sfx}`;
+      effectiveModel = base;
+    }
+
     if (price || attributes || customData || fieldGroupsData.length > 0 || aiEnhancedOutput) {
       await db
         .insert(customerProductOverrides)
@@ -455,12 +471,14 @@ productsRouter.post('/', async (req: Request, res: Response, next) => {
           customDescription: finalDescription,
           customAttributes: {
             price: price || null,
+            formattedModelNumber: effectiveModel,
             extractedAttributes: attributes || {},
             customFields: customData || {},
             productUrl: productUrl || null,
             fieldProvenance: fieldProvenanceMetadata,
             rawScrapedData,
             aiProcessedData: aiEnhancedOutput,
+            seoData: aiEnhancedOutput?.seoData || null,
             features: finalFeatures,
             compatibleModels: finalCompatibleModels,
             specifications: finalSpecifications,
@@ -476,12 +494,14 @@ productsRouter.post('/', async (req: Request, res: Response, next) => {
             customDescription: finalDescription,
             customAttributes: {
               price: price || null,
+              formattedModelNumber: effectiveModel,
               extractedAttributes: attributes || {},
               customFields: customData || {},
               productUrl: productUrl || null,
               fieldProvenance: fieldProvenanceMetadata,
               rawScrapedData,
               aiProcessedData: aiEnhancedOutput,
+              seoData: aiEnhancedOutput?.seoData || null,
               features: finalFeatures,
               compatibleModels: finalCompatibleModels,
               specifications: finalSpecifications,
@@ -1577,6 +1597,22 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
                 set: { customerInternalSku: cleanModel, updatedAt: new Date() },
               });
 
+            // Apply brand model normalization pattern if enabled
+            let batchEffectiveModel = cleanModel;
+            const batchBrandModelRules = (brandProfile?.modelPatternRules as any) || {};
+            if (batchEffectiveModel && batchBrandModelRules?.enabled) {
+              const pfx = batchBrandModelRules.prefix || '';
+              const sfx = batchBrandModelRules.suffix || '';
+              let base = String(batchEffectiveModel).trim();
+              if (batchBrandModelRules.transform === 'UPPERCASE') base = base.toUpperCase();
+              else if (batchBrandModelRules.transform === 'LOWERCASE') base = base.toLowerCase();
+              else if (batchBrandModelRules.transform === 'STRIP_SPECIAL') base = base.replace(/[^a-zA-Z0-9]/g, '');
+
+              if (!base.startsWith(pfx)) base = `${pfx}${base}`;
+              if (!base.endsWith(sfx)) base = `${base}${sfx}`;
+              batchEffectiveModel = base;
+            }
+
             // Overrides preserving raw data and final AI data separately
             await db
               .insert(customerProductOverrides)
@@ -1587,11 +1623,13 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
                 customDescription: finalDesc,
                 customAttributes: {
                   price: price || null,
+                  formattedModelNumber: batchEffectiveModel,
                   extractedAttributes: extracted.attributes || {},
                   customFields: customCollected,
                   productUrl: job.targetUrl,
                   rawScrapedData,
                   aiProcessedData: aiEnhanced,
+                  seoData: aiEnhanced?.seoData || null,
                   features: finalFeatures,
                   compatibleModels: finalCompatibleModels,
                   specifications: finalSpecifications,
@@ -1606,11 +1644,13 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
                   customDescription: finalDesc,
                   customAttributes: {
                     price: price || null,
+                    formattedModelNumber: batchEffectiveModel,
                     extractedAttributes: extracted.attributes || {},
                     customFields: customCollected,
                     productUrl: job.targetUrl,
                     rawScrapedData,
                     aiProcessedData: aiEnhanced,
+                    seoData: aiEnhanced?.seoData || null,
                     features: finalFeatures,
                     compatibleModels: finalCompatibleModels,
                     specifications: finalSpecifications,

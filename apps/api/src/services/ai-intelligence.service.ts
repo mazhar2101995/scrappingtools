@@ -388,16 +388,53 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
         combinedRulesText.includes('compatible') ||
         combinedRulesText.includes('specification');
 
-      // Resolve compatible models
+      // Resolve compatible models with intelligent regex splitting for Traxxas / RC / automotive model strings
       let compModelsList: string[] = [];
-      if (customFields?.compatible_models) {
-        if (Array.isArray(customFields.compatible_models)) {
-          compModelsList = customFields.compatible_models;
+      const rawComp = customFields?.compatible_models;
+      if (rawComp) {
+        let rawStr = '';
+        if (Array.isArray(rawComp)) {
+          rawStr = rawComp.join('\n');
         } else {
-          compModelsList = String(customFields.compatible_models)
-            .split(/[,;\n]/)
+          rawStr = String(rawComp);
+        }
+
+        // Clean out generic prefix sentences like "Accessories Accessory part(s) for these models:"
+        rawStr = rawStr
+          .replace(/Accessories\s+Accessory\s+part\(s\)\s+for\s+these\s+models:\s*/gi, '')
+          .replace(/Accessory\s+part\(s\)\s+for\s+these\s+models:\s*/gi, '')
+          .replace(/Past\s+op\s+de\s+volgende\s+modellen:\s*/gi, '')
+          .replace(/Fits\s+these\s+models:\s*/gi, '')
+          .replace(/Compatible\s+with:\s*/gi, '');
+
+        // Match individual models like: "Disruptor VXL-4s 106064-4", "Ford Raptor R 4X4 Ultimate 101177-4", etc.
+        // Or if comma/newline separated
+        if (rawStr.includes('\n') || rawStr.includes(',')) {
+          compModelsList = rawStr
+            .split(/[\n,;]/)
             .map((s) => s.trim())
-            .filter(Boolean);
+            .filter((s) => s.length > 2);
+        } else {
+          // Chunk by model numbers like 106064-4, 77097-4, 2996X, etc.
+          // Regex finds pattern: <Model Name> <Model Number (digits-digits or digits letters)>
+          const matches = rawStr.match(/[A-Z0-9][A-Za-z0-9\s®™\.\-\/]+?\s*(?:\([0-9A-Z\-]+\)|[0-9]{5,6}\-[0-9]|[0-9]{4,5}[A-Z])/g);
+          if (matches && matches.length > 0) {
+            compModelsList = matches.map((m) => {
+              // Ensure clean spacing and format like: "Disruptor VXL-4s (106064-4)"
+              const clean = m.trim();
+              const numMatch = clean.match(/^(.*?)\s*\(?([0-9]{4,6}\-[0-9A-Za-z]+|[0-9]{4,5}[A-Z]+)\)?$/);
+              if (numMatch) {
+                return `${numMatch[1].trim()} (${numMatch[2].trim()})`;
+              }
+              return clean;
+            });
+          } else {
+            // Fallback split
+            compModelsList = rawStr.split(/\s{2,}|\t/).map(s => s.trim()).filter(Boolean);
+            if (compModelsList.length === 0 && rawStr.trim()) {
+              compModelsList = [rawStr.trim()];
+            }
+          }
         }
       }
 
@@ -438,10 +475,18 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
 
         if (compModelsList.length > 0) {
           htmlSections += `
-  <div class="section-compatible-models">
-    <h3 class="text-base font-bold text-slate-900 mb-2">Compatible Models</h3>
-    <ul class="flex flex-wrap gap-2">
-      ${compModelsList.map((m) => `<li class="px-2.5 py-1 rounded bg-amber-50 text-amber-900 border border-amber-200 text-xs font-mono font-bold">${m}</li>`).join('')}
+  <div class="section-compatible-models p-4 rounded-2xl bg-slate-50/70 border border-slate-200">
+    <div class="flex items-center gap-2 mb-3">
+      <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold">✓</span>
+      <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Past op de volgende modellen / Compatible Models (${compModelsList.length})</h3>
+    </div>
+    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-800">
+      ${compModelsList.map((m) => `
+        <li class="flex items-center gap-2 py-1 px-2.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+          <span class="font-medium text-slate-800">${m}</span>
+        </li>
+      `).join('')}
     </ul>
   </div>`;
         }
