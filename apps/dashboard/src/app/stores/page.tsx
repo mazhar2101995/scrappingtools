@@ -530,18 +530,31 @@ export default function StoresPage() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[10px] text-slate-400 font-mono">
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <span className="text-[10px] text-slate-400 font-mono truncate">
                   ID: {s.id.slice(0, 8)}...
                 </span>
-                <button
-                  onClick={() => handleTriggerSync(s.id)}
-                  disabled={isSyncing === s.id}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-lg transition disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncing === s.id ? 'animate-spin' : ''}`} />
-                  <span>{isSyncing === s.id ? 'Syncing...' : 'Sync Now'}</span>
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {s.platformType === 'opencart' && (
+                    <a
+                      href="http://localhost:4000/api/v1/stores/download-bridge"
+                      download="saas_bridge.php"
+                      title="Download saas_bridge.php for this OpenCart store"
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs rounded-lg transition shadow-2xs"
+                    >
+                      <Download className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Download Bridge</span>
+                    </a>
+                  )}
+                  <button
+                    onClick={() => handleTriggerSync(s.id)}
+                    disabled={isSyncing === s.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-lg transition disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncing === s.id ? 'animate-spin' : ''}`} />
+                    <span>{isSyncing === s.id ? 'Syncing...' : 'Sync Now'}</span>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
