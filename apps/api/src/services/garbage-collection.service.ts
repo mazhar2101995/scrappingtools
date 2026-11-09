@@ -8,6 +8,7 @@ import {
   scrapingJobLogs,
   aiProcessingHistory,
   productVersions,
+  sourceCache,
   systemStorageSettings,
   garbageCollectionLogs,
 } from '@saas/database';
@@ -273,6 +274,18 @@ export class GarbageCollectionService {
           dbRecordsPruned += excessIds.length;
         }
       }
+    } catch (_) {}
+
+    // --- PHASE 6: Prune Expired Source Cache Records ---
+    let sourceCachePrunedCount = 0;
+    try {
+      const expiredCacheRes = await db
+        .delete(sourceCache)
+        .where(lt(sourceCache.expiresAt, new Date()))
+        .returning({ id: sourceCache.id })
+        .catch(() => []);
+      sourceCachePrunedCount = expiredCacheRes.length;
+      dbRecordsPruned += sourceCachePrunedCount;
     } catch (_) {}
 
     const durationMs = Date.now() - startTime;

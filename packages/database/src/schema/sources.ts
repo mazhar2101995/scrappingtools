@@ -97,3 +97,42 @@ export const sourceProductListings = pgTable('source_product_listings', {
   index('idx_spl_content_hash').on(table.contentHash),
 ]);
 
+export const sourceCache = pgTable('source_cache', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  urlHash: varchar('url_hash', { length: 64 }).notNull(),
+  normalizedUrl: text('normalized_url').notNull(),
+  originalUrl: text('original_url').notNull(),
+  domain: varchar('domain', { length: 255 }).notNull(),
+  contentHash: varchar('content_hash', { length: 64 }).notNull(),
+  statusCode: integer('status_code').notNull().default(200),
+  contentType: varchar('content_type', { length: 100 }).notNull().default('text/html'),
+  content: text('content').notNull(),
+  byteSize: integer('byte_size').notNull().default(0),
+  acquisitionMethod: varchar('acquisition_method', { length: 50 }).notNull().default('DIRECT_HTTP'),
+  versionNumber: integer('version_number').notNull().default(1),
+  acquiredAt: timestamp('acquired_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  lastAccessedAt: timestamp('last_accessed_at', { withTimezone: true }).notNull().defaultNow(),
+  accessCount: integer('access_count').notNull().default(1),
+  lastError: jsonb('last_error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('idx_source_cache_url_hash').on(table.urlHash),
+  index('idx_source_cache_domain').on(table.domain),
+  index('idx_source_cache_expires_at').on(table.expiresAt),
+]);
+
+export const sourceVersionHistory = pgTable('source_version_history', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  urlHash: varchar('url_hash', { length: 64 }).notNull(),
+  normalizedUrl: text('normalized_url').notNull(),
+  contentHash: varchar('content_hash', { length: 64 }).notNull(),
+  versionNumber: integer('version_number').notNull(),
+  contentDiffSummary: text('content_diff_summary'),
+  byteSize: integer('byte_size').notNull(),
+  detectedAt: timestamp('detected_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_svh_url_version').on(table.urlHash, table.versionNumber),
+]);
+

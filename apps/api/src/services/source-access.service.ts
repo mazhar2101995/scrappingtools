@@ -1,6 +1,9 @@
 import { normalizeProductUrl, NormalizedUrlResult } from '../utils/url-normalizer';
+import { db, sourceCache, sourceVersionHistory } from '@saas/database';
+import { eq, sql, lt } from 'drizzle-orm';
+import crypto from 'crypto';
 
-export type AcquisitionMethod = 'DIRECT_HTTP' | 'CONTROLLED_BROWSER' | 'CACHED_INFLIGHT';
+export type AcquisitionMethod = 'DIRECT_HTTP' | 'CONTROLLED_BROWSER' | 'CACHED_INFLIGHT' | 'VERIFIED_CACHE';
 
 export type AcquisitionErrorCategory =
   | 'INVALID_URL'
@@ -19,6 +22,8 @@ export interface AcquisitionOptions {
   useBrowser?: boolean;
   priority?: 'high' | 'normal' | 'low';
   headers?: Record<string, string>;
+  bypassCache?: boolean;
+  cacheTtlHours?: number; // Configurable freshness window (defaults to 168h / 7 days)
 }
 
 export interface AcquisitionResult {
@@ -33,6 +38,9 @@ export interface AcquisitionResult {
   contentType: string;
   byteSize: number;
   durationMs: number;
+  isCached?: boolean;
+  contentHash?: string;
+  versionNumber?: number;
   error?: {
     category: AcquisitionErrorCategory;
     message: string;
@@ -145,7 +153,50 @@ export class SourceAccessService {
       };
     }
 
-    // --- STEP 1: DUPLICATE IN-FLIGHT COALESCING ---
+    // --- STEP 1: CACHE-FIRST CHECK (VERIFIED REUSABLE SOURCE DATA) ---
+    const defaultTtlHours = options.cacheTtlHours || 168; // Default 7 days freshness window
+    if (!options.bypassCache) {
+      try {
+        const [cached] = await db
+          .select()
+          .from(sourceCache)
+          .where(eq(sourceCache.urlHash, norm.urlHash))
+          .limit(1);
+
+        if (cached && new Date(cached.expiresAt) > new Date() && cached.content) {
+          // Cache Hit! Update access metrics asynchronously
+          db.update(sourceCache)
+            .set({
+              lastAccessedAt: new Date(),
+              accessCount: sql`${sourceCache.accessCount} + 1`,
+            })
+            .where(eq(sourceCache.id, cached.id))
+            .execute()
+            .catch(() => {});
+
+          return {
+            success: true,
+            originalUrl: rawUrl, // Preserve client's original URL for provenance
+            normalizedUrl: cached.normalizedUrl,
+            domain: cached.domain,
+            urlHash: cached.urlHash,
+            method: 'VERIFIED_CACHE',
+            statusCode: cached.statusCode,
+            content: cached.content,
+            contentType: cached.contentType,
+            byteSize: cached.byteSize,
+            durationMs: Date.now() - startTime,
+            isCached: true,
+            contentHash: cached.contentHash,
+            versionNumber: cached.versionNumber,
+          };
+        }
+      } catch (cacheLookupErr) {
+        console.warn('[SourceAccess] Cache lookup error, proceeding to live fetch:', cacheLookupErr);
+      }
+    }
+
+    // --- STEP 2: DUPLICATE IN-FLIGHT COALESCING ---
     // If another job/tenant is already actively acquiring this exact normalized URL, coalesce!
     if (this.inFlightRequests.has(norm.urlHash)) {
       console.log(`[SourceAccess] Coalescing concurrent in-flight acquisition for ${norm.normalizedUrl}`);
@@ -162,15 +213,26 @@ export class SourceAccessService {
       }
     }
 
-    // --- STEP 2: EXECUTE ACQUISITION UNDER MANAGED DOMAIN CONCURRENCY ---
+    // --- STEP 3: EXECUTE ACQUISITION UNDER MANAGED DOMAIN CONCURRENCY ---
     const acquisitionPromise = (async (): Promise<AcquisitionResult> => {
       const releaseSlot = await this.acquireDomainSlot(norm.normalizedDomain);
       try {
+        let result: AcquisitionResult;
         if (options.useBrowser) {
-          return await this.executeControlledBrowser(norm, options);
+          result = await this.executeControlledBrowser(norm, options);
         } else {
-          return await this.executeDirectHttp(norm, options);
+          result = await this.executeDirectHttp(norm, options);
         }
+
+        // --- STEP 4: PERSIST OR UPDATE CACHE WITH CONTENT HASH FINGERPRINTING ---
+        if (result.success && result.content) {
+          await this.saveOrUpdateCache(norm, result, defaultTtlHours);
+        } else if (!result.success && result.error) {
+          // SAFE FAILURE HANDLING: Never overwrite valid cached data with failure!
+          await this.recordCacheFailure(norm, result.error);
+        }
+
+        return result;
       } finally {
         releaseSlot();
       }
@@ -186,6 +248,110 @@ export class SourceAccessService {
       // Remove from in-flight tracker once settled
       this.inFlightRequests.delete(norm.urlHash);
     }
+  }
+
+  /**
+   * Save or Update Source Cache with Cryptographic SHA-256 Fingerprint & Versioning
+   */
+  private static async saveOrUpdateCache(
+    norm: NormalizedUrlResult,
+    result: AcquisitionResult,
+    ttlHours: number
+  ): Promise<void> {
+    try {
+      const contentHash = crypto.createHash('sha256').update(result.content).digest('hex');
+      const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
+
+      // Check existing cached version
+      const [existing] = await db
+        .select()
+        .from(sourceCache)
+        .where(eq(sourceCache.urlHash, norm.urlHash))
+        .limit(1);
+
+      if (!existing) {
+        // Initial Version 1
+        await db.insert(sourceCache).values({
+          urlHash: norm.urlHash,
+          normalizedUrl: norm.normalizedUrl,
+          originalUrl: norm.originalUrl,
+          domain: norm.normalizedDomain,
+          contentHash,
+          statusCode: result.statusCode,
+          contentType: result.contentType,
+          content: result.content,
+          byteSize: result.byteSize,
+          acquisitionMethod: result.method,
+          versionNumber: 1,
+          acquiredAt: new Date(),
+          expiresAt,
+          lastAccessedAt: new Date(),
+          accessCount: 1,
+        });
+
+        // Record version 1 in history
+        await db.insert(sourceVersionHistory).values({
+          urlHash: norm.urlHash,
+          normalizedUrl: norm.normalizedUrl,
+          contentHash,
+          versionNumber: 1,
+          byteSize: result.byteSize,
+          contentDiffSummary: 'Initial source acquisition',
+        });
+      } else {
+        // Content Fingerprint Comparison
+        const hasChanged = existing.contentHash !== contentHash;
+        const nextVersion = hasChanged ? existing.versionNumber + 1 : existing.versionNumber;
+
+        await db
+          .update(sourceCache)
+          .set({
+            contentHash,
+            statusCode: result.statusCode,
+            contentType: result.contentType,
+            content: result.content,
+            byteSize: result.byteSize,
+            acquisitionMethod: result.method,
+            versionNumber: nextVersion,
+            acquiredAt: new Date(),
+            expiresAt,
+            lastAccessedAt: new Date(),
+            accessCount: sql`${sourceCache.accessCount} + 1`,
+            lastError: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(sourceCache.id, existing.id));
+
+        if (hasChanged) {
+          console.log(`[SourceCache] Source content change detected for ${norm.normalizedUrl}! Upgrading to v${nextVersion}`);
+          await db.insert(sourceVersionHistory).values({
+            urlHash: norm.urlHash,
+            normalizedUrl: norm.normalizedUrl,
+            contentHash,
+            versionNumber: nextVersion,
+            byteSize: result.byteSize,
+            contentDiffSummary: `Content hash changed from ${existing.contentHash.substring(0, 8)} to ${contentHash.substring(0, 8)}`,
+          });
+        }
+      }
+    } catch (saveErr) {
+      console.warn('[SourceCache] Could not persist source cache:', saveErr);
+    }
+  }
+
+  /**
+   * Safe Failure Recording: Attaches error metadata without destroying existing content
+   */
+  private static async recordCacheFailure(norm: NormalizedUrlResult, error: any): Promise<void> {
+    try {
+      await db
+        .update(sourceCache)
+        .set({
+          lastError: error,
+          updatedAt: new Date(),
+        })
+        .where(eq(sourceCache.urlHash, norm.urlHash));
+    } catch (_) {}
   }
 
   /**
@@ -434,3 +600,4 @@ export class SourceAccessService {
     };
   }
 }
+
