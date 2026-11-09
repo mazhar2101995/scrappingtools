@@ -693,13 +693,23 @@ export default function BrandProfileDetailPage() {
       setExportStatusMsg(null);
 
       // 1. Discover or fetch cached schema
-      const discovery = await apiClient.discoverStoreSchema(storeId);
-      if (discovery?.schema) {
-        setStoreSchema(discovery.schema);
+      const discoveryRes = await apiClient.discoverStoreSchema(storeId);
+      const disc = discoveryRes?.discovery || discoveryRes?.schema || discoveryRes;
+      if (disc) {
+        setStoreSchema({
+          platform: disc.platformType || disc.platform || 'store',
+          discoveredAt: disc.discoveredAt || new Date().toISOString(),
+          readOnly: true,
+          fields: disc.discoveredFields || disc.fields || [],
+          attributes: disc.discoveredAttributes || disc.attributes || [],
+          categories: disc.discoveredCategories || disc.categories || [],
+          customFields: disc.discoveredCustomFields || disc.customFields || [],
+        });
       }
 
       // 2. Fetch existing brand export profile for this store
-      const profile = await apiClient.getBrandStoreExportProfile(brandId, storeId);
+      const profileRes = await apiClient.getBrandStoreExportProfile(brandId, storeId);
+      const profile = profileRes?.profile || profileRes;
       if (profile && profile.fieldMappings && profile.fieldMappings.length > 0) {
         setExportMappings(profile.fieldMappings);
         if (profile.profileName) setExportProfileName(profile.profileName);
@@ -760,13 +770,17 @@ export default function BrandProfileDetailPage() {
       setExportStatusMsg(null);
 
       // Step 1: Validate mappings first
-      const val = await apiClient.validateExportMapping(exportMappings);
+      const valRes = await apiClient.validateExportMapping(exportMappings);
+      const val = valRes?.validation || valRes;
       setExportValidation(val);
 
-      if (!val.valid) {
+      const isValid = val?.isValid ?? val?.valid ?? true;
+      const errors = Array.isArray(val?.errors) ? val.errors : [];
+
+      if (!isValid) {
         setExportStatusMsg({
           type: 'error',
-          text: `Export mapping validation failed with ${val.errors.length} error(s). Please review and correct.`,
+          text: `Export mapping validation failed with ${errors.length} error(s). Please review and correct.`,
         });
         return;
       }
