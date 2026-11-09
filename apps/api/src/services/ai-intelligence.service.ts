@@ -87,6 +87,72 @@ export interface AiEnrichmentResult {
 
 export class AiIntelligenceService {
   /**
+   * Helper to translate text using intelligent neural translation engine with brand & technical preservation
+   */
+  public static async translateContent(text: string, targetLang: string, preserveTerms: string[] = []): Promise<string> {
+    if (!text || !text.trim() || targetLang.toLowerCase() === 'en') {
+      return text;
+    }
+
+    try {
+      // Free resilient Google GTX neural translation endpoint
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`;
+      const res = await axios.get(url, { timeout: 6000 });
+      if (res.data && Array.isArray(res.data[0])) {
+        const translated = res.data[0].map((item: any) => item[0]).join('').trim();
+        if (translated) {
+          return translated;
+        }
+      }
+    } catch (e: any) {
+      console.warn(`[AiIntelligenceService] Translation to ${targetLang} failed:`, e.message);
+    }
+    return text;
+  }
+
+  /**
+   * Helper to translate HTML formatted e-commerce product description preserving all HTML tags and CSS classes
+   */
+  public static async translateHtmlDescription(html: string, targetLang: string): Promise<string> {
+    if (!html || !html.trim() || targetLang.toLowerCase() === 'en') {
+      return html;
+    }
+
+    try {
+      // Regex replace text nodes within HTML while preserving HTML tags
+      const textNodePattern = />([^<]+)</g;
+      const matches: string[] = [];
+      let m;
+      while ((m = textNodePattern.exec(html)) !== null) {
+        const trimmed = m[1].trim();
+        if (trimmed && !/^[\d\W]+$/.test(trimmed)) {
+          matches.push(trimmed);
+        }
+      }
+
+      const uniqueTexts = Array.from(new Set(matches)).filter(t => t.length > 1);
+      if (uniqueTexts.length === 0) return html;
+
+      // Translate batch separated by newlines
+      const combined = uniqueTexts.join('\n');
+      const translatedCombined = await AiIntelligenceService.translateContent(combined, targetLang);
+      const translatedLines = translatedCombined.split('\n');
+
+      let translatedHtml = html;
+      uniqueTexts.forEach((original, idx) => {
+        const trans = translatedLines[idx] ? translatedLines[idx].trim() : original;
+        if (trans && trans !== original) {
+          translatedHtml = translatedHtml.split(`>${original}<`).join(`>${trans}<`);
+        }
+      });
+
+      return translatedHtml;
+    } catch (err: any) {
+      console.warn(`[AiIntelligenceService] HTML translation failed for ${targetLang}:`, err.message);
+      return html;
+    }
+  }
+  /**
    * Part 4: AI Eligibility Engine
    * Evaluates whether AI is actually needed or if deterministic processing suffices.
    */
@@ -169,6 +235,7 @@ export class AiIntelligenceService {
       specifications: output.specifications && typeof output.specifications === 'object' ? output.specifications : {},
       seoKeywords: Array.isArray(output.seoKeywords) ? output.seoKeywords.slice(0, 10) : [],
       seoData: output.seoData || undefined,
+      translations: output.translations || undefined,
       technicalSummary: (output.technicalSummary || '').trim(),
       suggestedCategory: output.suggestedCategory || undefined,
       confidence: typeof output.confidence === 'number' ? Math.min(1.0, Math.max(0.0, output.confidence)) : 0.95,
@@ -578,73 +645,59 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
       const primaryLang = (orgSettings.languages?.primary || 'en').toLowerCase();
 
       const translationsMap: Record<string, { title: string; description: string; seoData?: any }> = {};
-      
-      // Language localized titles and descriptors generator
+      const baseTitleToTranslate = `${brandPfx}${cleanTitle}${modelSfx}`.trim();
+
+      // Language localized titles, descriptions, and SEO metadata generator
       for (const lang of supportedLangs) {
         const lCode = String(lang).toLowerCase().trim();
         if (lCode === primaryLang) {
           translationsMap[lCode] = {
-            title: `${brandPfx}${cleanTitle}${modelSfx}`.trim(),
+            title: baseTitleToTranslate,
             description: enhancedDesc,
             seoData: generatedSeo,
           };
           continue;
         }
 
-        // Domain-specific technical e-commerce terms localization
-        let localizedTitle = `${brandPfx}${cleanTitle}${modelSfx}`.trim();
+        // 1. Fully Translate Product Title preserving brand and model number
+        let localizedTitle = baseTitleToTranslate;
+        try {
+          const transTitleRaw = await AiIntelligenceService.translateContent(cleanTitle, lCode);
+          if (transTitleRaw) {
+            localizedTitle = `${brandPfx}${transTitleRaw}${modelSfx}`.trim();
+          }
+        } catch (_) {}
+
+        // 2. Fully Translate Description (Text or HTML)
         let localizedDesc = enhancedDesc;
+        try {
+          if (/<[a-z][\s\S]*>/i.test(enhancedDesc)) {
+            localizedDesc = await AiIntelligenceService.translateHtmlDescription(enhancedDesc, lCode);
+          } else {
+            localizedDesc = await AiIntelligenceService.translateContent(enhancedDesc, lCode);
+          }
+        } catch (_) {}
 
-        if (lCode === 'nl') {
-          localizedTitle = localizedTitle.replace(/\bwith\b/gi, 'met').replace(/\bfor\b/gi, 'voor');
-          localizedDesc = localizedDesc
-            .replace(/Product Description/gi, 'Productomschrijving')
-            .replace(/Technical Specifications/gi, 'Technische Specificaties')
-            .replace(/Features & Key Highlights/gi, 'Kenmerken en Hoogtepunten')
-            .replace(/Compatible Models/gi, 'Compatibele Modellen');
-        } else if (lCode === 'de') {
-          localizedTitle = localizedTitle.replace(/\bwith\b/gi, 'mit').replace(/\bfor\b/gi, 'für');
-          localizedDesc = localizedDesc
-            .replace(/Product Description/gi, 'Produktbeschreibung')
-            .replace(/Technical Specifications/gi, 'Technische Daten')
-            .replace(/Features & Key Highlights/gi, 'Merkmale und Highlights')
-            .replace(/Compatible Models/gi, 'Kompatible Modelle');
-        } else if (lCode === 'fr') {
-          localizedTitle = localizedTitle.replace(/\bwith\b/gi, 'avec').replace(/\bfor\b/gi, 'pour');
-          localizedDesc = localizedDesc
-            .replace(/Product Description/gi, 'Description du produit')
-            .replace(/Technical Specifications/gi, 'Spécifications techniques')
-            .replace(/Features & Key Highlights/gi, 'Caractéristiques et points forts')
-            .replace(/Compatible Models/gi, 'Modèles compatibles');
-        } else if (lCode === 'es') {
-          localizedTitle = localizedTitle.replace(/\bwith\b/gi, 'con').replace(/\bfor\b/gi, 'para');
-          localizedDesc = localizedDesc
-            .replace(/Product Description/gi, 'Descripción del producto')
-            .replace(/Technical Specifications/gi, 'Especificaciones técnicas')
-            .replace(/Features & Key Highlights/gi, 'Características y aspectos destacados')
-            .replace(/Compatible Models/gi, 'Modelos compatibles');
-        } else if (lCode === 'hi') {
-          localizedDesc = localizedDesc
-            .replace(/Product Description/gi, 'उत्पाद विवरण (Product Description)')
-            .replace(/Technical Specifications/gi, 'तकनीकी विनिर्देश (Specifications)')
-            .replace(/Features & Key Highlights/gi, 'मुख्य विशेषताएं (Features)')
-            .replace(/Compatible Models/gi, 'अनुकूल मॉडल (Compatible Models)');
-        } else if (lCode === 'ar') {
-          localizedDesc = localizedDesc
-            .replace(/Product Description/gi, 'وصف المنتج (Product Description)')
-            .replace(/Technical Specifications/gi, 'المواصفات الفنية (Specifications)')
-            .replace(/Features & Key Highlights/gi, 'الميزات الرئيسية (Features)')
-            .replace(/Compatible Models/gi, 'الموديلات المتوافقة (Compatible Models)');
-        }
-
+        // 3. Fully Translate SEO Data
         let locSeo: any = null;
-        if (generatedSeo) {
+        if (brandSeoSettings?.enabled || generatedSeo) {
+          const baseSeo = generatedSeo || {};
+          let metaTitleTrans = baseSeo.metaTitle;
+          let metaDescTrans = baseSeo.metaDescription;
+
+          if (baseSeo.metaTitle) {
+            metaTitleTrans = await AiIntelligenceService.translateContent(baseSeo.metaTitle, lCode);
+          }
+          if (baseSeo.metaDescription) {
+            metaDescTrans = await AiIntelligenceService.translateContent(baseSeo.metaDescription, lCode);
+          }
+
           locSeo = {
-            ...generatedSeo,
-            metaTitle: `${localizedTitle} | ${lCode.toUpperCase()}`,
-            metaDescription: generatedSeo.metaDescription
-              ? `[${lCode.toUpperCase()}] ${generatedSeo.metaDescription}`
-              : undefined,
+            ...baseSeo,
+            metaTitle: metaTitleTrans || `${localizedTitle} | ${lCode.toUpperCase()}`,
+            metaDescription: metaDescTrans || localizedTitle,
+            ogTitle: localizedTitle,
+            ogDescription: metaDescTrans,
           };
         }
 

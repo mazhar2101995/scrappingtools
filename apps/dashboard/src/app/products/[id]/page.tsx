@@ -821,43 +821,79 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       )}
 
       {/* 5. DEDICATED AI SEO & METADATA SECTION */}
-      {data?.seoData && typeof data.seoData === 'object' && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-emerald-600" />
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                AI Generated SEO &amp; Meta Data
-              </h3>
-            </div>
-            <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-              Verified SEO Output
-            </span>
-          </div>
+      {(() => {
+        const trans = data?.aiProcessedData?.translations?.[activeLang];
+        const activeSeo = trans?.seoData || data?.seoData;
 
-          {/* Google SERP Preview Box */}
-          <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-1.5 font-sans">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Google Search Engine Result Snippet (SERP Live Preview)
-            </span>
-            <div className="text-xs text-slate-500 font-mono truncate">
-              https://yourstore.com/products/{data.seoData.urlSlug || 'product-handle'}
-            </div>
-            <div className="text-base font-medium text-[#1a0dab] hover:underline cursor-pointer truncate">
-              {data.seoData.metaTitle || product.canonicalTitle}
-            </div>
-            <p className="text-xs text-[#4d5156] line-clamp-2 leading-relaxed">
-              {data.seoData.metaDescription || product.standardizedDescription}
-            </p>
-          </div>
+        if (!activeSeo || typeof activeSeo !== 'object') return null;
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            {data.seoData.metaTitle && (
-              <div className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 space-y-1">
-                <span className="font-bold text-slate-700 block">SEO Meta Title ({data.seoData.metaTitle.length} chars)</span>
-                <span className="text-slate-900 font-mono">{data.seoData.metaTitle}</span>
+        const displayMetaTitle = activeSeo.metaTitle || (trans?.title || product.canonicalTitle);
+        const displayMetaDesc = activeSeo.metaDescription || (trans?.description ? trans.description.replace(/<[^>]+>/g, ' ').slice(0, 160) : product.standardizedDescription);
+
+        return (
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-emerald-600" />
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                  AI Generated SEO &amp; Meta Data
+                </h3>
+                {activeLang !== storeLanguages.primary && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 uppercase">
+                    {activeLang} SEO
+                  </span>
+                )}
               </div>
-            )}
+              <span className="text-[10px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                Verified SEO Output
+              </span>
+            </div>
+
+            {/* Google SERP Preview Box */}
+            <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-1.5 font-sans">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Google Search Engine Result Snippet (SERP Live Preview - {activeLang.toUpperCase()})
+              </span>
+              <div className="text-xs text-slate-500 font-mono truncate">
+                https://yourstore.com/{activeLang !== 'en' ? `${activeLang}/` : ''}products/{activeSeo.urlSlug || 'product-handle'}
+              </div>
+              <div className="text-base font-medium text-[#1a0dab] hover:underline cursor-pointer truncate">
+                {displayMetaTitle}
+              </div>
+              <p className="text-xs text-[#4d5156] line-clamp-2 leading-relaxed">
+                {displayMetaDesc}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              {activeSeo.metaTitle && (
+                <div className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 space-y-1">
+                  <span className="font-bold text-slate-700 block">SEO Meta Title ({activeSeo.metaTitle.length} chars)</span>
+                  <span className="text-slate-900 font-mono">{activeSeo.metaTitle}</span>
+                </div>
+              )}
+              {activeSeo.metaDescription && (
+                <div className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 space-y-1">
+                  <span className="font-bold text-slate-700 block">SEO Meta Description ({activeSeo.metaDescription.length} chars)</span>
+                  <span className="text-slate-900">{activeSeo.metaDescription}</span>
+                </div>
+              )}
+              {activeSeo.targetKeywords && Array.isArray(activeSeo.targetKeywords) && (
+                <div className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 space-y-2 md:col-span-2">
+                  <span className="font-bold text-slate-700 block">Target Search Keywords ({activeSeo.targetKeywords.length})</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activeSeo.targetKeywords.map((kw: string, kwIdx: number) => (
+                      <span key={kwIdx} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-mono text-[11px]">
+                        #{kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
             {data.seoData.urlSlug && (
               <div className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 space-y-1">
