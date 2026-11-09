@@ -13,9 +13,25 @@ import {
   CreditCard,
   Zap,
   CheckCircle2,
-  Lock
+  Lock,
+  Languages
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+
+const PRESET_LANGUAGES = [
+  { code: 'en', name: 'English', native: 'English' },
+  { code: 'hi', name: 'Hindi', native: 'हिन्दी' },
+  { code: 'ar', name: 'Arabic', native: 'العربية' },
+  { code: 'nl', name: 'Dutch', native: 'Nederlands' },
+  { code: 'de', name: 'German', native: 'Deutsch' },
+  { code: 'fr', name: 'French', native: 'Français' },
+  { code: 'es', name: 'Spanish', native: 'Español' },
+  { code: 'it', name: 'Italian', native: 'Italiano' },
+  { code: 'pt', name: 'Portuguese', native: 'Português' },
+  { code: 'ru', name: 'Russian', native: 'Русский' },
+  { code: 'zh', name: 'Chinese', native: '中文' },
+  { code: 'ja', name: 'Japanese', native: '日本語' },
+];
 
 export default function WorkspaceSettingsPage() {
   const [orgName, setOrgName] = useState('');
@@ -26,20 +42,84 @@ export default function WorkspaceSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [planTier, setPlanTier] = useState('pro');
 
+  // Multi-Language Store Configuration
+  const [primaryLanguage, setPrimaryLanguage] = useState('en');
+  const [supportedLanguages, setSupportedLanguages] = useState<string[]>(['en']);
+  const [customLangInput, setCustomLangInput] = useState('');
+  const [availableLanguages, setAvailableLanguages] = useState(PRESET_LANGUAGES);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedOrg = localStorage.getItem('saas_current_org_name');
       if (storedOrg) setOrgName(storedOrg);
     }
+
+    // Load store languages
+    apiClient.getStoreLanguages().then((res) => {
+      if (res) {
+        if (res.primary) setPrimaryLanguage(res.primary);
+        const supp = Array.isArray(res.supported) && res.supported.length > 0 ? res.supported : ['en'];
+        setSupportedLanguages(supp);
+
+        const newPresets = [...PRESET_LANGUAGES];
+        supp.forEach((code) => {
+          if (!newPresets.some((p) => p.code === code)) {
+            newPresets.push({
+              code,
+              name: code.toUpperCase(),
+              native: code.toUpperCase(),
+            });
+          }
+        });
+        setAvailableLanguages(newPresets);
+      }
+    }).catch((err) => console.warn('Could not load store languages:', err));
   }, []);
 
-  function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('saas_current_org_name', orgName);
+  const toggleLanguage = (code: string) => {
+    if (code === primaryLanguage) return;
+    if (supportedLanguages.includes(code)) {
+      setSupportedLanguages(supportedLanguages.filter((l) => l !== code));
+    } else {
+      setSupportedLanguages([...supportedLanguages, code]);
     }
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  };
+
+  const handleAddCustomLang = (e: React.KeyboardEvent | React.MouseEvent) => {
+    if ('key' in e && e.key !== 'Enter') return;
+    e.preventDefault();
+    const clean = customLangInput.trim().toLowerCase();
+    if (!clean) return;
+
+    if (!supportedLanguages.includes(clean)) {
+      setSupportedLanguages([...supportedLanguages, clean]);
+    }
+    if (!availableLanguages.some((l) => l.code === clean)) {
+      setAvailableLanguages([
+        ...availableLanguages,
+        { code: clean, name: clean.toUpperCase(), native: clean.toUpperCase() },
+      ]);
+    }
+    setCustomLangInput('');
+  };
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('saas_current_org_name', orgName);
+      }
+      // Save languages to backend API
+      await apiClient.updateStoreLanguages({
+        primary: primaryLanguage,
+        supported: supportedLanguages,
+      });
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to save settings');
+    }
   }
 
   return (
@@ -48,7 +128,7 @@ export default function WorkspaceSettingsPage() {
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Workspace Settings</h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
-            Configure organization branding, default catalog currency, timezones, and automated notification alerts.
+            Configure organization branding, default catalog currency, store languages, timezones, and automated notification alerts.
           </p>
         </div>
 
@@ -92,6 +172,108 @@ export default function WorkspaceSettingsPage() {
                 <option value="GBP">GBP (£) British Pound</option>
                 <option value="INR">INR (₹) Indian Rupee</option>
               </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Store Languages Configuration */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-emerald-700" />
+              <h3 className="text-sm font-bold text-slate-900">Store &amp; Catalog Languages</h3>
+            </div>
+            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              {supportedLanguages.length} Active Language{supportedLanguages.length > 1 ? 's' : ''}
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Configure the languages your store uses (e.g. English, Hindi, Arabic, Dutch, etc.). The AI pipeline and scraping engine will enrich, structure, and translate catalog titles, descriptions, and SEO metadata into all selected languages.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-1">
+            {/* Primary Language */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">
+                Primary Store Language
+              </label>
+              <select
+                value={primaryLanguage}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPrimaryLanguage(val);
+                  if (!supportedLanguages.includes(val)) {
+                    setSupportedLanguages([val, ...supportedLanguages]);
+                  }
+                }}
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 font-medium focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+              >
+                {availableLanguages.map((lang) => (
+                  <option key={lang.code} value={lang.code}>
+                    {lang.name} ({lang.native}) [{lang.code.toUpperCase()}]
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-400">
+                Primary catalog reference used for default syncing and normalization.
+              </p>
+            </div>
+
+            {/* Multi-Select Supported Languages Grid */}
+            <div className="md:col-span-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700">
+                  Supported Languages (Multi-Select)
+                </label>
+                <span className="text-[11px] text-slate-400">Click to toggle languages on/off</span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {availableLanguages.map((lang) => {
+                  const isSelected = supportedLanguages.includes(lang.code);
+                  const isPrimary = lang.code === primaryLanguage;
+                  return (
+                    <button
+                      type="button"
+                      key={lang.code}
+                      onClick={() => toggleLanguage(lang.code)}
+                      className={`flex items-center justify-between p-2 rounded-xl border text-left text-xs font-semibold transition ${
+                        isSelected
+                          ? 'bg-emerald-50/80 border-emerald-400 text-emerald-950 shadow-2xs'
+                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="truncate pr-1">
+                        <span className="block truncate font-bold">{lang.name}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">
+                          {lang.native} {isPrimary ? '• Primary' : ''}
+                        </span>
+                      </div>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Add Custom Language */}
+              <div className="mt-3 flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={customLangInput}
+                  onChange={(e) => setCustomLangInput(e.target.value)}
+                  onKeyDown={handleAddCustomLang}
+                  placeholder="Add custom language code (e.g. sv, pl, tr, el, ja)..."
+                  className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomLang}
+                  className="px-3.5 py-1.5 bg-[#0d2a2c] text-[#fad982] rounded-lg text-xs font-bold hover:bg-[#143d40] transition shrink-0"
+                >
+                  Add Language
+                </button>
+              </div>
             </div>
           </div>
         </div>
