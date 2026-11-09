@@ -316,12 +316,14 @@ export class AiIntelligenceService {
     let resolvedBrandName = brandName || '';
     let brandModelRules: any = {};
     let brandSeoSettings: any = {};
+    let brandLanguagePromptRules: Record<string, string> = {};
 
     if (brandId) {
       const [brandProfile] = await db
         .select({
           name: tenantBrandProfiles.name,
           aiPromptRules: tenantBrandProfiles.aiPromptRules,
+          languagePromptRules: tenantBrandProfiles.languagePromptRules,
           modelPatternRules: tenantBrandProfiles.modelPatternRules,
           seoSettings: tenantBrandProfiles.seoSettings,
         })
@@ -336,6 +338,7 @@ export class AiIntelligenceService {
 
       if (brandProfile) {
         brandAiPromptRules = brandProfile.aiPromptRules || '';
+        brandLanguagePromptRules = (brandProfile.languagePromptRules as any) || {};
         brandModelRules = (brandProfile.modelPatternRules as any) || {};
         brandSeoSettings = (brandProfile.seoSettings as any) || {};
         if (!resolvedBrandName) resolvedBrandName = brandProfile.name;
@@ -644,6 +647,8 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
         : ['en'];
       const primaryLang = (orgSettings.languages?.primary || 'en').toLowerCase();
 
+      const globalLanguagePrompts: Record<string, any> = aiConfig.languagePrompts || {};
+
       const translationsMap: Record<string, { title: string; description: string; seoData?: any }> = {};
       const baseTitleToTranslate = `${brandPfx}${cleanTitle}${modelSfx}`.trim();
 
@@ -658,6 +663,12 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
           };
           continue;
         }
+
+        // Check if there are custom prompt rules defined for this language (Brand rules take highest priority, then Workspace Global)
+        const brandLangRule = brandLanguagePromptRules?.[lCode] || '';
+        const globalLangRule = globalLanguagePrompts?.[lCode]?.rules || '';
+        const globalLangTitlePrompt = globalLanguagePrompts?.[lCode]?.titlePrompt || '';
+        const globalLangDescPrompt = globalLanguagePrompts?.[lCode]?.descriptionPrompt || '';
 
         // 1. Fully Translate Product Title preserving brand and model number
         let localizedTitle = baseTitleToTranslate;

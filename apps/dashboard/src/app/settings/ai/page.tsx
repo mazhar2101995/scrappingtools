@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Cpu, Sparkles, Sliders, Check, Key, Save, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
+import { Cpu, Sparkles, Sliders, Check, Key, Save, AlertCircle, FileText, CheckCircle2, Globe, Languages } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
 export default function ClientAiSettingsPage() {
@@ -17,26 +17,45 @@ export default function ClientAiSettingsPage() {
     'Act as an expert technical e-commerce copywriter. Using the provided manufacturer specifications and features, craft a compelling, SEO-optimized product title and 3-paragraph product description highlighting durability, scale specifications, and compatibility.'
   );
   const [customApiKey, setCustomApiKey] = useState('');
+
+  // Multi-Language Workspace Custom Prompts
+  const [storeLanguages, setStoreLanguages] = useState<{ primary: string; supported: string[] }>({
+    primary: 'en',
+    supported: ['en'],
+  });
+  const [activePromptLang, setActivePromptLang] = useState('en');
+  const [languagePrompts, setLanguagePrompts] = useState<Record<string, { rules?: string; titlePrompt?: string; descriptionPrompt?: string }>>({});
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Fetch tenant AI configuration from API on mount
+  // Fetch tenant AI configuration and languages from API on mount
   useEffect(() => {
     async function loadSettings() {
       try {
         setLoading(true);
         setErrorMsg('');
-        const res = await apiClient.getAiSettings();
-        if (res?.data) {
-          const cfg = res.data;
+        const [res, langsRes] = await Promise.allSettled([
+          apiClient.getAiSettings(),
+          apiClient.getStoreLanguages(),
+        ]);
+
+        if (langsRes.status === 'fulfilled' && langsRes.value?.supported) {
+          setStoreLanguages(langsRes.value);
+          setActivePromptLang(langsRes.value.primary || 'en');
+        }
+
+        if (res.status === 'fulfilled' && res.value?.data) {
+          const cfg = res.value.data;
           if (cfg.model) setSelectedModel(cfg.model);
           if (cfg.temperature !== undefined) setTemperature(Number(cfg.temperature));
           if (cfg.globalRules) setGlobalRules(cfg.globalRules);
           if (cfg.titlePrompt) setTitlePrompt(cfg.titlePrompt);
           if (cfg.descriptionPrompt) setDescriptionPrompt(cfg.descriptionPrompt);
           if (cfg.apiKey) setCustomApiKey(cfg.apiKey);
+          if (cfg.languagePrompts) setLanguagePrompts(cfg.languagePrompts);
         }
       } catch (err: any) {
         console.warn('Could not load AI settings from API, using defaults:', err.message);
@@ -46,6 +65,22 @@ export default function ClientAiSettingsPage() {
     }
     loadSettings();
   }, []);
+
+  const handleUpdateLangPrompt = (langCode: string, field: 'rules' | 'titlePrompt' | 'descriptionPrompt', value: string) => {
+    if (langCode === 'en') {
+      if (field === 'rules') setGlobalRules(value);
+      if (field === 'titlePrompt') setTitlePrompt(value);
+      if (field === 'descriptionPrompt') setDescriptionPrompt(value);
+    } else {
+      setLanguagePrompts((prev) => ({
+        ...prev,
+        [langCode]: {
+          ...(prev[langCode] || {}),
+          [field]: value,
+        },
+      }));
+    }
+  };
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -61,6 +96,7 @@ export default function ClientAiSettingsPage() {
         globalRules,
         titlePrompt,
         descriptionPrompt,
+        languagePrompts,
       });
 
       // Also sync to localStorage for client-side offline cache
@@ -175,52 +211,100 @@ export default function ClientAiSettingsPage() {
           </div>
         </div>
 
-        {/* Global Prompt Rules & Templates */}
+        {/* Global Prompt Rules & Templates with Multi-Language Tabs */}
         <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-5">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>Workspace Global AI Rules</span>
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              These rules apply universally to all products across every brand profile before brand-specific rules are executed.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>Workspace Global AI Rules &amp; Multi-Language Prompts</span>
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Configure universal catalog directives and language-specific prompt overrides for every supported store language.
+              </p>
+            </div>
+
+            {/* Language Switcher Tabs */}
+            {storeLanguages.supported && storeLanguages.supported.length > 0 && (
+              <div className="flex items-center gap-1.5 overflow-x-auto p-1 bg-slate-100 rounded-xl">
+                {storeLanguages.supported.map((code) => {
+                  const isActive = activePromptLang === code;
+                  const isPrimary = code === storeLanguages.primary;
+                  return (
+                    <button
+                      type="button"
+                      key={code}
+                      onClick={() => setActivePromptLang(code)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                        isActive
+                          ? 'bg-[#0d2a2c] text-[#fad982] shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                      }`}
+                    >
+                      <span className="uppercase">{code}</span>
+                      {isPrimary && (
+                        <span className={`text-[10px] font-normal px-1 rounded ${isActive ? 'bg-teal-900 text-amber-200' : 'bg-slate-200 text-slate-600'}`}>
+                          Main
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Active Language Notice */}
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Languages className="w-4 h-4 text-emerald-700" />
+              <span className="text-xs font-bold text-slate-800">
+                Editing Prompt Template for: <span className="uppercase font-mono text-emerald-800">[{activePromptLang}]</span>
+              </span>
+            </div>
+            {activePromptLang !== 'en' && (
+              <span className="text-[11px] text-slate-500 italic">
+                Empty fields will automatically inherit the primary English rules.
+              </span>
+            )}
           </div>
 
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Global Workspace Rules (Universal Catalog Directives)
+                {activePromptLang === 'en' ? 'Global Workspace Rules (Universal Catalog Directives)' : `Language Directives & Tone Guidelines [${activePromptLang.toUpperCase()}]`}
               </label>
               <textarea
                 rows={3}
-                value={globalRules}
-                onChange={(e) => setGlobalRules(e.target.value)}
-                placeholder="e.g. Ensure all product titles follow standardized e-commerce taxonomy. Never fabricate unlisted specs..."
+                value={activePromptLang === 'en' ? globalRules : (languagePrompts[activePromptLang]?.rules || '')}
+                onChange={(e) => handleUpdateLangPrompt(activePromptLang, 'rules', e.target.value)}
+                placeholder={activePromptLang === 'en' ? "e.g. Ensure all product titles follow standardized e-commerce taxonomy. Never fabricate unlisted specs..." : `e.g. Custom instructions for ${activePromptLang.toUpperCase()} catalog generation...`}
                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition leading-relaxed"
               />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Product Title Normalization Template
+                Product Title Normalization Template [{activePromptLang.toUpperCase()}]
               </label>
               <textarea
                 rows={2}
-                value={titlePrompt}
-                onChange={(e) => setTitlePrompt(e.target.value)}
+                value={activePromptLang === 'en' ? titlePrompt : (languagePrompts[activePromptLang]?.titlePrompt || '')}
+                onChange={(e) => handleUpdateLangPrompt(activePromptLang, 'titlePrompt', e.target.value)}
+                placeholder={activePromptLang === 'en' ? "Format: [Brand] + [Model Name] + [Scale/Category] + [Key Specification/Color]. Maintain strict manufacturer part numbers." : `Language specific title prompt formula for ${activePromptLang.toUpperCase()}...`}
                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition leading-relaxed"
               />
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                SEO & Product Description Generation Template
+                SEO &amp; Product Description Generation Template [{activePromptLang.toUpperCase()}]
               </label>
               <textarea
                 rows={4}
-                value={descriptionPrompt}
-                onChange={(e) => setDescriptionPrompt(e.target.value)}
+                value={activePromptLang === 'en' ? descriptionPrompt : (languagePrompts[activePromptLang]?.descriptionPrompt || '')}
+                onChange={(e) => handleUpdateLangPrompt(activePromptLang, 'descriptionPrompt', e.target.value)}
+                placeholder={activePromptLang === 'en' ? "Act as an expert technical e-commerce copywriter. Using the provided manufacturer specifications and features, craft a compelling, SEO-optimized product title and 3-paragraph product description highlighting durability, scale specifications, and compatibility." : `Language specific description and SEO prompt for ${activePromptLang.toUpperCase()}...`}
                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition leading-relaxed"
               />
             </div>

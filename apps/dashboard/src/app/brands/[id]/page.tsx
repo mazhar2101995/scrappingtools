@@ -86,6 +86,12 @@ export default function BrandProfileDetailPage() {
   const [notes, setNotes] = useState('');
   const [status, setStatus] = useState('active');
   const [aiPromptRules, setAiPromptRules] = useState('');
+  const [languagePromptRules, setLanguagePromptRules] = useState<Record<string, string>>({});
+  const [activeBrandPromptLang, setActiveBrandPromptLang] = useState('en');
+  const [storeLanguages, setStoreLanguages] = useState<{ primary: string; supported: string[] }>({
+    primary: 'en',
+    supported: ['en'],
+  });
 
   // Model Pattern Normalization Rules state
   const [modelPatternEnabled, setModelPatternEnabled] = useState(false);
@@ -189,6 +195,14 @@ export default function BrandProfileDetailPage() {
       setNotes(data.notes || '');
       setStatus(data.status || 'active');
       setAiPromptRules(data.aiPromptRules || '');
+      setLanguagePromptRules(data.languagePromptRules || {});
+
+      apiClient.getStoreLanguages().then((langs) => {
+        if (langs?.supported) {
+          setStoreLanguages(langs);
+          setActiveBrandPromptLang(langs.primary || 'en');
+        }
+      }).catch(() => {});
       setFieldMappings(Array.isArray(data.fieldMappings) ? data.fieldMappings : []);
       setFieldGroups(Array.isArray(data.fieldGroups) ? data.fieldGroups : []);
       setSourceConfigs(Array.isArray(data.sourceConfigs) ? data.sourceConfigs : []);
@@ -290,6 +304,7 @@ export default function BrandProfileDetailPage() {
         sourceConfigs: finalSources,
         customFields,
         aiPromptRules,
+        languagePromptRules,
         modelPatternRules: {
           enabled: modelPatternEnabled,
           prefix: modelPrefix,
@@ -1909,13 +1924,50 @@ export default function BrandProfileDetailPage() {
             </button>
           </div>
 
+          {/* Language Switcher Tabs for Brand Rules */}
+          {storeLanguages?.supported && storeLanguages.supported.length > 0 && (
+            <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+              <div className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-emerald-700" />
+                <span className="text-xs font-bold text-slate-800">
+                  Target Store Language: <span className="uppercase font-mono text-emerald-800">[{activeBrandPromptLang}]</span>
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 overflow-x-auto">
+                {storeLanguages.supported.map((code) => {
+                  const isActive = activeBrandPromptLang === code;
+                  const isPrimary = code === storeLanguages.primary;
+                  return (
+                    <button
+                      type="button"
+                      key={code}
+                      onClick={() => setActiveBrandPromptLang(code)}
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                        isActive
+                          ? 'bg-[#0d2a2c] text-[#fad982] shadow-xs'
+                          : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="uppercase">{code}</span>
+                      {isPrimary && (
+                        <span className={`text-[10px] font-normal px-1 rounded ${isActive ? 'bg-teal-900 text-amber-200' : 'bg-slate-100 text-slate-500'}`}>
+                          Main
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Inheritance explanation card */}
           <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
             <Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div className="text-xs space-y-1 text-slate-600">
               <span className="font-bold text-slate-900">Rule Hierarchy in Execution:</span>
               <p>
-                When scraping or enriching products for <strong className="text-slate-900">{brandName}</strong>, the AI engine first applies your <strong className="text-slate-900">Workspace Global AI Rules</strong>, then applies the brand-specific instructions configured below. Brand rules specialize the output for {brandName}&apos;s catalog.
+                When scraping or enriching products for <strong className="text-slate-900">{brandName}</strong> in <strong className="uppercase font-mono text-emerald-800">[{activeBrandPromptLang}]</strong>, the AI engine first applies your <strong className="text-slate-900">Workspace Global AI Rules</strong>, then applies the brand-specific instructions configured below. Brand rules specialize the output for {brandName}&apos;s catalog.
               </p>
             </div>
           </div>
@@ -1923,17 +1975,27 @@ export default function BrandProfileDetailPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Brand-Specific AI Guidelines & Prompt Rules
+                Brand-Specific AI Guidelines &amp; Prompt Rules [{activeBrandPromptLang.toUpperCase()}]
               </label>
               <textarea
                 rows={7}
-                value={aiPromptRules}
-                onChange={(e) => setAiPromptRules(e.target.value)}
-                placeholder={`Example for ${brandName}:
+                value={activeBrandPromptLang === 'en' ? aiPromptRules : (languagePromptRules[activeBrandPromptLang] || '')}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (activeBrandPromptLang === 'en') {
+                    setAiPromptRules(val);
+                  } else {
+                    setLanguagePromptRules((prev) => ({
+                      ...prev,
+                      [activeBrandPromptLang]: val,
+                    }));
+                  }
+                }}
+                placeholder={activeBrandPromptLang === 'en' ? `Example for ${brandName}:
 - Emphasize waterproof electronics and heavy-duty drivetrain durability.
 - Never use generic superlatives like 'best in the world'; use verified technical specs.
 - Call out modular chassis design and battery compatibility (2S/3S LiPo).
-- Always include the official part number in titles and key specification bullet points.`}
+- Always include the official part number in titles and key specification bullet points.` : `Add custom rules for ${brandName} in ${activeBrandPromptLang.toUpperCase()} (e.g. terminology, tone, or specific phrases)...`}
                 className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white leading-relaxed"
               />
             </div>

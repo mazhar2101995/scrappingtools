@@ -203,6 +203,7 @@ brandsRouter.put('/:id', async (req: Request, res: Response) => {
     if (fieldGroups !== undefined) updatePayload.fieldGroups = fieldGroups;
     if (customFields !== undefined) updatePayload.customFields = customFields;
     if (aiPromptRules !== undefined) updatePayload.aiPromptRules = aiPromptRules;
+    if (req.body.languagePromptRules !== undefined) updatePayload.languagePromptRules = req.body.languagePromptRules;
     if (req.body.modelPatternRules !== undefined) updatePayload.modelPatternRules = req.body.modelPatternRules;
     if (req.body.seoSettings !== undefined) updatePayload.seoSettings = req.body.seoSettings;
 

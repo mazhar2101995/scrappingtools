@@ -642,6 +642,7 @@ export class DashboardApiClient {
     fieldGroups?: any[];
     customFields?: any[];
     aiPromptRules?: string;
+    languagePromptRules?: Record<string, string>;
     modelPatternRules?: any;
     seoSettings?: any;
   }): Promise<any> {
@@ -721,6 +722,7 @@ export class DashboardApiClient {
     globalRules?: string;
     titlePrompt?: string;
     descriptionPrompt?: string;
+    languagePrompts?: Record<string, { rules?: string; titlePrompt?: string; descriptionPrompt?: string }>;
   }): Promise<any> {
     return this.fetchJson('/organizations/ai-settings', {
       method: 'PUT',

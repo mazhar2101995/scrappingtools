@@ -286,6 +286,7 @@ organizationRouter.get('/ai-settings', async (req: Request, res: Response) => {
       globalRules: 'Act as an authoritative technical e-commerce specialist. Maintain strict factual precision. Clean bullet-point formatting. High SEO value.',
       titlePrompt: 'Format: [Brand] + [Model Name] + [Scale/Category] + [Key Specification/Color]. Maintain strict manufacturer part numbers.',
       descriptionPrompt: 'Act as an expert technical e-commerce copywriter. Using the provided manufacturer specifications and features, craft a compelling, SEO-optimized product title and 3-paragraph product description highlighting durability, scale specifications, and compatibility.',
+      languagePrompts: {},
     };
 
     const existingAi = (org?.settings as any)?.ai || {};
@@ -297,7 +298,7 @@ organizationRouter.get('/ai-settings', async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/v1/organizations/ai-settings - Save tenant global AI configuration (BYOK, Prompts, Models)
+// PUT /api/v1/organizations/ai-settings - Save tenant global AI configuration (BYOK, Prompts, Models, Multi-Language Prompts)
 organizationRouter.put('/ai-settings', async (req: Request, res: Response) => {
   try {
     const orgId = (req as any).user?.organizationId;
@@ -313,6 +314,7 @@ organizationRouter.put('/ai-settings', async (req: Request, res: Response) => {
       globalRules,
       titlePrompt,
       descriptionPrompt,
+      languagePrompts,
     } = req.body;
 
     const [currentOrg] = await db
@@ -331,6 +333,7 @@ organizationRouter.put('/ai-settings', async (req: Request, res: Response) => {
       ...(globalRules !== undefined ? { globalRules: String(globalRules).trim() } : {}),
       ...(titlePrompt !== undefined ? { titlePrompt: String(titlePrompt).trim() } : {}),
       ...(descriptionPrompt !== undefined ? { descriptionPrompt: String(descriptionPrompt).trim() } : {}),
+      ...(languagePrompts !== undefined ? { languagePrompts } : {}),
       updatedAt: new Date().toISOString(),
     };
 
