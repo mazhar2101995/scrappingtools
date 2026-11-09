@@ -23,6 +23,7 @@ import { evaluateProductQuality } from '../utils/validation';
 import { ProductIntelligenceService } from '../services/product-intelligence.service';
 import { ProductDiscoveryService } from '../services/product-discovery.service';
 import { AiIntelligenceService } from '../services/ai-intelligence.service';
+import { MediaDeduplicationService } from '../services/media-deduplication.service';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
@@ -514,21 +515,9 @@ productsRouter.post('/', async (req: Request, res: Response, next) => {
         });
     }
 
-    // 6. Save images if provided
+    // 6. Save images if provided (with Deduplication & Content-Addressable Asset Registry)
     if (Array.isArray(images) && images.length > 0) {
-      for (let i = 0; i < images.length; i++) {
-        const imgUrl = images[i];
-        if (typeof imgUrl === 'string' && imgUrl.startsWith('http')) {
-          await db.insert(productImages).values({
-            globalProductId: savedProduct.id,
-            originUrl: imgUrl,
-            storageUri: imgUrl,
-            imageHash: `hash_${Date.now()}_${i}`,
-            isPrimary: i === 0,
-            sortOrder: i,
-          }).catch(() => {});
-        }
-      }
+      await MediaDeduplicationService.processProductImages(savedProduct.id, images);
     }
 
     // 7. Save SKU / Model identifier if provided
@@ -1727,22 +1716,9 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
                 },
               });
 
-            // Save images
-            for (let imgIdx = 0; imgIdx < images.length; imgIdx++) {
-              const u = images[imgIdx];
-              if (typeof u === 'string' && u.startsWith('http')) {
-                await db
-                  .insert(productImages)
-                  .values({
-                    globalProductId: savedProduct.id,
-                    originUrl: u,
-                    storageUri: u,
-                    imageHash: `hash_${Date.now()}_${imgIdx}`,
-                    isPrimary: imgIdx === 0,
-                    sortOrder: imgIdx,
-                  })
-                  .catch(() => {});
-              }
+            // Save images (with Deduplication & Content-Addressable Asset Registry)
+            if (Array.isArray(images) && images.length > 0) {
+              await MediaDeduplicationService.processProductImages(savedProduct.id, images);
             }
 
             // Mark job completed

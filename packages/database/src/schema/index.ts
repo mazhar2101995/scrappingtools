@@ -7,3 +7,4 @@ export * from './operations';
 export * from './intelligence';
 export * from './stores';
 export * from './billing';
+export * from './media';
