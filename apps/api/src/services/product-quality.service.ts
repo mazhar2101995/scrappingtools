@@ -291,6 +291,7 @@ export class ProductDataQualityService {
       .returning();
 
     // If tenant context exists, also update tenant customerProductOverrides so client immediately sees edited value
+    // and record fieldProvenance inside customAttributes for audit tracking
     if (orgId) {
       const [existingOverride] = await db
         .select()
@@ -303,12 +304,54 @@ export class ProductDataQualityService {
         )
         .limit(1);
 
+      const existingAttrs = (existingOverride?.customAttributes as any) || {};
+      const provMap = existingAttrs.fieldProvenance || {};
+
+      if (corrections.canonicalTitle) {
+        provMap.title = {
+          value: corrections.canonicalTitle,
+          method: 'human_audit_review',
+          confidence: 'Exact (Human Verified)',
+          reason: correctionReason,
+          reviewedBy: userId || 'reviewer_console',
+          lastVerifiedAt: new Date().toISOString(),
+        };
+      }
+
+      if (corrections.standardizedDescription) {
+        provMap.description = {
+          value: corrections.standardizedDescription.substring(0, 150) + '...',
+          method: 'human_audit_review',
+          confidence: 'Exact (Human Verified)',
+          reason: correctionReason,
+          reviewedBy: userId || 'reviewer_console',
+          lastVerifiedAt: new Date().toISOString(),
+        };
+      }
+
+      if (corrections.modelNumber) {
+        provMap.modelNumber = {
+          value: corrections.modelNumber,
+          method: 'human_audit_review',
+          confidence: 'Exact (Human Verified)',
+          reason: correctionReason,
+          reviewedBy: userId || 'reviewer_console',
+          lastVerifiedAt: new Date().toISOString(),
+        };
+      }
+
+      const updatedAttrs = {
+        ...existingAttrs,
+        fieldProvenance: provMap,
+      };
+
       if (existingOverride) {
         await db
           .update(customerProductOverrides)
           .set({
             customTitle: corrections.canonicalTitle || existingOverride.customTitle,
             customDescription: corrections.standardizedDescription || existingOverride.customDescription,
+            customAttributes: updatedAttrs,
             updatedAt: new Date(),
           })
           .where(
@@ -325,31 +368,9 @@ export class ProductDataQualityService {
             globalProductId: productId,
             customTitle: corrections.canonicalTitle || existing.canonicalTitle,
             customDescription: corrections.standardizedDescription || existing.standardizedDescription,
+            customAttributes: updatedAttrs,
           });
       }
-    }
-
-    // Record Human Provenance
-    if (corrections.canonicalTitle) {
-      await db
-        .insert(fieldProvenance)
-        .values({
-          globalProductId: productId,
-          fieldName: 'canonical_title',
-          currentValue: corrections.canonicalTitle,
-          sourceWebsiteId: existing.brandId, // Reference
-          sourceProductListingId: existing.id, // Direct reference
-          confidence: '1.00',
-          lastCorroboratedAt: new Date(),
-        })
-        .onConflictDoUpdate({
-          target: [fieldProvenance.globalProductId, fieldProvenance.fieldName],
-          set: {
-            currentValue: corrections.canonicalTitle,
-            confidence: '1.00',
-            lastCorroboratedAt: new Date(),
-          },
-        });
     }
 
     return {
