@@ -8,6 +8,11 @@ import {
   scrapingJobs,
   sourceWebsites,
   users,
+  sourceDomainHealth,
+  sourceIncidentEvents,
+  networkRoutes,
+  networkRouteIncidents,
+  communityFeedback,
   customerProductMappings,
   customerProductOverrides,
   storeSyncHistory,
@@ -431,7 +436,41 @@ metricsRouter.get('/admin-overview', async (req: Request, res: Response) => {
       detectedAt: string;
     }> = [];
 
-    if (failedJobsRes?.count > 0) {
+    // Query real source incidents from Phase 3
+    const recentSourceIncidents = await db
+      .select()
+      .from(sourceIncidentEvents)
+      .orderBy(desc(sourceIncidentEvents.createdAt))
+      .limit(3);
+
+    recentSourceIncidents.forEach((inc) => {
+      criticalIncidents.push({
+        id: inc.id,
+        service: `Source: ${inc.domain}`,
+        severity: inc.severity === 'CRITICAL' ? 'critical' : inc.severity === 'WARNING' ? 'high' : 'medium',
+        description: inc.message,
+        detectedAt: inc.createdAt.toISOString(),
+      });
+    });
+
+    // Query real route incidents from Phase 5
+    const recentRouteIncidents = await db
+      .select()
+      .from(networkRouteIncidents)
+      .orderBy(desc(networkRouteIncidents.createdAt))
+      .limit(2);
+
+    recentRouteIncidents.forEach((inc) => {
+      criticalIncidents.push({
+        id: inc.id,
+        service: `Route: ${inc.routeId}`,
+        severity: inc.severity === 'CRITICAL' ? 'critical' : 'high',
+        description: inc.message,
+        detectedAt: inc.createdAt.toISOString(),
+      });
+    });
+
+    if (failedJobsRes?.count > 0 && criticalIncidents.length === 0) {
       criticalIncidents.push({
         id: 'inc-failed-jobs',
         service: 'BullMQ Scraping Workers',

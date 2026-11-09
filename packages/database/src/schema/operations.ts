@@ -113,9 +113,11 @@ export const communityFeedback = pgTable('community_feedback', {
   pageUrl: text('page_url'),
   errorReferenceId: varchar('error_reference_id', { length: 100 }),
   browserInfo: text('browser_info'),
-  status: varchar('status', { length: 50 }).notNull().default('open'), // 'open', 'reviewed', 'resolved'
+  status: varchar('status', { length: 50 }).notNull().default('new'), // 'new', 'under_review', 'investigating', 'resolved'
+  resolutionNotes: text('resolution_notes'),
   metadata: jsonb('metadata').default(sql`'{}'::jsonb`),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index('idx_feedback_org').on(table.organizationId, table.createdAt),
   index('idx_feedback_status').on(table.status),

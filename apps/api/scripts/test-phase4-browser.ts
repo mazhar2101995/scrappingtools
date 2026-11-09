@@ -52,8 +52,11 @@ async function runPhase4Tests() {
       tenantId: 'tenant-alpha',
     });
 
-    if (!browserResult.success || browserResult.method !== 'CONTROLLED_BROWSER') {
-      throw new Error(`TEST B Failed: Expected CONTROLLED_BROWSER method, got ${browserResult.method}`);
+    if (!browserResult.success) {
+      throw new Error(`TEST B Failed: Expected success=true, got success=false. Error: ${browserResult.error?.message}`);
+    }
+    if (browserResult.method !== 'CONTROLLED_BROWSER') {
+      throw new Error(`TEST B Failed: Expected method CONTROLLED_BROWSER, got ${browserResult.method}`);
     }
     if (!browserResult.content.includes('Herman Melville - Moby-Dick')) {
       throw new Error(`TEST B Failed: Browser content did not contain expected DOM elements`);

@@ -74,3 +74,44 @@ feedbackRouter.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// 3. Update feedback status (Platform Admin only)
+feedbackRouter.patch('/:id/status', async (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const isPlatformAdmin = ['super_admin', 'platform_admin'].includes(user?.role);
+
+  if (!isPlatformAdmin) {
+    return res.status(403).json({ error: 'Access denied: Platform Admin role required' });
+  }
+
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const { status, resolutionNotes } = req.body;
+
+  if (!['new', 'under_review', 'investigating', 'resolved'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid status. Must be: new, under_review, investigating, or resolved' });
+  }
+
+  try {
+    const [updated] = await db
+      .update(communityFeedback)
+      .set({
+        status,
+        ...(resolutionNotes ? { resolutionNotes } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(communityFeedback.id, id))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Feedback report not found' });
+    }
+
+    return res.json({
+      success: true,
+      message: `Feedback report updated to ${status}`,
+      feedback: updated,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to update feedback status', details: err.message });
+  }
+});
+

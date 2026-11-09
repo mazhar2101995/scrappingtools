@@ -854,6 +854,38 @@ export class DashboardApiClient {
       method: 'POST',
     }, 'admin');
   }
+
+  // --- Phase 3 & 4 & 5 & 6 Observability Center Methods ---
+  async getSourceHealthList(limit: number = 50): Promise<any> {
+    return this.fetchJson(`/storage/source-health?limit=${limit}`, {}, 'admin');
+  }
+
+  async getDomainHealthDetail(domain: string): Promise<any> {
+    return this.fetchJson(`/storage/source-health/${domain}`, {}, 'admin');
+  }
+
+  async getBrowserMetrics(): Promise<any> {
+    return this.fetchJson('/storage/browser-metrics', {}, 'admin');
+  }
+
+  async getNetworkRoutes(): Promise<any> {
+    return this.fetchJson('/storage/network-routes', {}, 'admin');
+  }
+
+  async getRouteIncidents(routeId: string): Promise<any> {
+    return this.fetchJson(`/storage/network-routes/${routeId}/incidents`, {}, 'admin');
+  }
+
+  async getFeedbackList(): Promise<any> {
+    return this.fetchJson('/feedback', {}, 'admin');
+  }
+
+  async updateFeedbackStatus(id: string, status: string, resolutionNotes?: string): Promise<any> {
+    return this.fetchJson(`/feedback/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, resolutionNotes }),
+    }, 'admin');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

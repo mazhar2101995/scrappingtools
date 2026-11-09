@@ -45,7 +45,8 @@ const ADMIN_INTELLIGENCE_NAV = [
 
 const ADMIN_SUBSYSTEM_ITEMS = [
   { name: 'BullMQ Engine & Queues', href: '/admin/jobs', icon: Activity },
-  { name: 'Telemetry & Cluster Logs', href: '/admin/telemetry', icon: BarChart3 },
+  { name: 'Operations & Observability', href: '/admin/observability', icon: Server },
+  { name: 'Telemetry & Storage GC', href: '/admin/telemetry', icon: BarChart3 },
   { name: 'Store Connectors & Bridges', href: '/admin/stores', icon: RefreshCw },
   { name: 'Integration API Traffic', href: '/admin/integrations', icon: Radio },
 ];
