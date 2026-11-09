@@ -158,18 +158,8 @@ export default function StoresPage() {
             className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 font-bold text-xs rounded-xl border border-emerald-200 transition"
           >
             <HelpCircle className="w-4 h-4 text-emerald-700" />
-            <span>OpenCart Setup Guide</span>
+            <span>Store Connection Guide</span>
           </button>
-
-          <a
-            href="http://localhost:4000/api/v1/stores/download-bridge"
-            download="saas_bridge.php"
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-xs transition"
-            title="Download PHP bridge for OpenCart stores"
-          >
-            <Download className="w-4 h-4 text-[#0d2a2c]" />
-            <span>Download saas_bridge.php</span>
-          </a>
 
           <button
             onClick={handleOpenModal}
@@ -381,8 +371,8 @@ export default function StoresPage() {
                   <FileCode className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 text-base">OpenCart Bridge Setup Guide</h3>
-                  <p className="text-[11px] text-slate-500 font-medium">Follow these 3 easy steps to connect OpenCart catalog live</p>
+                  <h3 className="font-black text-slate-900 text-base">Store Connection &amp; Integration Guide</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">Follow these standard steps to connect your e-commerce store live</p>
                 </div>
               </div>
               <button
@@ -400,20 +390,15 @@ export default function StoresPage() {
                   1
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-bold text-slate-900">Download Bridge File</h4>
+                  <h4 className="font-bold text-slate-900">Step 1 — Choose Store Platform &amp; Credentials</h4>
                   <p className="text-slate-600">
-                    Click the button below to download the official OpenCart connector script:
+                    Click <strong>"Connect New Store"</strong> above and select your platform:
                   </p>
-                  <div className="pt-1.5">
-                    <a
-                      href="http://localhost:4000/api/v1/stores/download-bridge"
-                      download="saas_bridge.php"
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold rounded-lg transition"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download saas_bridge.php</span>
-                    </a>
-                  </div>
+                  <ul className="list-disc list-inside space-y-1 pt-1 text-slate-600">
+                    <li><strong>Shopify:</strong> Enter your Admin API Access Token.</li>
+                    <li><strong>WooCommerce:</strong> Enter your REST API Consumer Key &amp; Consumer Secret.</li>
+                    <li><strong>OpenCart:</strong> Enter your OpenCart API Secret Key (or use PHP connector bridge).</li>
+                  </ul>
                 </div>
               </div>
 
@@ -423,16 +408,26 @@ export default function StoresPage() {
                   2
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-bold text-slate-900">Upload to OpenCart Root Folder (cPanel / FTP)</h4>
+                  <h4 className="font-bold text-slate-900">Step 2 — OpenCart Connector Bridge (Optional / Zero Config)</h4>
                   <p className="text-slate-600">
-                    Log in to your hosting cPanel File Manager or FTP (FileZilla) and upload <code className="bg-slate-200 px-1 py-0.5 rounded font-mono text-[11px]">saas_bridge.php</code> directly into your OpenCart root directory (right next to <code className="font-mono text-[11px]">config.php</code> and <code className="font-mono text-[11px]">index.php</code>).
+                    For OpenCart stores, download <code className="bg-slate-200 px-1 py-0.5 rounded font-mono text-[11px]">saas_bridge.php</code> and upload it once to your store's root directory:
                   </p>
+                  <div className="pt-1">
+                    <a
+                      href="http://localhost:4000/api/v1/stores/download-bridge"
+                      download="saas_bridge.php"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold rounded-lg transition"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download saas_bridge.php</span>
+                    </a>
+                  </div>
                   <div className="p-3 bg-slate-900 text-slate-200 rounded-xl font-mono text-[11px] space-y-1">
-                    <div className="text-slate-400">// Your OpenCart root directory should look like this:</div>
-                    <div>📁 public_html/ (or store root folder)</div>
+                    <div className="text-slate-400">// Your store root directory structure:</div>
+                    <div>📁 public_html/ (store root folder)</div>
                     <div>&nbsp;&nbsp;├── 📄 config.php</div>
                     <div>&nbsp;&nbsp;├── 📄 index.php</div>
-                    <div className="text-emerald-400 font-bold">&nbsp;&nbsp;├── 📄 saas_bridge.php &nbsp;&nbsp;&lt;-- Paste here</div>
+                    <div className="text-emerald-400 font-bold">&nbsp;&nbsp;├── 📄 saas_bridge.php &nbsp;&nbsp;&lt;-- Upload here</div>
                     <div>&nbsp;&nbsp;├── 📁 catalog/</div>
                     <div>&nbsp;&nbsp;└── 📁 system/</div>
                   </div>
@@ -445,9 +440,9 @@ export default function StoresPage() {
                   3
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-bold text-slate-900">Verify & Push Products</h4>
+                  <h4 className="font-bold text-slate-900">Step 3 — Controlled Change Preview &amp; Push</h4>
                   <p className="text-slate-600">
-                    Once uploaded, go to any product on SaaS and click <strong>"Push to OpenCart"</strong>. The bridge will automatically receive the canonical product title, pricing, model, and images, and insert them directly into your live OpenCart store!
+                    After connecting, open any product in your catalog and click <strong>"Push to Store"</strong>. You can preview exactly which fields will be written, skipped, or protected before confirming export!
                   </p>
                 </div>
               </div>
