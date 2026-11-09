@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware, adminOnlyMiddleware } from '../middleware/auth.middleware';
 import { GarbageCollectionService } from '../services/garbage-collection.service';
+import { SourceHealthService } from '../services/source-health.service';
 import { createRedisConnection } from '@saas/queue';
 
 export const storageRouter = Router();
@@ -95,5 +96,39 @@ storageRouter.post('/gc/trigger', async (req: Request, res: Response) => {
   } catch (err: any) {
     console.error('[StorageRouter] Trigger GC Error:', err);
     return res.status(500).json({ error: 'Garbage collection failed', details: err.message });
+  }
+});
+
+/**
+ * GET /api/v1/storage/source-health
+ * List source domain health intelligence and operational status for platform admins
+ */
+storageRouter.get('/source-health', async (req: Request, res: Response) => {
+  try {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+    const domains = await SourceHealthService.listMonitoredDomains(limit);
+    return res.json({ success: true, data: domains });
+  } catch (err: any) {
+    console.error('[StorageRouter] Source Health Error:', err);
+    return res.status(500).json({ error: 'Failed to fetch source health', details: err.message });
+  }
+});
+
+/**
+ * GET /api/v1/storage/source-health/:domain
+ * Detailed health report and recent incident history for a specific domain
+ */
+storageRouter.get('/source-health/:domain', async (req: Request, res: Response) => {
+  try {
+    const domain = Array.isArray(req.params.domain) ? req.params.domain[0] : req.params.domain;
+    const health = await SourceHealthService.getDomainHealth(domain);
+    if (!health) {
+      return res.status(404).json({ error: `No operational health records found for domain '${domain}'` });
+    }
+    const incidents = await SourceHealthService.getRecentIncidents(domain);
+    return res.json({ success: true, data: { ...health, incidents } });
+  } catch (err: any) {
+    console.error('[StorageRouter] Domain Health Error:', err);
+    return res.status(500).json({ error: 'Failed to fetch domain health', details: err.message });
   }
 });

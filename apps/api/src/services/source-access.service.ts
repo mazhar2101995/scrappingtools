@@ -2,6 +2,7 @@ import { normalizeProductUrl, NormalizedUrlResult } from '../utils/url-normalize
 import { db, sourceCache, sourceVersionHistory } from '@saas/database';
 import { eq, sql, lt } from 'drizzle-orm';
 import crypto from 'crypto';
+import { SourceHealthService } from './source-health.service';
 
 export type AcquisitionMethod = 'DIRECT_HTTP' | 'CONTROLLED_BROWSER' | 'CACHED_INFLIGHT' | 'VERIFIED_CACHE';
 
@@ -213,7 +214,33 @@ export class SourceAccessService {
       }
     }
 
-    // --- STEP 3: EXECUTE ACQUISITION UNDER MANAGED DOMAIN CONCURRENCY ---
+    // --- STEP 3: PRE-FLIGHT SOURCE HEALTH & COOLDOWN GATE ---
+    const cooldownCheck = await SourceHealthService.isDomainCooledDown(norm.normalizedDomain);
+    if (cooldownCheck.cooledDown) {
+      console.warn(`[SourceAccess] Domain ${norm.normalizedDomain} is cooled down. Deferring acquisition (${cooldownCheck.remainingSec}s left)`);
+      return {
+        success: false,
+        originalUrl: rawUrl,
+        normalizedUrl: norm.normalizedUrl,
+        domain: norm.normalizedDomain,
+        urlHash: norm.urlHash,
+        method: 'DIRECT_HTTP',
+        statusCode: 429,
+        content: '',
+        contentType: '',
+        byteSize: 0,
+        durationMs: Date.now() - startTime,
+        error: {
+          category: 'RATE_LIMITED_429',
+          message: SourceHealthService.getClientFriendlyMessage('RATE_LIMITED_429', 429),
+          isRetryable: true,
+          suggestedDelaySec: cooldownCheck.remainingSec,
+          rawError: cooldownCheck.reason,
+        },
+      };
+    }
+
+    // --- STEP 4: EXECUTE ACQUISITION UNDER MANAGED DOMAIN CONCURRENCY ---
     const acquisitionPromise = (async (): Promise<AcquisitionResult> => {
       const releaseSlot = await this.acquireDomainSlot(norm.normalizedDomain);
       try {
@@ -224,10 +251,18 @@ export class SourceAccessService {
           result = await this.executeDirectHttp(norm, options);
         }
 
-        // --- STEP 4: PERSIST OR UPDATE CACHE WITH CONTENT HASH FINGERPRINTING ---
+        // --- STEP 5: RECORD HEALTH INTELLIGENCE & UPDATE CACHE ---
         if (result.success && result.content) {
+          await SourceHealthService.recordSuccess(norm.normalizedDomain, result.durationMs, result.statusCode);
           await this.saveOrUpdateCache(norm, result, defaultTtlHours);
         } else if (!result.success && result.error) {
+          await SourceHealthService.recordFailure(
+            norm.normalizedDomain,
+            result.error.category,
+            result.error.message,
+            result.statusCode,
+            result.error.suggestedDelaySec
+          );
           // SAFE FAILURE HANDLING: Never overwrite valid cached data with failure!
           await this.recordCacheFailure(norm, result.error);
         }

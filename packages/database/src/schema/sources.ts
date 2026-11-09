@@ -136,3 +136,38 @@ export const sourceVersionHistory = pgTable('source_version_history', {
   index('idx_svh_url_version').on(table.urlHash, table.versionNumber),
 ]);
 
+export const sourceDomainHealth = pgTable('source_domain_health', {
+  domain: varchar('domain', { length: 255 }).primaryKey(),
+  healthStatus: varchar('health_status', { length: 50 }).notNull().default('HEALTHY'), // HEALTHY, DEGRADED, TEMPORARILY_UNAVAILABLE, REQUIRES_REVIEW, DISABLED
+  totalRequests: integer('total_requests').notNull().default(0),
+  successfulRequests: integer('successful_requests').notNull().default(0),
+  failedRequests: integer('failed_requests').notNull().default(0),
+  consecutiveFailures: integer('consecutive_failures').notNull().default(0),
+  successRate: numeric('success_rate', { precision: 5, scale: 2 }).notNull().default('100.00'),
+  avgLatencyMs: integer('avg_latency_ms').notNull().default(0),
+  lastStatusCode: integer('last_status_code'),
+  lastErrorCategory: varchar('last_error_category', { length: 100 }),
+  lastErrorMessage: text('last_error_message'),
+  cooldownUntil: timestamp('cooldown_until', { withTimezone: true }),
+  lastSuccessAt: timestamp('last_success_at', { withTimezone: true }),
+  lastFailureAt: timestamp('last_failure_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_sdh_health_status').on(table.healthStatus),
+  index('idx_sdh_cooldown_until').on(table.cooldownUntil),
+]);
+
+export const sourceIncidentEvents = pgTable('source_incident_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  domain: varchar('domain', { length: 255 }).notNull(),
+  eventType: varchar('event_type', { length: 50 }).notNull(), // COOLDOWN_ACTIVATED, HEALTH_DEGRADED, CIRCUIT_OPEN, RECOVERY
+  severity: varchar('severity', { length: 20 }).notNull().default('WARNING'), // INFO, WARNING, CRITICAL
+  errorCategory: varchar('error_category', { length: 100 }).notNull(),
+  message: text('message').notNull(),
+  context: jsonb('context').notNull().default(sql`'{}'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_sie_domain').on(table.domain, table.createdAt),
+]);
+
