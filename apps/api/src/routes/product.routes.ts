@@ -26,6 +26,7 @@ import { AiIntelligenceService } from '../services/ai-intelligence.service';
 import { MediaDeduplicationService } from '../services/media-deduplication.service';
 import { SourceAccessService } from '../services/source-access.service';
 import { MultiStoreExportService } from '../services/multi-store-export.service';
+import { ProductLanguageIntelligenceService } from '../services/product-language-intelligence.service';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 
@@ -1859,31 +1860,65 @@ productsRouter.get('/:id/languages', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/v1/products/:id/languages/:lang - Create or update a language version
-productsRouter.post('/:id/languages/:lang', async (req: Request, res: Response) => {
+// Phase 10: Product Language Intelligence & Translation Workflow Endpoints
+// POST /api/v1/products/:id/languages/:lang/generate - Generate or Transform Language Version
+productsRouter.post('/:id/languages/:lang/generate', async (req: Request, res: Response) => {
   try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+
     const id = String(req.params.id);
     const lang = String(req.params.lang);
-    const { title, description, features, specifications, seoTitle, seoDescription, status } = req.body;
-    if (!title) {
-      return res.status(400).json({ error: 'title is required for product language version' });
-    }
+    const { clientInstructions, targetFields, forceRegenerate } = req.body;
 
-    const saved = await MultiStoreExportService.saveProductLanguageVersion(
+    const result = await ProductLanguageIntelligenceService.generateLanguageVersion(
+      orgId,
       id,
       lang,
       {
-        title,
-        description,
-        features,
-        specifications,
-        seoTitle,
-        seoDescription,
-        status,
+        clientInstructions,
+        targetFields,
+        forceRegenerate: Boolean(forceRegenerate),
+        userId: (req as any).user?.userId,
       }
     );
 
-    return res.status(201).json({ success: true, languageVersion: saved });
+    return res.status(200).json({ success: true, ...result });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/v1/products/languages/:versionId/review - Review controls: approve, edit, reject
+productsRouter.post('/languages/:versionId/review', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+
+    const versionId = String(req.params.versionId);
+    const { action, title, shortDescription, description, features, specifications, compatibleModels, reviewNotes } = req.body;
+
+    if (!action || !['approve', 'reject', 'edit'].includes(action)) {
+      return res.status(400).json({ error: "action must be 'approve', 'reject', or 'edit'" });
+    }
+
+    const result = await ProductLanguageIntelligenceService.reviewLanguageVersion(
+      orgId,
+      versionId,
+      action as any,
+      {
+        title,
+        shortDescription,
+        description,
+        features,
+        specifications,
+        compatibleModels,
+        reviewNotes,
+        userId: (req as any).user?.userId,
+      }
+    );
+
+    return res.status(200).json(result);
   } catch (err: any) {
     return res.status(400).json({ error: err.message });
   }

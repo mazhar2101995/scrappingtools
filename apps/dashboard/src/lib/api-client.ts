@@ -989,6 +989,34 @@ export class DashboardApiClient {
     }, 'client');
   }
 
+  // --- Phase 10: Product Language Intelligence & Translation Workflow Methods ---
+  async generateProductLanguage(productId: string, lang: string, payload: {
+    clientInstructions?: string;
+    targetFields?: string[];
+    forceRegenerate?: boolean;
+  } = {}): Promise<any> {
+    return this.fetchJson(`/products/${productId}/languages/${lang}/generate`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async reviewProductLanguage(versionId: string, payload: {
+    action: 'approve' | 'reject' | 'edit';
+    title?: string;
+    shortDescription?: string;
+    description?: string;
+    features?: string[];
+    specifications?: Record<string, any>;
+    compatibleModels?: string[];
+    reviewNotes?: string;
+  }): Promise<any> {
+    return this.fetchJson(`/products/languages/${versionId}/review`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
   async getTenantIntegrationHealth(): Promise<any> {
     return this.fetchJson('/stores/integration-health/summary', {}, 'client');
   }

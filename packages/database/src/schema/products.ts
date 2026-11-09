@@ -89,19 +89,29 @@ export const productImages = pgTable('product_images', {
   index('idx_pimg_hash').on(table.imageHash),
 ]);
 
-// Phase 9C: Master Product + Reusable Product Language Versions
+// Phase 9C & Phase 10: Master Product + Reusable Product Language Versions
 export const productLanguageVersions = pgTable('product_language_versions', {
   id: uuid('id').defaultRandom().primaryKey(),
   globalProductId: uuid('global_product_id').notNull().references(() => globalProducts.id, { onDelete: 'cascade' }),
   languageCode: varchar('language_code', { length: 20 }).notNull(),
   title: varchar('title', { length: 500 }).notNull(),
+  shortDescription: text('short_description'),
   description: text('description'),
   features: jsonb('features').default([]),
   specifications: jsonb('specifications').default({}),
+  compatibleModels: jsonb('compatible_models').default([]),
   seoTitle: varchar('seo_title', { length: 500 }),
   seoDescription: text('seo_description'),
-  status: varchar('status', { length: 50 }).notNull().default('current'), // 'current' | 'needs_review' | 'outdated' | 'processing' | 'failed'
+  status: varchar('status', { length: 50 }).notNull().default('current'), // 'current' | 'draft' | 'processing' | 'needs_review' | 'outdated' | 'failed' | 'approved'
   version: integer('version').notNull().default(1),
+  masterProductVersion: integer('master_product_version').notNull().default(1),
+  generationMethod: varchar('generation_method', { length: 50 }).notNull().default('ai_assisted'), // 'ai_assisted' | 'manual' | 'hybrid'
+  reviewStatus: varchar('review_status', { length: 50 }).notNull().default('draft'), // 'draft' | 'needs_review' | 'approved' | 'rejected'
+  isManuallyEdited: boolean('is_manually_edited').notNull().default(false),
+  manualEdits: jsonb('manual_edits').default({}), // Stores field names and manually edited values protected against overwrites
+  provenance: jsonb('provenance').default({}), // Tracks applied global rules, brand rules, raw source hash, timestamp
+  lastReviewedAt: timestamp('last_reviewed_at', { withTimezone: true }),
+  reviewNotes: text('review_notes'),
   lastVerifiedAt: timestamp('last_verified_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -109,6 +119,22 @@ export const productLanguageVersions = pgTable('product_language_versions', {
   uniqueIndex('idx_plv_product_lang').on(table.globalProductId, table.languageCode),
   index('idx_plv_lang').on(table.languageCode),
   index('idx_plv_status').on(table.status),
+  index('idx_plv_review').on(table.reviewStatus),
+]);
+
+export const productLanguageVersionHistory = pgTable('product_language_version_history', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  productLanguageVersionId: uuid('product_language_version_id').notNull().references(() => productLanguageVersions.id, { onDelete: 'cascade' }),
+  globalProductId: uuid('global_product_id').notNull().references(() => globalProducts.id, { onDelete: 'cascade' }),
+  languageCode: varchar('language_code', { length: 20 }).notNull(),
+  version: integer('version').notNull(),
+  contentSnapshot: jsonb('content_snapshot').notNull(),
+  changedByUserId: uuid('changed_by_user_id'),
+  changeReason: text('change_reason'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_plvh_version').on(table.productLanguageVersionId, table.version),
+  index('idx_plvh_product').on(table.globalProductId),
 ]);
 
 
