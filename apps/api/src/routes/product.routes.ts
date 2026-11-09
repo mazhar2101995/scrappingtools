@@ -746,7 +746,28 @@ productsRouter.get('/search/model', async (req: Request, res: Response) => {
 // 4. Get Detailed Product with Variants, Attributes, Identifiers, Images & Tenant Overrides
 productsRouter.get('/:id', async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
-  const id = req.params.id as string;
+  const paramId = req.params.id as string;
+
+  // Support lookup by globalProductId OR by customerProductMappings.id
+  let targetGlobalId = paramId;
+  let targetMapping: any = null;
+
+  if (orgId) {
+    const [cpm] = await db
+      .select()
+      .from(customerProductMappings)
+      .where(
+        or(
+          and(eq(customerProductMappings.organizationId, orgId), eq(customerProductMappings.id, paramId)),
+          and(eq(customerProductMappings.organizationId, orgId), eq(customerProductMappings.globalProductId, paramId))
+        )
+      )
+      .limit(1);
+    if (cpm) {
+      targetGlobalId = cpm.globalProductId;
+      targetMapping = cpm;
+    }
+  }
 
   const [product] = await db
     .select({
@@ -767,7 +788,7 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
     })
     .from(globalProducts)
     .leftJoin(brands, eq(globalProducts.brandId, brands.id))
-    .where(eq(globalProducts.id, id))
+    .where(eq(globalProducts.id, targetGlobalId))
     .limit(1);
 
   if (!product) {
@@ -776,28 +797,30 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
 
   // Fetch overrides and mapping for this tenant
   let override: any = null;
-  let mapping: any = null;
+  let mapping: any = targetMapping;
   if (orgId) {
     const [ov] = await db
       .select()
       .from(customerProductOverrides)
-      .where(and(eq(customerProductOverrides.organizationId, orgId), eq(customerProductOverrides.globalProductId, id)))
+      .where(and(eq(customerProductOverrides.organizationId, orgId), eq(customerProductOverrides.globalProductId, targetGlobalId)))
       .limit(1);
     override = ov || null;
 
-    const [mp] = await db
-      .select()
-      .from(customerProductMappings)
-      .where(and(eq(customerProductMappings.organizationId, orgId), eq(customerProductMappings.globalProductId, id)))
-      .limit(1);
-    mapping = mp || null;
+    if (!mapping) {
+      const [mp] = await db
+        .select()
+        .from(customerProductMappings)
+        .where(and(eq(customerProductMappings.organizationId, orgId), eq(customerProductMappings.globalProductId, targetGlobalId)))
+        .limit(1);
+      mapping = mp || null;
+    }
   }
 
   const [variants, identifiers, rawAttributes, images, syncedStores] = await Promise.all([
-    db.select().from(productVariants).where(eq(productVariants.globalProductId, id)),
-    db.select().from(productIdentifiers).where(eq(productIdentifiers.globalProductId, id)),
-    db.select().from(productAttributes).where(eq(productAttributes.globalProductId, id)),
-    db.select().from(productImages).where(eq(productImages.globalProductId, id)),
+    db.select().from(productVariants).where(eq(productVariants.globalProductId, targetGlobalId)),
+    db.select().from(productIdentifiers).where(eq(productIdentifiers.globalProductId, targetGlobalId)),
+    db.select().from(productAttributes).where(eq(productAttributes.globalProductId, targetGlobalId)),
+    db.select().from(productImages).where(eq(productImages.globalProductId, targetGlobalId)),
     orgId
       ? db
           .select({
@@ -815,7 +838,7 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
           .where(
             and(
               eq(connectedStores.organizationId, orgId),
-              eq(storeProductMappings.globalProductId, id)
+              eq(storeProductMappings.globalProductId, targetGlobalId)
             )
           )
       : Promise.resolve([]),
@@ -906,14 +929,30 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
 // 4.1 Reprocess Product from Raw Data with latest Global & Brand Rules (Retry AI Processing)
 productsRouter.post('/:id/reprocess', async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
-  const id = req.params.id as string;
+  const paramId = req.params.id as string;
   if (!orgId) return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
 
   try {
+    // Support lookup by globalProductId OR customerProductMappings.id
+    let targetGlobalId = paramId;
+    const [cpm] = await db
+      .select()
+      .from(customerProductMappings)
+      .where(
+        or(
+          and(eq(customerProductMappings.organizationId, orgId), eq(customerProductMappings.id, paramId)),
+          and(eq(customerProductMappings.organizationId, orgId), eq(customerProductMappings.globalProductId, paramId))
+        )
+      )
+      .limit(1);
+    if (cpm) {
+      targetGlobalId = cpm.globalProductId;
+    }
+
     const [override] = await db
       .select()
       .from(customerProductOverrides)
-      .where(and(eq(customerProductOverrides.organizationId, orgId), eq(customerProductOverrides.globalProductId, id)))
+      .where(and(eq(customerProductOverrides.organizationId, orgId), eq(customerProductOverrides.globalProductId, targetGlobalId)))
       .limit(1);
 
     const [product] = await db
@@ -927,7 +966,7 @@ productsRouter.post('/:id/reprocess', async (req: Request, res: Response) => {
       })
       .from(globalProducts)
       .leftJoin(brands, eq(globalProducts.brandId, brands.id))
-      .where(eq(globalProducts.id, id))
+      .where(eq(globalProducts.id, targetGlobalId))
       .limit(1);
 
     if (!product) {
@@ -1106,7 +1145,7 @@ productsRouter.post('/:id/reprocess', async (req: Request, res: Response) => {
       .insert(customerProductOverrides)
       .values({
         organizationId: orgId,
-        globalProductId: id,
+        globalProductId: targetGlobalId,
         customTitle: finalTitle,
         customDescription: finalDesc,
         customAttributes: updatedCustomAttrs,
