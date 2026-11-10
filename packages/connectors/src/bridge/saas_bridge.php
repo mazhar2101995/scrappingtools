@@ -49,6 +49,10 @@ if ($mysqli->connect_error) {
     ]);
     exit;
 }
+$mysqli->set_charset("utf8");
+
+$prefix = defined('DB_PREFIX') ? DB_PREFIX : 'oc_';
+
 $default_language_id = 1;
 $lang_check_res = $mysqli->query("SELECT language_id FROM `{$prefix}language` WHERE `status` = 1 ORDER BY `sort_order` ASC, `language_id` ASC LIMIT 1");
 if ($lang_check_res && $lang_check_res->num_rows > 0) {
