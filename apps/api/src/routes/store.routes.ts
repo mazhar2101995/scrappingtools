@@ -476,16 +476,73 @@ storeRouter.get('/integration-health/summary', async (req: Request, res: Respons
   }
 });
 
-// GET /api/v1/stores/products/:productId/distribution - Product distribution across stores & languages
-storeRouter.get('/products/:productId/distribution', async (req: Request, res: Response) => {
+// PUT /api/v1/stores/:id - Update store settings & credentials
+storeRouter.put('/:id', async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+    const storeId = String(req.params.id);
 
-    const distribution = await MultiStoreExportService.getProductDistribution(String(req.params.productId), orgId);
-    return res.json({ success: true, distribution });
+    const [existing] = await db
+      .select()
+      .from(connectedStores)
+      .where(and(eq(connectedStores.id, storeId), eq(connectedStores.organizationId, orgId)))
+      .limit(1);
+
+    if (!existing) {
+      return res.status(404).json({ error: 'Connected store not found' });
+    }
+
+    const { storeName, storeUrl, credentials, capabilities } = req.body;
+    const updateData: Record<string, any> = {
+      updatedAt: new Date(),
+    };
+
+    if (storeName) updateData.storeName = String(storeName).trim();
+    if (storeUrl) updateData.storeUrl = String(storeUrl).trim();
+    if (Array.isArray(capabilities)) updateData.capabilities = capabilities;
+
+    if (credentials && typeof credentials === 'object') {
+      updateData.encryptedCredentials = CredentialSecurity.encrypt(credentials);
+    }
+
+    const [updated] = await db
+      .update(connectedStores)
+      .set(updateData)
+      .where(and(eq(connectedStores.id, storeId), eq(connectedStores.organizationId, orgId)))
+      .returning({
+        id: connectedStores.id,
+        platformType: connectedStores.platformType,
+        storeName: connectedStores.storeName,
+        storeUrl: connectedStores.storeUrl,
+        status: connectedStores.status,
+      });
+
+    return res.json({ success: true, store: updated });
   } catch (err: any) {
-    return res.status(400).json({ error: err.message });
+    return res.status(500).json({ error: err.message || 'Failed to update store' });
+  }
+});
+
+// DELETE /api/v1/stores/:id - Disconnect / Delete a store
+storeRouter.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+    const storeId = String(req.params.id);
+
+    const [deleted] = await db
+      .delete(connectedStores)
+      .where(and(eq(connectedStores.id, storeId), eq(connectedStores.organizationId, orgId)))
+      .returning({ id: connectedStores.id, storeName: connectedStores.storeName });
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Connected store not found' });
+    }
+
+    return res.json({ success: true, message: `Store "${deleted.storeName}" disconnected successfully` });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to delete store' });
   }
 });
 

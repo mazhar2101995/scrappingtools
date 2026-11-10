@@ -24,7 +24,9 @@ import {
   HelpCircle,
   FolderTree,
   Terminal,
-  UploadCloud
+  UploadCloud,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -48,6 +50,10 @@ export default function StoresPage() {
   const [wooConsumerSecret, setWooConsumerSecret] = useState('');
   const [openCartUsername, setOpenCartUsername] = useState('');
   const [openCartApiKey, setOpenCartApiKey] = useState('');
+
+  // Edit / Delete Store State
+  const [editingStore, setEditingStore] = useState<any | null>(null);
+  const [deletingStoreId, setDeletingStoreId] = useState<string | null>(null);
 
   // OpenCart Guide Modal
   const [showGuideModal, setShowGuideModal] = useState(false);
@@ -79,6 +85,7 @@ export default function StoresPage() {
   }, []);
 
   function handleOpenModal() {
+    setEditingStore(null);
     setShowAddModal(true);
     setErrorMsg('');
     setSuccessMsg('');
@@ -90,6 +97,36 @@ export default function StoresPage() {
     setWooConsumerSecret('');
     setOpenCartUsername('');
     setOpenCartApiKey('');
+  }
+
+  function handleOpenEditModal(store: any) {
+    setEditingStore(store);
+    setShowAddModal(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    setStoreName(store.storeName || '');
+    setStoreUrl(store.storeUrl || '');
+    setPlatformType(store.platformType || 'opencart');
+    setShopifyAccessToken('');
+    setWooConsumerKey('');
+    setWooConsumerSecret('');
+    setOpenCartUsername('');
+    setOpenCartApiKey('');
+  }
+
+  async function handleDeleteStore(store: any) {
+    if (!confirm(`Are you sure you want to disconnect and delete store "${store.storeName}"? All synced mappings will be removed.`)) {
+      return;
+    }
+    try {
+      setDeletingStoreId(store.id);
+      await apiClient.deleteStore(store.id);
+      await loadStores();
+    } catch (err: any) {
+      alert(`Failed to delete store: ${err.message || 'Unknown error'}`);
+    } finally {
+      setDeletingStoreId(null);
+    }
   }
 
   async function handleConnectStore(e: React.FormEvent) {
@@ -118,21 +155,42 @@ export default function StoresPage() {
         };
       }
 
-      await apiClient.connectStore({
-        platformType,
-        storeName: storeName.trim(),
-        storeUrl: storeUrl.trim(),
-        credentials,
-        capabilities: ['PULL_PRODUCTS', 'PUSH_PRODUCTS', 'UPDATE_PRICING', 'UPDATE_STOCK'],
-      });
+      if (editingStore) {
+        const updatePayload: any = {
+          storeName: storeName.trim(),
+          storeUrl: storeUrl.trim(),
+        };
+        // If user entered new credentials, include them in update
+        if (
+          shopifyAccessToken.trim() ||
+          wooConsumerKey.trim() ||
+          wooConsumerSecret.trim() ||
+          openCartUsername.trim() ||
+          openCartApiKey.trim()
+        ) {
+          updatePayload.credentials = credentials;
+        }
 
-      setSuccessMsg(`Store "${storeName}" connected successfully!`);
+        await apiClient.updateStore(editingStore.id, updatePayload);
+        setSuccessMsg(`Store "${storeName}" updated successfully!`);
+      } else {
+        await apiClient.connectStore({
+          platformType,
+          storeName: storeName.trim(),
+          storeUrl: storeUrl.trim(),
+          credentials,
+          capabilities: ['PULL_PRODUCTS', 'PUSH_PRODUCTS', 'UPDATE_PRICING', 'UPDATE_STOCK'],
+        });
+        setSuccessMsg(`Store "${storeName}" connected successfully!`);
+      }
+
       setTimeout(() => {
         setShowAddModal(false);
+        setEditingStore(null);
         loadStores();
-      }, 1500);
+      }, 1200);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to connect store');
+      setErrorMsg(err.message || (editingStore ? 'Failed to update store' : 'Failed to connect store'));
     } finally {
       setSubmitting(false);
     }
@@ -253,7 +311,9 @@ export default function StoresPage() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Store className="w-5 h-5 text-[#0d2a2c]" />
-                <h3 className="font-black text-slate-900 text-base">Connect E-Commerce Store</h3>
+                <h3 className="font-black text-slate-900 text-base">
+                  {editingStore ? `Edit Store — ${editingStore.storeName}` : 'Connect E-Commerce Store'}
+                </h3>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
@@ -424,10 +484,10 @@ export default function StoresPage() {
                   {submitting ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Connecting...</span>
+                      <span>{editingStore ? 'Saving Changes...' : 'Connecting...'}</span>
                     </>
                   ) : (
-                    <span>Connect Store</span>
+                    <span>{editingStore ? 'Save Changes' : 'Connect Store'}</span>
                   )}
                 </button>
               </div>
@@ -572,10 +632,27 @@ export default function StoresPage() {
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#0d2a2c] text-[#fad982]">
                     {s.platformType}
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span>{s.status}</span>
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span>{s.status}</span>
+                    </span>
+                    <button
+                      onClick={() => handleOpenEditModal(s)}
+                      title="Edit Store Settings & Credentials"
+                      className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200 transition"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteStore(s)}
+                      disabled={deletingStoreId === s.id}
+                      title="Disconnect / Delete Store"
+                      className="p-1 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-transparent hover:border-rose-200 transition disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div>

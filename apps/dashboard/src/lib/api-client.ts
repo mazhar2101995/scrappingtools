@@ -527,6 +527,24 @@ export class DashboardApiClient {
     }, 'client');
   }
 
+  async updateStore(id: string, payload: {
+    storeName?: string;
+    storeUrl?: string;
+    credentials?: Record<string, any>;
+    capabilities?: string[];
+  }): Promise<any> {
+    return this.fetchJson(`/stores/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async deleteStore(id: string): Promise<any> {
+    return this.fetchJson(`/stores/${id}`, {
+      method: 'DELETE',
+    }, 'client');
+  }
+
   async triggerStoreSync(storeId: string): Promise<any> {
     return this.fetchJson(`/stores/${storeId}/sync`, {
       method: 'POST',
