@@ -71,6 +71,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   // Phase 9C: Multi-Store Product Distribution State
   const [distributionData, setDistributionData] = useState<any | null>(null);
   const [loadingDistribution, setLoadingDistribution] = useState(false);
+  const [distributionError, setDistributionError] = useState<string | null>(null);
   const [showDistributionModal, setShowDistributionModal] = useState(false);
 
   // Price & Stock Monitoring State
@@ -220,12 +221,14 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     if (!params.id) return;
     try {
       setLoadingDistribution(true);
+      setDistributionError(null);
       const res = await apiClient.getProductDistribution(params.id);
       if (res?.distribution) {
         setDistributionData(res.distribution);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Failed to load product distribution:', err);
+      setDistributionError(err.message || 'Failed to query store distribution matrix');
     } finally {
       setLoadingDistribution(false);
     }
@@ -1681,6 +1684,22 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   <p className="text-xs font-semibold text-slate-500">
                     Querying store bridges and language version states...
                   </p>
+                </div>
+              )}
+
+              {distributionError && (
+                <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{distributionError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={fetchDistribution}
+                    className="px-2.5 py-1 bg-white hover:bg-rose-100 text-rose-900 border border-rose-300 rounded-lg font-bold text-[11px] transition"
+                  >
+                    Retry
+                  </button>
                 </div>
               )}
 
