@@ -52,6 +52,15 @@ export default function StoresPage() {
   // OpenCart Guide Modal
   const [showGuideModal, setShowGuideModal] = useState(false);
 
+  // Store Languages Modal State (Phase 9C)
+  const [activeLangStore, setActiveLangStore] = useState<any | null>(null);
+  const [storeLanguagesList, setStoreLanguagesList] = useState<any[]>([]);
+  const [loadingLangs, setLoadingLangs] = useState(false);
+  const [savingLang, setSavingLang] = useState(false);
+  const [langError, setLangError] = useState('');
+  const [newLangCode, setNewLangCode] = useState('');
+  const [newPlatformLocale, setNewPlatformLocale] = useState('');
+
   async function loadStores() {
     try {
       setLoading(true);
@@ -126,6 +135,72 @@ export default function StoresPage() {
       setErrorMsg(err.message || 'Failed to connect store');
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function openLanguagesModal(store: any) {
+    setActiveLangStore(store);
+    setLangError('');
+    setLoadingLangs(true);
+    try {
+      const res = await apiClient.getSpecificStoreLanguages(store.id);
+      setStoreLanguagesList(Array.isArray(res?.languages) ? res.languages : []);
+    } catch (e: any) {
+      setLangError(e.message || 'Failed to fetch store languages');
+    } finally {
+      setLoadingLangs(false);
+    }
+  }
+
+  async function handleAddLanguage(e: React.FormEvent) {
+    e.preventDefault();
+    if (!activeLangStore || !newLangCode.trim()) return;
+    try {
+      setSavingLang(true);
+      setLangError('');
+      await apiClient.configureStoreLanguage(activeLangStore.id, {
+        languageCode: newLangCode.trim().toLowerCase(),
+        platformLocaleCode: newPlatformLocale.trim() || undefined,
+        exportEnabled: true,
+        isDefault: false,
+      });
+      setNewLangCode('');
+      setNewPlatformLocale('');
+      const res = await apiClient.getSpecificStoreLanguages(activeLangStore.id);
+      setStoreLanguagesList(Array.isArray(res?.languages) ? res.languages : []);
+    } catch (e: any) {
+      setLangError(e.message || 'Failed to add store language');
+    } finally {
+      setSavingLang(false);
+    }
+  }
+
+  async function handleToggleLangExport(langCode: string, currentEnabled: boolean) {
+    if (!activeLangStore) return;
+    try {
+      await apiClient.configureStoreLanguage(activeLangStore.id, {
+        languageCode: langCode,
+        exportEnabled: !currentEnabled,
+      });
+      const res = await apiClient.getSpecificStoreLanguages(activeLangStore.id);
+      setStoreLanguagesList(Array.isArray(res?.languages) ? res.languages : []);
+    } catch (e: any) {
+      setLangError(e.message || 'Failed to update export status');
+    }
+  }
+
+  async function handleSetDefaultLang(langCode: string) {
+    if (!activeLangStore) return;
+    try {
+      await apiClient.configureStoreLanguage(activeLangStore.id, {
+        languageCode: langCode,
+        isDefault: true,
+        exportEnabled: true,
+      });
+      const res = await apiClient.getSpecificStoreLanguages(activeLangStore.id);
+      setStoreLanguagesList(Array.isArray(res?.languages) ? res.languages : []);
+    } catch (e: any) {
+      setLangError(e.message || 'Failed to set default language');
     }
   }
 
@@ -531,9 +606,14 @@ export default function StoresPage() {
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <span className="text-[10px] text-slate-400 font-mono truncate">
-                  ID: {s.id.slice(0, 8)}...
-                </span>
+                <button
+                  onClick={() => openLanguagesModal(s)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-200 font-bold text-xs rounded-lg transition"
+                  title="Manage destination languages for this store"
+                >
+                  <Globe className="w-3.5 h-3.5 text-teal-700" />
+                  <span>Languages</span>
+                </button>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {s.platformType === 'opencart' && (
                     <a
@@ -558,6 +638,150 @@ export default function StoresPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Phase 9C: Store Languages Management Modal */}
+      {activeLangStore && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 sm:p-7 space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-800 flex items-center justify-center font-bold">
+                  <Globe className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 text-base">Store Languages — {activeLangStore.storeName}</h3>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    Configure multiple destination languages supported by this store ({activeLangStore.platformType?.toUpperCase()})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveLangStore(null)}
+                className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {langError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>{langError}</span>
+              </div>
+            )}
+
+            {/* List of Configured Store Languages */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                Active Store Languages ({storeLanguagesList.length})
+              </span>
+
+              {loadingLangs ? (
+                <div className="p-4 text-center text-xs text-slate-400">Loading store languages...</div>
+              ) : storeLanguagesList.length === 0 ? (
+                <div className="p-4 text-center text-xs text-slate-400 bg-slate-50 rounded-xl">
+                  No languages configured yet. Add one below.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {storeLanguagesList.map((l: any) => (
+                    <div
+                      key={l.id || l.languageCode}
+                      className="p-3 rounded-xl border border-slate-200 bg-slate-50/50 flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold uppercase px-2 py-0.5 rounded bg-white border border-slate-200 text-slate-900">
+                          {l.languageCode}
+                        </span>
+                        {l.isDefault && (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900">
+                            Default
+                          </span>
+                        )}
+                        {l.platformLocaleCode && (
+                          <span className="text-[10px] font-mono text-slate-400">({l.platformLocaleCode})</span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {!l.isDefault && (
+                          <button
+                            type="button"
+                            onClick={() => handleSetDefaultLang(l.languageCode)}
+                            className="text-[10px] font-semibold text-slate-600 hover:text-slate-900 underline"
+                          >
+                            Set Default
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleLangExport(l.languageCode, l.exportEnabled)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition ${
+                            l.exportEnabled
+                              ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                              : 'bg-slate-200 text-slate-600 hover:bg-slate-300'
+                          }`}
+                        >
+                          {l.exportEnabled ? 'Export Enabled' : 'Export Disabled'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Form to Add New Language to Store */}
+            <form onSubmit={handleAddLanguage} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700 block">
+                + Add Supported Language To Store
+              </span>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Language Code (e.g. nl, ar, hi)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="nl"
+                    value={newLangCode}
+                    onChange={(e) => setNewLangCode(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-600 mb-1">Platform Locale (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="nl-NL or nl_NL"
+                    value={newPlatformLocale}
+                    onChange={(e) => setNewPlatformLocale(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end pt-1">
+                <button
+                  type="submit"
+                  disabled={savingLang || !newLangCode.trim()}
+                  className="px-4 py-2 text-xs font-bold bg-[#0d2a2c] hover:bg-[#143d40] text-[#fad982] rounded-xl transition disabled:opacity-50"
+                >
+                  {savingLang ? 'Adding...' : '+ Add Store Language'}
+                </button>
+              </div>
+            </form>
+
+            <div className="flex items-center justify-end pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setActiveLangStore(null)}
+                className="px-5 py-2.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl transition"
+              >
+                Done
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

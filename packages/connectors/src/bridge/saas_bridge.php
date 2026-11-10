@@ -21,7 +21,7 @@ error_reporting(0);
 ini_set('display_errors', 0);
 
 header('Content-Type: application/json; charset=utf-8');
-header('X-Bridge-Version: 2.0.0');
+header('X-Bridge-Version: 2.1.0');
 
 // 1. Load OpenCart Environment & Database Configuration
 if (file_exists('config.php')) {
@@ -49,9 +49,12 @@ if ($mysqli->connect_error) {
     ]);
     exit;
 }
-$mysqli->set_charset("utf8");
-
-$prefix = defined('DB_PREFIX') ? DB_PREFIX : 'oc_';
+$default_language_id = 1;
+$lang_check_res = $mysqli->query("SELECT language_id FROM `{$prefix}language` WHERE `status` = 1 ORDER BY `sort_order` ASC, `language_id` ASC LIMIT 1");
+if ($lang_check_res && $lang_check_res->num_rows > 0) {
+    $default_language_id = (int)$lang_check_res->fetch_assoc()['language_id'];
+}
+$language_id = $default_language_id;
 
 // 3. Dynamic Authentication Layer
 // Checks both X-Saas-Key header and request parameters against oc_api
@@ -180,7 +183,7 @@ switch ($action) {
 
         echo json_encode([
             'success' => true,
-            'bridge_version' => '2.0.1',
+            'bridge_version' => '2.1.0',
             'opencart_version' => defined('VERSION') ? VERSION : '3.x',
             'store_name' => defined('HTTP_SERVER') ? HTTP_SERVER : 'OpenCart Live Store',
             'database' => DB_DATABASE,
@@ -238,21 +241,48 @@ switch ($action) {
             }
         }
 
+        // Normalize localized field helper: resolves code against language object
+        $get_lang_val = function($field_map, $lang_row, $fallback = '') {
+            if (empty($field_map)) return $fallback;
+            if (is_string($field_map)) return $field_map;
+            if (!is_array($field_map)) return $fallback;
+
+            $lid = (string)$lang_row['language_id'];
+            $code = strtolower(trim($lang_row['code']));
+            $prefix_code = explode('-', $code)[0];
+
+            if (isset($field_map[$code])) return $field_map[$code];
+            if (isset($field_map[$prefix_code])) return $field_map[$prefix_code];
+            if (isset($field_map[$lid])) return $field_map[$lid];
+            if (isset($field_map['en'])) return $field_map['en'];
+            if (isset($field_map['en-gb'])) return $field_map['en-gb'];
+
+            $vals = array_values($field_map);
+            return !empty($vals) ? $vals[0] : $fallback;
+        };
+
         if ($existing_id) {
             // Update Existing Product
-            $mysqli->query("UPDATE `{$prefix}product` SET 
-                `price` = {$price}, 
-                `quantity` = {$quantity}, 
-                `sku` = '{$safe_sku}', 
-                `image` = IF('{$safe_image}' != '', '{$safe_image}', `image`),
-                `status` = 1, 
-                `date_modified` = NOW() 
-                WHERE `product_id` = {$existing_id}");
+            $update_sets = [
+                "`sku` = '{$safe_sku}'",
+                "`image` = IF('{$safe_image}' != '', '{$safe_image}', `image`)",
+                "`status` = 1",
+                "`date_modified` = NOW()"
+            ];
+            // Only update price if price was passed and is greater than 0, otherwise keep existing store price
+            if ($price > 0.00) {
+                $update_sets[] = "`price` = {$price}";
+            }
+            if ($quantity > 0) {
+                $update_sets[] = "`quantity` = {$quantity}";
+            }
+
+            $mysqli->query("UPDATE `{$prefix}product` SET " . implode(', ', $update_sets) . " WHERE `product_id` = {$existing_id}");
 
             // Ensure store mapping exists
             $mysqli->query("INSERT IGNORE INTO `{$prefix}product_to_store` SET `product_id` = {$existing_id}, `store_id` = 0");
 
-            // Update Descriptions or insert if missing
+            // Update Descriptions with language-specific mapping
             $desc_cols_res = $mysqli->query("SHOW COLUMNS FROM `{$prefix}product_description`");
             $desc_fields_meta = [];
             if ($desc_cols_res) {
@@ -261,19 +291,40 @@ switch ($action) {
                 }
             }
 
-            $langs_query = $mysqli->query("SELECT language_id FROM `{$prefix}language`");
+            $langs_query = $mysqli->query("SELECT * FROM `{$prefix}language`");
             if ($langs_query) {
                 while ($l = $langs_query->fetch_assoc()) {
                     $lid = (int)$l['language_id'];
+                    $l_title = $get_lang_val($payload['name'] ?? null, $l, $title);
+                    $l_desc = $get_lang_val($payload['description'] ?? null, $l, $description);
+
+                    // Extract SEO metadata for this language
+                    $l_meta_title = $get_lang_val($payload['seo']['metaTitle'] ?? ($payload['meta_title'] ?? null), $l, $l_title);
+                    $l_meta_desc = $get_lang_val($payload['seo']['metaDescription'] ?? ($payload['meta_description'] ?? null), $l, strip_tags($l_desc));
+                    $l_meta_key = $get_lang_val($payload['seo']['metaKeywords'] ?? ($payload['meta_keyword'] ?? null), $l, '');
+
+                    $safe_l_title = $mysqli->real_escape_string($l_title);
+                    $safe_l_desc = $mysqli->real_escape_string($l_desc);
+                    $safe_l_mtitle = $mysqli->real_escape_string($l_meta_title);
+                    $safe_l_mdesc = $mysqli->real_escape_string(substr($l_meta_desc, 0, 255));
+                    $safe_l_mkey = $mysqli->real_escape_string($l_meta_key);
+
                     $d_sets = [
                         "`product_id` = {$existing_id}",
                         "`language_id` = {$lid}",
-                        "`name` = '{$safe_title}'",
-                        "`description` = '{$safe_desc}'",
-                        "`meta_title` = '{$safe_title}'",
+                        "`name` = '{$safe_l_title}'",
+                        "`description` = '{$safe_l_desc}'",
+                        "`meta_title` = '{$safe_l_mtitle}'",
                     ];
+                    if (isset($desc_fields_meta['meta_description'])) {
+                        $d_sets[] = "`meta_description` = '{$safe_l_mdesc}'";
+                    }
+                    if (isset($desc_fields_meta['meta_keyword'])) {
+                        $d_sets[] = "`meta_keyword` = '{$safe_l_mkey}'";
+                    }
+
                     foreach ($desc_fields_meta as $fname => $finfo) {
-                        if (in_array($fname, ['product_id', 'language_id', 'name', 'description', 'meta_title'])) continue;
+                        if (in_array($fname, ['product_id', 'language_id', 'name', 'description', 'meta_title', 'meta_description', 'meta_keyword'])) continue;
                         if ($finfo['Default'] === null && strtolower($finfo['Null']) === 'no') {
                             $ftype = strtolower($finfo['Type']);
                             if (strpos($ftype, 'int') !== false) {
@@ -283,7 +334,36 @@ switch ($action) {
                             }
                         }
                     }
-                    $mysqli->query("INSERT INTO `{$prefix}product_description` SET " . implode(', ', $d_sets) . " ON DUPLICATE KEY UPDATE `name` = '{$safe_title}', `description` = '{$safe_desc}'");
+
+                    $upd_clauses = [
+                        "`name` = '{$safe_l_title}'",
+                        "`description` = '{$safe_l_desc}'",
+                        "`meta_title` = '{$safe_l_mtitle}'"
+                    ];
+                    if (isset($desc_fields_meta['meta_description'])) $upd_clauses[] = "`meta_description` = '{$safe_l_mdesc}'";
+                    if (isset($desc_fields_meta['meta_keyword'])) $upd_clauses[] = "`meta_keyword` = '{$safe_l_mkey}'";
+
+                    $mysqli->query("INSERT INTO `{$prefix}product_description` SET " . implode(', ', $d_sets) . " ON DUPLICATE KEY UPDATE " . implode(', ', $upd_clauses));
+
+                    // Multi-Language SEO URL Slug Update
+                    $l_slug = $get_lang_val($payload['seo']['slug'] ?? ($payload['keyword'] ?? null), $l, '');
+                    if (empty($l_slug)) {
+                        $l_slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $l_title)));
+                        $l_slug = $l_slug . '-' . $existing_id;
+                    }
+                    $safe_l_slug = $mysqli->real_escape_string($l_slug);
+
+                    $seo_check = $mysqli->query("SHOW TABLES LIKE '{$prefix}seo_url'");
+                    if ($seo_check && $seo_check->num_rows > 0) {
+                        $mysqli->query("DELETE FROM `{$prefix}seo_url` WHERE `query` = 'product_id={$existing_id}' AND `language_id` = {$lid}");
+                        $mysqli->query("INSERT INTO `{$prefix}seo_url` SET `store_id` = 0, `language_id` = {$lid}, `query` = 'product_id={$existing_id}', `keyword` = '{$safe_l_slug}'");
+                    } else {
+                        $alias_check = $mysqli->query("SHOW TABLES LIKE '{$prefix}url_alias'");
+                        if ($alias_check && $alias_check->num_rows > 0) {
+                            $mysqli->query("DELETE FROM `{$prefix}url_alias` WHERE `query` = 'product_id={$existing_id}'");
+                            $mysqli->query("INSERT INTO `{$prefix}url_alias` SET `query` = 'product_id={$existing_id}', `keyword` = '{$safe_l_slug}'");
+                        }
+                    }
                 }
             }
 
@@ -356,7 +436,7 @@ switch ($action) {
 
             $product_id = (int)$mysqli->insert_id;
 
-            // Insert Multilingual Descriptions for all configured languages
+            // Insert Multilingual Descriptions with language-specific mapping
             $desc_cols_res = $mysqli->query("SHOW COLUMNS FROM `{$prefix}product_description`");
             $desc_fields_meta = [];
             if ($desc_cols_res) {
@@ -365,21 +445,40 @@ switch ($action) {
                 }
             }
 
-            $langs_query = $mysqli->query("SELECT language_id FROM `{$prefix}language`");
+            $langs_query = $mysqli->query("SELECT * FROM `{$prefix}language`");
             if ($langs_query) {
                 while ($l = $langs_query->fetch_assoc()) {
                     $lid = (int)$l['language_id'];
-                    
+                    $l_title = $get_lang_val($payload['name'] ?? null, $l, $title);
+                    $l_desc = $get_lang_val($payload['description'] ?? null, $l, $description);
+
+                    // Extract SEO metadata for this language
+                    $l_meta_title = $get_lang_val($payload['seo']['metaTitle'] ?? ($payload['meta_title'] ?? null), $l, $l_title);
+                    $l_meta_desc = $get_lang_val($payload['seo']['metaDescription'] ?? ($payload['meta_description'] ?? null), $l, strip_tags($l_desc));
+                    $l_meta_key = $get_lang_val($payload['seo']['metaKeywords'] ?? ($payload['meta_keyword'] ?? null), $l, '');
+
+                    $safe_l_title = $mysqli->real_escape_string($l_title);
+                    $safe_l_desc = $mysqli->real_escape_string($l_desc);
+                    $safe_l_mtitle = $mysqli->real_escape_string($l_meta_title);
+                    $safe_l_mdesc = $mysqli->real_escape_string(substr($l_meta_desc, 0, 255));
+                    $safe_l_mkey = $mysqli->real_escape_string($l_meta_key);
+
                     $d_sets = [
                         "`product_id` = {$product_id}",
                         "`language_id` = {$lid}",
-                        "`name` = '{$safe_title}'",
-                        "`description` = '{$safe_desc}'",
-                        "`meta_title` = '{$safe_title}'",
+                        "`name` = '{$safe_l_title}'",
+                        "`description` = '{$safe_l_desc}'",
+                        "`meta_title` = '{$safe_l_mtitle}'",
                     ];
+                    if (isset($desc_fields_meta['meta_description'])) {
+                        $d_sets[] = "`meta_description` = '{$safe_l_mdesc}'";
+                    }
+                    if (isset($desc_fields_meta['meta_keyword'])) {
+                        $d_sets[] = "`meta_keyword` = '{$safe_l_mkey}'";
+                    }
 
                     foreach ($desc_fields_meta as $fname => $finfo) {
-                        if (in_array($fname, ['product_id', 'language_id', 'name', 'description', 'meta_title'])) continue;
+                        if (in_array($fname, ['product_id', 'language_id', 'name', 'description', 'meta_title', 'meta_description', 'meta_keyword'])) continue;
                         if ($finfo['Default'] === null && strtolower($finfo['Null']) === 'no') {
                             $ftype = strtolower($finfo['Type']);
                             if (strpos($ftype, 'int') !== false) {
@@ -390,27 +489,33 @@ switch ($action) {
                         }
                     }
 
-                    $insert_desc_sql = "INSERT INTO `{$prefix}product_description` SET " . implode(', ', $d_sets) . " ON DUPLICATE KEY UPDATE `name` = '{$safe_title}', `description` = '{$safe_desc}'";
+                    $insert_desc_sql = "INSERT INTO `{$prefix}product_description` SET " . implode(', ', $d_sets) . " ON DUPLICATE KEY UPDATE `name` = '{$safe_l_title}', `description` = '{$safe_l_desc}', `meta_title` = '{$safe_l_mtitle}'";
                     $mysqli->query($insert_desc_sql);
+
+                    // Multi-Language SEO URL Slug
+                    $l_slug = $get_lang_val($payload['seo']['slug'] ?? ($payload['keyword'] ?? null), $l, '');
+                    if (empty($l_slug)) {
+                        $l_slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $l_title)));
+                        $l_slug = $l_slug . '-' . $product_id;
+                    }
+                    $safe_l_slug = $mysqli->real_escape_string($l_slug);
+
+                    $seo_check = $mysqli->query("SHOW TABLES LIKE '{$prefix}seo_url'");
+                    if ($seo_check && $seo_check->num_rows > 0) {
+                        $mysqli->query("DELETE FROM `{$prefix}seo_url` WHERE `query` = 'product_id={$product_id}' AND `language_id` = {$lid}");
+                        $mysqli->query("INSERT INTO `{$prefix}seo_url` SET `store_id` = 0, `language_id` = {$lid}, `query` = 'product_id={$product_id}', `keyword` = '{$safe_l_slug}'");
+                    } else {
+                        $alias_check = $mysqli->query("SHOW TABLES LIKE '{$prefix}url_alias'");
+                        if ($alias_check && $alias_check->num_rows > 0) {
+                            $mysqli->query("DELETE FROM `{$prefix}url_alias` WHERE `query` = 'product_id={$product_id}'");
+                            $mysqli->query("INSERT INTO `{$prefix}url_alias` SET `query` = 'product_id={$product_id}', `keyword` = '{$safe_l_slug}'");
+                        }
+                    }
                 }
             }
 
             // Assign to Default Store (store_id = 0)
             $mysqli->query("INSERT IGNORE INTO `{$prefix}product_to_store` SET `product_id` = {$product_id}, `store_id` = 0");
-
-            // Build SEO friendly URL alias
-            $clean_slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title)));
-            $clean_slug = $mysqli->real_escape_string($clean_slug . '-' . $product_id);
-
-            $seo_check = $mysqli->query("SHOW TABLES LIKE '{$prefix}seo_url'");
-            if ($seo_check && $seo_check->num_rows > 0) {
-                $mysqli->query("INSERT IGNORE INTO `{$prefix}seo_url` SET `store_id` = 0, `language_id` = {$language_id}, `query` = 'product_id={$product_id}', `keyword` = '{$clean_slug}'");
-            } else {
-                $alias_check = $mysqli->query("SHOW TABLES LIKE '{$prefix}url_alias'");
-                if ($alias_check && $alias_check->num_rows > 0) {
-                    $mysqli->query("INSERT IGNORE INTO `{$prefix}url_alias` SET `query` = 'product_id={$product_id}', `keyword` = '{$clean_slug}'");
-                }
-            }
 
             // Additional Gallery Images (if any)
             if (isset($payload['images']) && is_array($payload['images']) && count($payload['images']) > 1) {
@@ -464,13 +569,14 @@ switch ($action) {
     // 4. PULL PRODUCTS (READ CATALOG BACK TO SAAS)
     // ---------------------------------------------------------------------
     case 'pull_products':
+        $pull_lang_id = isset($_GET['language_id']) ? (int)$_GET['language_id'] : $default_language_id;
         $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 50;
         $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
         $offset = ($page - 1) * $limit;
 
         $sql = "SELECT p.product_id, p.model, p.sku, p.price, p.quantity, p.image, p.status, pd.name, pd.description 
                 FROM `{$prefix}product` p 
-                LEFT JOIN `{$prefix}product_description` pd ON (p.product_id = pd.product_id AND pd.language_id = {$language_id}) 
+                LEFT JOIN `{$prefix}product_description` pd ON (p.product_id = pd.product_id AND pd.language_id = {$pull_lang_id}) 
                 ORDER BY p.product_id DESC 
                 LIMIT {$offset}, {$limit}";
 
@@ -492,7 +598,35 @@ switch ($action) {
         exit;
 
     // ---------------------------------------------------------------------
-    // 5. UNKNOWN ACTION FALLBACK
+    // 5. DELETE PRODUCT (REMOTE CLEANUP)
+    // ---------------------------------------------------------------------
+    case 'delete_product':
+        $del_id = isset($payload['product_id']) ? (int)$payload['product_id'] : (isset($_GET['product_id']) ? (int)$_GET['product_id'] : 0);
+        if (!$del_id) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Missing product_id']);
+            exit;
+        }
+
+        $mysqli->query("DELETE FROM `{$prefix}product` WHERE `product_id` = {$del_id}");
+        $mysqli->query("DELETE FROM `{$prefix}product_description` WHERE `product_id` = {$del_id}");
+        $mysqli->query("DELETE FROM `{$prefix}product_to_store` WHERE `product_id` = {$del_id}");
+        $mysqli->query("DELETE FROM `{$prefix}product_image` WHERE `product_id` = {$del_id}");
+        
+        $seo_check = $mysqli->query("SHOW TABLES LIKE '{$prefix}seo_url'");
+        if ($seo_check && $seo_check->num_rows > 0) {
+            $mysqli->query("DELETE FROM `{$prefix}seo_url` WHERE `query` = 'product_id={$del_id}'");
+        }
+        $alias_check = $mysqli->query("SHOW TABLES LIKE '{$prefix}url_alias'");
+        if ($alias_check && $alias_check->num_rows > 0) {
+            $mysqli->query("DELETE FROM `{$prefix}url_alias` WHERE `query` = 'product_id={$del_id}'");
+        }
+
+        echo json_encode(['success' => true, 'deleted_id' => $del_id]);
+        exit;
+
+    // ---------------------------------------------------------------------
+    // 6. UNKNOWN ACTION FALLBACK
     // ---------------------------------------------------------------------
     default:
         http_response_code(400);

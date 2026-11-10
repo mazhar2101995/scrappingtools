@@ -542,36 +542,36 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
           : `Engineered by ${resolvedBrandName || 'the manufacturer'}, the ${cleanTitle} delivers dependable performance and verified specifications.`;
 
         let htmlSections = `
-<div class="product-content-formatted space-y-6">
-  <div class="section-description">
-    <h3 class="text-base font-bold text-slate-900 mb-2">Product Description</h3>
-    <p class="text-slate-700 leading-relaxed text-sm">${baseIntro}</p>
+<div class="product-content-formatted" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 100%;">
+  <div class="section-description" style="margin-bottom: 24px;">
+    <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 8px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;">Product Description</h3>
+    <p style="color: #334155; font-size: 14px; line-height: 1.6; margin: 0;">${baseIntro}</p>
   </div>`;
 
         if (compModelsList.length > 0) {
           htmlSections += `
-  <div class="section-compatible-models p-4 rounded-2xl bg-slate-50/70 border border-slate-200">
-    <div class="flex items-center gap-2 mb-3">
-      <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold">✓</span>
-      <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Compatible Models (${compModelsList.length})</h3>
+  <div class="section-compatible-models" style="margin-bottom: 24px; padding: 16px; border-radius: 12px; background-color: #f8fafc; border: 1px solid #e2e8f0;">
+    <div style="display: flex; align-items: center; margin-bottom: 12px;">
+      <span style="display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; background-color: #d1fae5; color: #065f46; font-size: 11px; font-weight: bold; margin-right: 8px;">✓</span>
+      <h3 style="font-size: 12px; font-weight: 700; color: #0f172a; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">Compatible Models (${compModelsList.length})</h3>
     </div>
-    <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-800">
+    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
       ${compModelsList.map((m) => `
-        <li class="flex items-center gap-2 py-1 px-2.5 rounded-lg bg-white border border-slate-200/80 shadow-2xs">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
-          <span class="font-medium text-slate-800">${m}</span>
-        </li>
+        <span style="display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px; background-color: #ffffff; border: 1px solid #cbd5e1; font-size: 12px; font-weight: 500; color: #1e293b; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background-color: #10b981; margin-right: 6px;"></span>
+          ${m}
+        </span>
       `).join('')}
-    </ul>
+    </div>
   </div>`;
         }
 
         if (featuresList.length > 0) {
           htmlSections += `
-  <div class="section-features">
-    <h3 class="text-base font-bold text-slate-900 mb-2">Key Features</h3>
-    <ul class="list-disc list-inside space-y-1 text-slate-700 text-sm">
-      ${featuresList.slice(0, 10).map((f) => `<li>${f}</li>`).join('')}
+  <div class="section-features" style="margin-bottom: 24px;">
+    <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 10px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;">Key Features</h3>
+    <ul style="margin: 0; padding-left: 20px; color: #334155; font-size: 14px; line-height: 1.6;">
+      ${featuresList.slice(0, 10).map((f) => `<li style="margin-bottom: 4px;">${f}</li>`).join('')}
     </ul>
   </div>`;
         }
@@ -579,14 +579,14 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
         const specEntries = Object.entries(specsObj).filter(([_, v]) => !String(v).includes('(Not found on tested page)'));
         if (specEntries.length > 0) {
           htmlSections += `
-  <div class="section-specifications">
-    <h3 class="text-base font-bold text-slate-900 mb-2">Technical Specifications</h3>
-    <table class="w-full text-xs text-left border-collapse border border-slate-200">
+  <div class="section-specifications" style="margin-bottom: 24px;">
+    <h3 style="font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 10px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px;">Technical Specifications</h3>
+    <table style="width: 100%; font-size: 13px; text-align: left; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
       <tbody>
         ${specEntries.map(([k, v]) => `
-          <tr class="border-b border-slate-100">
-            <td class="py-1.5 px-3 font-semibold text-slate-700 bg-slate-50 w-1/3">${k}</td>
-            <td class="py-1.5 px-3 text-slate-900 font-mono">${String(v)}</td>
+          <tr style="border-bottom: 1px solid #f1f5f9;">
+            <td style="padding: 8px 12px; font-weight: 600; color: #334155; background-color: #f8fafc; width: 35%; border-right: 1px solid #e2e8f0;">${k}</td>
+            <td style="padding: 8px 12px; color: #0f172a; font-family: monospace;">${String(v)}</td>
           </tr>
         `).join('')}
       </tbody>

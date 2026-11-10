@@ -41,9 +41,10 @@ export interface CanonicalProductModel {
     options: Record<string, string>;
   }>;
   seo?: {
-    metaTitle?: string;
-    metaDescription?: string;
-    slug?: string;
+    metaTitle?: string | Record<string, string>;
+    metaDescription?: string | Record<string, string>;
+    metaKeywords?: string | Record<string, string>;
+    slug?: string | Record<string, string>;
   };
   platformMetadata?: Record<string, any>;
 }

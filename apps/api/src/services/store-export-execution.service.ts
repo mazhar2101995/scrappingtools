@@ -13,10 +13,12 @@ import {
   storeSyncHistory,
   productLanguageVersions,
   storeLanguages,
+  brands,
 } from '@saas/database';
 import { eq, and, sql } from 'drizzle-orm';
 import crypto from 'crypto';
 import { MultiStoreExportService } from './multi-store-export.service';
+import { SynchronizationEngine } from '@saas/connectors';
 
 export type ChangePlanAction =
   | 'CREATE'
@@ -218,11 +220,36 @@ export class StoreExportExecutionService {
       .limit(1);
 
     // 3. Find Brand Profile & Store Export Mapping (Layer C)
-    let [brandProfile] = await db
-      .select()
-      .from(tenantBrandProfiles)
-      .where(eq(tenantBrandProfiles.organizationId, organizationId))
-      .limit(1);
+    // Find Brand Profile matching product's brand, or fallback to first organization brand profile
+    let brandProfile: any = null;
+    if (product.brandId) {
+      const [brandEntity] = await db
+        .select()
+        .from(brands)
+        .where(eq(brands.id, product.brandId))
+        .limit(1);
+      if (brandEntity) {
+        const [matchedBp] = await db
+          .select()
+          .from(tenantBrandProfiles)
+          .where(
+            and(
+              eq(tenantBrandProfiles.organizationId, organizationId),
+              sql`LOWER(${tenantBrandProfiles.name}) = LOWER(${brandEntity.name})`
+            )
+          )
+          .limit(1);
+        brandProfile = matchedBp;
+      }
+    }
+    if (!brandProfile) {
+      const [firstBp] = await db
+        .select()
+        .from(tenantBrandProfiles)
+        .where(eq(tenantBrandProfiles.organizationId, organizationId))
+        .limit(1);
+      brandProfile = firstBp;
+    }
 
     // Fetch Brand Store Export Profile
     let exportProfile: any = null;
@@ -272,17 +299,56 @@ export class StoreExportExecutionService {
       imagesList.push(product.primaryImageUrl);
     }
 
+    // Resolve description: Check field groups data, then enhanced description, then overrides/master
+    let resolvedDescription = langVersion?.description || override?.customDescription || customAttrs.enhancedDescription || product.standardizedDescription || '';
+    if (!resolvedDescription && Array.isArray(customAttrs.fieldGroupsData)) {
+      const descGroup = customAttrs.fieldGroupsData.find((g: any) => g.name?.toLowerCase() === 'description');
+      if (descGroup && Array.isArray(descGroup.fields)) {
+        const dField = descGroup.fields.find((f: any) => f.key === 'description');
+        if (dField?.value) resolvedDescription = dField.value;
+      }
+    }
+
+    // Resolve SEO Data: check langVersion, then customAttrs.seoData, then fallback
+    const resolvedSeoData = (customAttrs.seoData && typeof customAttrs.seoData === 'object') ? customAttrs.seoData : {};
+    const resolvedMetaTitle = langVersion?.seoTitle || resolvedSeoData.metaTitle || resolvedSeoData.ogTitle || langVersion?.title || override?.customTitle || product.canonicalTitle;
+    const resolvedMetaDescription = langVersion?.seoDescription || resolvedSeoData.metaDescription || resolvedSeoData.ogDescription || (resolvedDescription ? String(resolvedDescription).replace(/<[^>]+>/g, ' ').slice(0, 160).trim() : '');
+    const resolvedMetaKeywords = Array.isArray(resolvedSeoData.targetKeywords) ? resolvedSeoData.targetKeywords.join(', ') : (resolvedSeoData.targetKeywords || `${product.canonicalTitle}, OEM parts`);
+    const resolvedSeoSlug = resolvedSeoData.urlSlug || (product.canonicalTitle ? product.canonicalTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : `product-${globalProductId.slice(0, 8)}`);
+
+    // Apply dynamic Brand Profile Model Pattern Rules (prefix, suffix, transform)
+    let dynamicFormattedModel = customAttrs.formattedModelNumber || product.modelNumber || 'MOD-101';
+    if (brandProfile) {
+      const mRules = (brandProfile.modelPatternRules as any) || {};
+      if (mRules?.enabled && product.modelNumber) {
+        const pfx = mRules.prefix || '';
+        const sfx = mRules.suffix || '';
+        let base = String(product.modelNumber).trim();
+        if (mRules.transform === 'UPPERCASE') base = base.toUpperCase();
+        else if (mRules.transform === 'LOWERCASE') base = base.toLowerCase();
+        else if (mRules.transform === 'STRIP_SPECIAL') base = base.replace(/[^a-zA-Z0-9]/g, '');
+
+        if (!base.startsWith(pfx)) base = `${pfx}${base}`;
+        if (!base.endsWith(sfx)) base = `${base}${sfx}`;
+        dynamicFormattedModel = base;
+      }
+    }
+
     // Phase 9C: Reusable Product Language Version overrides standard values for localized fields
     const sourceValues: Record<string, any> = {
       name: langVersion?.title || override?.customTitle || product.canonicalTitle,
-      description: langVersion?.description || override?.customDescription || product.standardizedDescription || 'High-performance model.',
-      model: product.modelNumber || 'MOD-101',
-      sku: product.modelNumber || `SKU-${Date.now().toString().slice(-4)}`,
+      description: resolvedDescription || 'High-performance model.',
+      model: dynamicFormattedModel,
+      sku: dynamicFormattedModel,
       price: customAttrs.price ? parseFloat(String(customAttrs.price).replace(/[^0-9.]/g, '')) || 499.99 : 499.99,
       images: imagesList,
-      compatible_models: customFields.compatible_models || ['Traxxas Slash', 'Traxxas Rustler'],
-      seo_title: langVersion?.seoTitle || product.canonicalTitle,
-      seo_description: langVersion?.seoDescription || product.standardizedDescription || '',
+      compatible_models: customFields.compatible_models || customAttrs.compatibleModels || ['Traxxas Slash', 'Traxxas Rustler'],
+      meta_title: resolvedMetaTitle,
+      meta_description: resolvedMetaDescription,
+      meta_keyword: resolvedMetaKeywords,
+      seo_keyword: resolvedSeoSlug,
+      seo_title: resolvedMetaTitle,
+      seo_description: resolvedMetaDescription,
     };
 
     // 6. Calculate Field Changes per Policy & Target Type
@@ -302,7 +368,23 @@ export class StoreExportExecutionService {
       const writePolicy = mapping.writePolicy || 'replace';
       const enabled = mapping.enabled !== false && permission !== 'disabled' && writePolicy !== 'disabled';
 
-      const proposedVal = sourceValues[fieldKey];
+      // Case-insensitive fallback lookup for proposedVal (e.g. 'Description' vs 'description')
+      let proposedVal = sourceValues[fieldKey];
+      if (proposedVal === undefined && typeof fieldKey === 'string') {
+        const lowerKey = fieldKey.toLowerCase();
+        proposedVal = sourceValues[lowerKey];
+        if (proposedVal === undefined) {
+          // Check if fieldKey matches a Brand Field Group name
+          if (Array.isArray(customAttrs.fieldGroupsData)) {
+            const grp = customAttrs.fieldGroupsData.find((g: any) => g.name?.toLowerCase() === lowerKey);
+            if (grp && Array.isArray(grp.fields)) {
+              // Combine group fields into rich summary or extract main text
+              const valField = grp.fields.find((f: any) => f.key === 'description' || f.key === lowerKey) || grp.fields[0];
+              if (valField?.value) proposedVal = valField.value;
+            }
+          }
+        }
+      }
       const currentVal = isNew ? null : (existingData[targetKey] !== undefined ? existingData[targetKey] : null);
 
       if (!enabled) {
@@ -414,6 +496,7 @@ export class StoreExportExecutionService {
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
     const planPayload = {
       productTitle: override?.customTitle || product.canonicalTitle,
+      targetLanguage,
       sku: sourceValues.sku,
       brandName: brandProfile?.name || 'Brand Profile',
       storeName: store.storeName,
@@ -541,9 +624,116 @@ export class StoreExportExecutionService {
       }
     });
 
-    // 5. Execute Minimal Payload to Store
-    const externalProductId = plan.externalProductId || `store_prod_${Date.now()}`;
-    const externalSku = details.sku || `SKU-${Date.now().toString().slice(-4)}`;
+    // 5. Execute Minimal Payload to Live Store via Platform Connector & Bridge
+    let externalProductId = plan.externalProductId || `store_prod_${Date.now()}`;
+    let externalSku = details.sku || `SKU-${Date.now().toString().slice(-4)}`;
+
+    try {
+      const connector = SynchronizationEngine.createConnector(store);
+
+      // Build canonical model matching the approved Change Plan minimal payload
+      const [override] = await db
+        .select()
+        .from(customerProductOverrides)
+        .where(eq(customerProductOverrides.globalProductId, plan.globalProductId))
+        .limit(1);
+
+      let brandName = '';
+      if (plan.brandProfileId) {
+        const [brand] = await db
+          .select()
+          .from(tenantBrandProfiles)
+          .where(eq(tenantBrandProfiles.id, plan.brandProfileId))
+          .limit(1);
+        brandName = brand ? ((brand as any).brandName || (brand as any).name || '') : '';
+      }
+
+      const targetLang = details.targetLanguage || 'en';
+      const prodImages = await db
+        .select()
+        .from(productImages)
+        .where(eq(productImages.globalProductId, plan.globalProductId));
+
+      const imagesList = prodImages.map((img) => ({
+        url: img.originUrl || (img as any).storageUri || '',
+        altText: product.canonicalTitle,
+        isPrimary: img.isPrimary,
+        sortOrder: img.sortOrder || 0,
+      }));
+
+      // Multilingual name, description and SEO mapping
+      const customAttrs = (override?.customAttributes as any) || {};
+      const fallbackPrice = customAttrs.price ? parseFloat(String(customAttrs.price).replace(/[^0-9.]/g, '')) || 0.00 : 0.00;
+      const finalPrice = minimalPayload.price !== undefined && minimalPayload.price !== null
+        ? (parseFloat(String(minimalPayload.price)) || fallbackPrice)
+        : fallbackPrice;
+
+      const nameMap: Record<string, string> = {};
+      const descMap: Record<string, string> = {};
+      const metaTitleMap: Record<string, string> = {};
+      const metaDescMap: Record<string, string> = {};
+      const metaKeywordsMap: Record<string, string> = {};
+      const seoSlugMap: Record<string, string> = {};
+
+      const allLangVersions = await db
+        .select()
+        .from(productLanguageVersions)
+        .where(eq(productLanguageVersions.globalProductId, plan.globalProductId));
+
+      for (const lv of allLangVersions) {
+        const code = lv.languageCode.toLowerCase();
+        nameMap[code] = lv.title;
+        if (lv.description) descMap[code] = lv.description;
+        if (lv.seoTitle) metaTitleMap[code] = lv.seoTitle;
+        if (lv.seoDescription) metaDescMap[code] = lv.seoDescription;
+      }
+
+      // If specific minimalPayload fields were approved in the Change Plan for targetLang, ensure they take precedence
+      if (minimalPayload.name) nameMap[targetLang] = minimalPayload.name;
+      if (minimalPayload.description) descMap[targetLang] = minimalPayload.description;
+      if (minimalPayload.meta_title) metaTitleMap[targetLang] = minimalPayload.meta_title;
+      if (minimalPayload.meta_description) metaDescMap[targetLang] = minimalPayload.meta_description;
+      if (minimalPayload.meta_keyword) metaKeywordsMap[targetLang] = minimalPayload.meta_keyword;
+      if (minimalPayload.keyword || minimalPayload.seo_keyword) seoSlugMap[targetLang] = minimalPayload.keyword || minimalPayload.seo_keyword;
+
+      // Fallback for English if missing
+      if (!nameMap.en) nameMap.en = details.productTitle || product.canonicalTitle;
+      if (!descMap.en) descMap.en = product.standardizedDescription || '';
+
+      const canonicalModel: any = {
+        id: plan.globalProductId,
+        externalId: plan.externalProductId || undefined,
+        sku: minimalPayload.sku || externalSku,
+        name: nameMap,
+        description: descMap,
+        brand: brandName,
+        modelNumber: minimalPayload.model || product.modelNumber || undefined,
+        price: finalPrice,
+        currency: 'USD',
+        stockQuantity: minimalPayload.quantity ? parseInt(minimalPayload.quantity, 10) : 100,
+        stockStatus: 'IN_STOCK',
+        productStatus: 'ACTIVE',
+        categories: [override?.customCategory || product.categoryPath || 'General'],
+        images: imagesList,
+        attributes: (product as any).extractedAttributes || {},
+        variants: [],
+        seo: {
+          metaTitle: metaTitleMap,
+          metaDescription: metaDescMap,
+          metaKeywords: metaKeywordsMap,
+          slug: seoSlugMap,
+        },
+      };
+
+      const pushResult = await connector.pushProduct(canonicalModel);
+      if (pushResult && pushResult.externalProductId) {
+        externalProductId = String(pushResult.externalProductId);
+        externalSku = pushResult.externalSku || externalSku;
+      }
+    } catch (connectorErr: any) {
+      console.error('[ControlledPush] Connector execution error:', connectorErr.message);
+      throw new Error(`Store push dispatch failed: ${connectorErr.message}`);
+    }
 
     // 6. Post-Write Verification: Verify store state re-read
     const verificationSuccess = true;
