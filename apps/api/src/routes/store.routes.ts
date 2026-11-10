@@ -476,6 +476,19 @@ storeRouter.get('/integration-health/summary', async (req: Request, res: Respons
   }
 });
 
+// GET /api/v1/stores/products/:productId/distribution - Product distribution across stores & languages
+storeRouter.get('/products/:productId/distribution', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+
+    const distribution = await MultiStoreExportService.getProductDistribution(String(req.params.productId), orgId);
+    return res.json({ success: true, distribution });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
 // PUT /api/v1/stores/:id - Update store settings & credentials
 storeRouter.put('/:id', async (req: Request, res: Response) => {
   try {
