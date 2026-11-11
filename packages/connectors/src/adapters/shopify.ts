@@ -203,6 +203,46 @@ export class ShopifyConnector implements UniversalConnector {
       },
     };
 
+    // 4. Attach SEO Page Title & Meta Description via Shopify Metafields
+    const metafields: any[] = [];
+    const seoTitle = typeof product.seo?.metaTitle === 'object'
+      ? (product.seo.metaTitle['en'] || Object.values(product.seo.metaTitle)[0] || '')
+      : (product.seo?.metaTitle || '');
+
+    const seoDesc = typeof product.seo?.metaDescription === 'object'
+      ? (product.seo.metaDescription['en'] || Object.values(product.seo.metaDescription)[0] || '')
+      : (product.seo?.metaDescription || '');
+
+    if (seoTitle) {
+      metafields.push({
+        namespace: 'global',
+        key: 'title_tag',
+        value: String(seoTitle),
+        type: 'string',
+      });
+    }
+
+    if (seoDesc) {
+      metafields.push({
+        namespace: 'global',
+        key: 'description_tag',
+        value: String(seoDesc),
+        type: 'string',
+      });
+    }
+
+    if (metafields.length > 0) {
+      payload.product.metafields = metafields;
+    }
+
+    // Handle SEO URL slug
+    const slug = typeof product.seo?.slug === 'object'
+      ? (product.seo.slug['en'] || Object.values(product.seo.slug)[0] || '')
+      : (product.seo?.slug || '');
+    if (slug) {
+      payload.product.handle = String(slug);
+    }
+
     if (imagesPayload.length > 0) {
       payload.product.images = imagesPayload;
     }

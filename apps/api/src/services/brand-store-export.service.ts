@@ -114,6 +114,8 @@ export class BrandStoreExportService {
         { key: 'handle', label: 'URL Handle / Slug', dataType: 'string', table: 'Product' },
         { key: 'vendor', label: 'Vendor / Brand', dataType: 'string', table: 'Product' },
         { key: 'tags', label: 'Tags', dataType: 'string', table: 'Product' },
+        { key: 'meta_title', label: 'Page title (Search engine listing)', dataType: 'string', description: 'Search engine listing Page title (SEO)', table: 'Metafields (global.title_tag)' },
+        { key: 'meta_description', label: 'Meta description (Search engine listing)', dataType: 'string', description: 'Search engine listing Meta description (SEO)', table: 'Metafields (global.description_tag)' },
         { key: 'price', label: 'Variant Price', dataType: 'price', table: 'ProductVariant' },
         { key: 'sku', label: 'Variant SKU', dataType: 'string', table: 'ProductVariant' },
         { key: 'barcode', label: 'Barcode (GTIN/UPC)', dataType: 'string', table: 'ProductVariant' },
