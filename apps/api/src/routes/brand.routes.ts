@@ -1216,8 +1216,20 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
             var target = e.target;
             if (!target || target === document.body) return;
 
-            // Allow interactive tabs / accordions to toggle open in preview
-            var isTabOrAccordion = target.closest('[data-role="collapsible"], [data-toggle="switch"], .data.item.title, .tab, .accordion, details, summary, [aria-expanded]');
+            // Allow interactive tabs / accordions / radio labels to toggle open in preview
+            // 1. Radio / Checkbox tabs (e.g. <input type="radio" id="tab-1"> <label for="tab-1">Specs</label>)
+            var labelTarget = target.closest('label');
+            if (labelTarget && labelTarget.getAttribute('for')) {
+              var inputId = labelTarget.getAttribute('for');
+              var linkedInput = document.getElementById(inputId);
+              if (linkedInput && (linkedInput.type === 'radio' || linkedInput.type === 'checkbox')) {
+                linkedInput.checked = true;
+                linkedInput.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+            }
+
+            // 2. Generic and collapsible tabs (e.g. data-role="collapsible", .tab, .nav-tabs, details, etc.)
+            var isTabOrAccordion = target.closest('[data-role="collapsible"], [data-toggle="switch"], [data-toggle="tab"], .data.item.title, .tab, .tabs label, .accordion, details, summary, [aria-expanded], [role="tab"]');
             if (isTabOrAccordion) {
               var href = isTabOrAccordion.getAttribute('href') || isTabOrAccordion.querySelector('[href]')?.getAttribute('href') || '';
               var targetId = href.startsWith('#') ? href.substring(1) : (isTabOrAccordion.id ? isTabOrAccordion.id.replace('tab-label-', '') : '');

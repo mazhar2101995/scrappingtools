@@ -2013,7 +2013,7 @@ export default function BrandProfileDetailPage() {
                               {val.extractedValue.length} items extracted (Array)
                             </span>
                             <div className="flex flex-wrap gap-1.5 justify-end max-w-sm">
-                              {val.extractedValue.map((item: string, i: number) => {
+                              {val.extractedValue.map((item: any, i: number) => {
                                 const isImg = typeof item === 'string' && (item.startsWith('http') && (item.match(/\.(jpg|jpeg|png|webp|gif)/i) || key.includes('image') || key.includes('iamge')));
                                 if (isImg) {
                                   return (
@@ -2033,12 +2033,29 @@ export default function BrandProfileDetailPage() {
                                     </a>
                                   );
                                 }
+                                // Handle structured objects inside array (e.g. options with { name, identifier, values })
+                                if (item && typeof item === 'object') {
+                                  return (
+                                    <div
+                                      key={i}
+                                      className="p-2 rounded-lg text-[10px] font-mono bg-white text-slate-800 border border-slate-200 shadow-2xs space-y-1 text-left max-w-xs"
+                                    >
+                                      <div className="font-bold text-[#0d2a2c]">{item.name || item.title || item.identifier || `Item ${i + 1}`}</div>
+                                      {Array.isArray(item.values) && (
+                                        <div className="text-slate-500 text-[9px] truncate">
+                                          {item.values.length} choices: {item.values.slice(0, 3).map((v: any) => v.label || v.text || v).join(', ')}
+                                          {item.values.length > 3 ? '...' : ''}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                }
                                 return (
                                   <span
                                     key={i}
                                     className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200"
                                   >
-                                    {item}
+                                    {String(item)}
                                   </span>
                                 );
                               })}
@@ -2053,7 +2070,7 @@ export default function BrandProfileDetailPage() {
                               {Object.entries(val.extractedValue).map(([specKey, specVal]: [string, any]) => (
                                 <div key={specKey} className="px-3 py-1.5 flex justify-between gap-3">
                                   <span className="font-semibold text-slate-700">{specKey}:</span>
-                                  <span className="text-slate-900 font-mono text-right">{String(specVal)}</span>
+                                  <span className="text-slate-900 font-mono text-right">{typeof specVal === 'object' ? JSON.stringify(specVal) : String(specVal)}</span>
                                 </div>
                               ))}
                             </div>
@@ -2082,7 +2099,7 @@ export default function BrandProfileDetailPage() {
                                 : 'text-slate-500 bg-slate-100 border-slate-200'
                             }`}
                           >
-                            {val.extractedValue || '(Empty)'}
+                            {typeof val.extractedValue === 'object' ? JSON.stringify(val.extractedValue) : (val.extractedValue || '(Empty)')}
                           </span>
                         )}
                       </div>
