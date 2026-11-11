@@ -42,12 +42,44 @@ export class ShopifyConnector implements UniversalConnector {
         };
       }
 
+      const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+      const apiVersion = this.config.apiVersion || '2024-04';
+      const endpoint = `https://${domain}/admin/api/${apiVersion}/shop.json`;
+
+      const resp = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': this.config.accessToken,
+        },
+      });
+
+      if (!resp.ok) {
+        const errBody = await resp.text();
+        let errMsg = `HTTP ${resp.status} ${resp.statusText}`;
+        try {
+          const j = JSON.parse(errBody);
+          if (j.errors) {
+            errMsg = typeof j.errors === 'string' ? j.errors : JSON.stringify(j.errors);
+          }
+        } catch (_) {}
+
+        return {
+          success: false,
+          error: `Shopify API Error: ${errMsg}`,
+          latencyMs: Date.now() - start,
+        };
+      }
+
+      const data = await resp.json().catch(() => ({}));
+      const shop = data.shop || {};
+
       return {
         success: true,
-        storeName: this.config.shopDomain.replace('.myshopify.com', ''),
-        version: this.config.apiVersion || '2024-04',
-        currency: 'USD',
-        latencyMs: Date.now() - start + 62,
+        storeName: shop.name || domain.replace('.myshopify.com', ''),
+        version: apiVersion,
+        currency: shop.currency || 'USD',
+        latencyMs: Date.now() - start,
       };
     } catch (err: any) {
       return {
@@ -63,65 +95,147 @@ export class ShopifyConnector implements UniversalConnector {
     total: number;
     hasMore: boolean;
   }> {
-    const sampleShopifyProduct: CanonicalProductModel = {
-      externalId: 'gid://shopify/Product/8849201948',
-      sku: 'X4-2024-LUX',
-      name: { en: 'Xray X4 2024 Luxury 1/10 Electric Touring Car Kit' },
-      description: { en: '<p>The revolutionary X4 2024 touring car platform with carbon chassis.</p>' },
-      brand: 'Xray',
-      modelNumber: '300034',
-      eanGtinUpc: '8581703000342',
-      price: 749.0,
-      currency: 'USD',
-      stockQuantity: 5,
-      stockStatus: 'IN_STOCK',
-      productStatus: 'ACTIVE',
-      categories: ['Competition Kits', 'Touring Cars'],
-      images: [
-        { url: 'https://cdn.shopify.com/s/files/1/products/xray-x4-2024.jpg', isPrimary: true, sortOrder: 0 },
-      ],
-      attributes: {
-        chassis: { rawValue: 'Carbon Fiber 2.2mm', normalizedValue: 'Carbon' },
-        scale: { rawValue: '1/10', normalizedValue: '1/10' },
-      },
-      variants: [
-        {
-          externalVariantId: 'gid://shopify/ProductVariant/4491029',
-          sku: '300034-CARBON',
-          name: 'Carbon Chassis Edition',
-          price: 749.0,
-          stockQuantity: 3,
-          options: { Chassis: 'Carbon' },
-        },
-        {
-          externalVariantId: 'gid://shopify/ProductVariant/4491030',
-          sku: '300035-ALU',
-          name: 'Aluminium Chassis Edition',
-          price: 769.0,
-          stockQuantity: 2,
-          options: { Chassis: 'Aluminium' },
-        },
-      ],
-      platformMetadata: {
-        shopify_handle: 'xray-x4-2024-luxury-touring-car',
-      },
-    };
+    const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+    const apiVersion = this.config.apiVersion || '2024-04';
+    const limit = params?.limit || 50;
+    const endpoint = `https://${domain}/admin/api/${apiVersion}/products.json?limit=${limit}`;
 
-    return {
-      products: [sampleShopifyProduct],
-      total: 1,
-      hasMore: false,
-    };
+    try {
+      const resp = await fetch(endpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': this.config.accessToken,
+        },
+      });
+
+      if (!resp.ok) {
+        throw new Error(`Shopify Pull Failed: HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      const shopifyProducts = data.products || [];
+
+      const products: CanonicalProductModel[] = shopifyProducts.map((p: any) => ({
+        externalId: String(p.id),
+        sku: p.variants?.[0]?.sku || `SHOPIFY-${p.id}`,
+        name: { en: p.title || '' },
+        description: { en: p.body_html || '' },
+        brand: p.vendor || '',
+        price: parseFloat(p.variants?.[0]?.price || '0'),
+        currency: 'USD',
+        stockQuantity: p.variants?.[0]?.inventory_quantity || 0,
+        stockStatus: (p.variants?.[0]?.inventory_quantity || 0) > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK',
+        productStatus: p.status === 'active' ? 'ACTIVE' : 'DRAFT',
+        categories: p.product_type ? [p.product_type] : [],
+        images: (p.images || []).map((img: any, idx: number) => ({
+          url: img.src,
+          isPrimary: idx === 0,
+          sortOrder: idx,
+        })),
+        attributes: {},
+        variants: (p.variants || []).map((v: any) => ({
+          externalVariantId: String(v.id),
+          sku: v.sku || '',
+          name: v.title || '',
+          price: parseFloat(v.price || '0'),
+          stockQuantity: v.inventory_quantity || 0,
+          options: { title: v.title },
+        })),
+      }));
+
+      return {
+        products,
+        total: products.length,
+        hasMore: false,
+      };
+    } catch (e: any) {
+      return {
+        products: [],
+        total: 0,
+        hasMore: false,
+      };
+    }
   }
 
   public async pushProduct(product: CanonicalProductModel): Promise<{
     externalProductId: string;
     externalSku: string;
   }> {
-    const generatedGid = `gid://shopify/Product/${Date.now()}`;
+    const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+    const apiVersion = this.config.apiVersion || '2024-04';
+
+    // 1. Resolve title & description
+    const title = typeof product.name === 'object'
+      ? (product.name['en'] || product.name['nl'] || Object.values(product.name)[0] || 'New Product')
+      : String(product.name || 'New Product');
+
+    const body_html = typeof product.description === 'object'
+      ? (product.description['en'] || product.description['nl'] || Object.values(product.description)[0] || '')
+      : String(product.description || '');
+
+    // 2. Prepare images
+    const imagesPayload = (product.images || []).map((img) => ({
+      src: img.url,
+      alt: img.altText || title,
+    }));
+
+    // 3. Prepare Variant
+    const variantPayload: any = {
+      price: product.price ? product.price.toFixed(2) : '0.00',
+      sku: product.sku || '',
+      inventory_management: 'shopify',
+      inventory_policy: 'deny',
+    };
+    if (product.stockQuantity !== undefined) {
+      // Shopify Admin REST API supports inventory_quantity on variant creation
+      variantPayload.inventory_quantity = Number(product.stockQuantity) || 0;
+    }
+
+    const payload: any = {
+      product: {
+        title,
+        body_html,
+        vendor: product.brand || 'Universal Store',
+        product_type: (product.categories && product.categories.length > 0) ? product.categories[0] : 'General',
+        status: 'active',
+        variants: [variantPayload],
+      },
+    };
+
+    if (imagesPayload.length > 0) {
+      payload.product.images = imagesPayload;
+    }
+
+    const endpoint = `https://${domain}/admin/api/${apiVersion}/products.json`;
+
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Shopify-Access-Token': this.config.accessToken,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      let parsedErr = `HTTP ${resp.status} ${resp.statusText}`;
+      try {
+        const j = JSON.parse(errText);
+        if (j.errors) {
+          parsedErr = typeof j.errors === 'string' ? j.errors : JSON.stringify(j.errors);
+        }
+      } catch (_) {}
+      throw new Error(`Shopify Push Failed: ${parsedErr}`);
+    }
+
+    const created = await resp.json();
+    const shopifyProd = created.product;
+
     return {
-      externalProductId: generatedGid,
-      externalSku: product.sku,
+      externalProductId: String(shopifyProd.id),
+      externalSku: shopifyProd.variants?.[0]?.sku || product.sku,
     };
   }
 
