@@ -338,7 +338,7 @@ export class DashboardApiClient {
       cache: 'no-store',
     });
 
-    if ((response.status === 401 || response.status === 403) && typeof window !== 'undefined') {
+    if (response.status === 401 && typeof window !== 'undefined') {
       const isAuthPage = window.location.pathname === '/login' || window.location.pathname === '/register' || window.location.pathname === '/forgot-password' || window.location.pathname === '/reset-password' || window.location.pathname === '/admin/login';
       if (!isAuthPage) {
         // Attempt silent token refresh before kicking to login
