@@ -26,13 +26,15 @@ import {
   Download,
   UploadCloud,
   FileSpreadsheet,
-  ShoppingBag
+  ShoppingBag,
+  Trash2
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('ALL');
 
@@ -108,6 +110,23 @@ export default function ProductsPage() {
   useEffect(() => {
     loadCatalog();
   }, []);
+
+  async function handleDeleteProduct(id: string, title?: string) {
+    const confirmName = title ? `"${title}"` : 'this product';
+    if (!window.confirm(`Are you sure you want to remove ${confirmName} from your catalog?`)) {
+      return;
+    }
+
+    try {
+      setDeletingId(id);
+      await apiClient.deleteProduct(id);
+      setProducts((prev) => prev.filter((p) => p.id !== id && p.mappingId !== id));
+    } catch (err: any) {
+      alert(`Failed to delete product: ${err.message || 'Unknown error'}`);
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   // Load client's tenant brand profiles when opening modal
   async function handleOpenAddModal() {
@@ -765,13 +784,24 @@ export default function ProductsPage() {
                   <td className="py-4 px-4 font-bold text-slate-900">{prod.priceEstimate || '—'}</td>
 
                   <td className="py-4 px-5 text-right">
-                    <Link
-                      href={`/products/${prod.id}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
-                    >
-                      <span>Inspect</span>
-                      <span>›</span>
-                    </Link>
+                    <div className="flex items-center justify-end gap-2">
+                      <Link
+                        href={`/products/${prod.id}`}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                      >
+                        <span>Inspect</span>
+                        <span>›</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteProduct(prod.id, prod.canonicalTitle)}
+                        disabled={deletingId === prod.id}
+                        title="Delete product from catalog"
+                        className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

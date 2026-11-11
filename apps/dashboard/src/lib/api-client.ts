@@ -564,6 +564,12 @@ export class DashboardApiClient {
     return this.fetchJson(`/products/${id}`);
   }
 
+  async deleteProduct(id: string): Promise<any> {
+    return this.fetchJson(`/products/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // --- Phase 1: Smart Product Intelligence Lookup & Canonical Reuse ---
   async lookupProductIntelligence(payload: {
     productUrl?: string;

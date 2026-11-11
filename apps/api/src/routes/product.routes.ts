@@ -918,6 +918,94 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
   });
 });
 
+// 4.3 Delete Product from Catalog (Removes tenant mapping, overrides, and exports)
+productsRouter.delete('/:id', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  const paramId = req.params.id as string;
+  if (!orgId) return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
+
+  try {
+    // 1. Identify customerProductMappings row
+    const [cpm] = await db
+      .select()
+      .from(customerProductMappings)
+      .where(
+        or(
+          and(eq(customerProductMappings.organizationId, orgId), eq(customerProductMappings.id, paramId)),
+          and(eq(customerProductMappings.organizationId, orgId), eq(customerProductMappings.globalProductId, paramId))
+        )
+      )
+      .limit(1);
+
+    if (!cpm) {
+      return res.status(404).json({ error: 'Product not found in tenant catalog' });
+    }
+
+    const targetGlobalId = cpm.globalProductId;
+
+    // 2. Delete tenant specific overrides
+    await db
+      .delete(customerProductOverrides)
+      .where(
+        and(
+          eq(customerProductOverrides.organizationId, orgId),
+          eq(customerProductOverrides.globalProductId, targetGlobalId)
+        )
+      );
+
+    // 3. Delete tenant store mappings for this product
+    const tenantStoreIds = await db
+      .select({ id: connectedStores.id })
+      .from(connectedStores)
+      .where(eq(connectedStores.organizationId, orgId));
+
+    if (tenantStoreIds.length > 0) {
+      await db
+        .delete(storeProductMappings)
+        .where(
+          and(
+            inArray(storeProductMappings.connectedStoreId, tenantStoreIds.map((s) => s.id)),
+            eq(storeProductMappings.globalProductId, targetGlobalId)
+          )
+        );
+    }
+
+    // 4. Delete tenant customerProductMappings
+    await db
+      .delete(customerProductMappings)
+      .where(
+        and(
+          eq(customerProductMappings.organizationId, orgId),
+          eq(customerProductMappings.id, cpm.id)
+        )
+      );
+
+    // 5. If no other tenant references this global product, clean up global product details
+    const otherTenants = await db
+      .select({ id: customerProductMappings.id })
+      .from(customerProductMappings)
+      .where(eq(customerProductMappings.globalProductId, targetGlobalId))
+      .limit(1);
+
+    if (otherTenants.length === 0) {
+      await db.delete(productVariants).where(eq(productVariants.globalProductId, targetGlobalId));
+      await db.delete(productIdentifiers).where(eq(productIdentifiers.globalProductId, targetGlobalId));
+      await db.delete(productImages).where(eq(productImages.globalProductId, targetGlobalId));
+      await db.delete(productAttributes).where(eq(productAttributes.globalProductId, targetGlobalId));
+      await db.delete(globalProducts).where(eq(globalProducts.id, targetGlobalId));
+    }
+
+    return res.json({
+      success: true,
+      message: 'Product removed from catalog successfully',
+      productId: paramId,
+    });
+  } catch (err: any) {
+    console.error('[ProductDelete] Failed to delete product:', err);
+    return res.status(500).json({ error: 'Failed to delete product', details: err.message });
+  }
+});
+
 // 4.1 Reprocess Product from Raw Data with latest Global & Brand Rules (Retry AI Processing)
 productsRouter.post('/:id/reprocess', async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
