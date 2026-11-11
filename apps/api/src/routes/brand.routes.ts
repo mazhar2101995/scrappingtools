@@ -946,8 +946,11 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
 
           function isBadClassOrId(str) {
             if (!str) return true;
-            // Ignore dynamically generated hashes, arbitrary numbers, or framework IDs
-            return /^[0-9]+$|^[a-f0-9]{8,}|^css-[0-9a-z]+|^jsx-[0-9a-z]+|^_[0-9a-zA-Z]{5,}/i.test(str);
+            // Ignore dynamically generated hashes, arbitrary numbers, framework IDs, utility classes
+            if (/^[0-9]+$|^[a-f0-9]{8,}|^css-[0-9a-z]+|^jsx-[0-9a-z]+|^_[0-9a-zA-Z]{5,}|^ng-|^react-/i.test(str)) return true;
+            // Ignore generic layout helper classes that create ambiguity
+            if (/^(row|col|col-[0-9]+|flex|grid|container|wrap|wrapper|block|inline|d-[a-z]+|m-[0-9]+|p-[0-9]+|text-[a-z]+)$/i.test(str)) return true;
+            return false;
           }
 
           function getSelectorMatchCount(sel) {
@@ -956,6 +959,62 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
             } catch (_) {
               return 0;
             }
+          }
+
+          // Generate an unambiguous hierarchical path up to nearest unique ancestor
+          function generatePathToAncestor(targetEl) {
+            var path = [];
+            var curr = targetEl;
+            var depth = 0;
+
+            while (curr && curr !== document.body && curr !== document.documentElement && depth < 6) {
+              depth++;
+              var tag = curr.tagName.toLowerCase();
+              var part = tag;
+
+              // Check if curr has a clean unique ID
+              if (curr.id && !isBadClassOrId(curr.id)) {
+                var testId = '#' + CSS.escape(curr.id);
+                if (getSelectorMatchCount(testId) === 1) {
+                  path.unshift(testId);
+                  break;
+                }
+              }
+
+              // Check semantic microdata attribute
+              if (curr.getAttribute('itemprop')) {
+                part += '[itemprop="' + CSS.escape(curr.getAttribute('itemprop')) + '"]';
+              } else if (curr.id && !isBadClassOrId(curr.id)) {
+                part = '#' + CSS.escape(curr.id);
+              } else {
+                var cleanClasses = Array.from(curr.classList).filter(function(c) {
+                  return !c.startsWith('visual-mapper') && !isBadClassOrId(c);
+                });
+                if (cleanClasses.length > 0) {
+                  part += '.' + cleanClasses.slice(0, 2).map(CSS.escape).join('.');
+                } else if (curr.parentElement) {
+                  // If no classes, use nth-of-type for precise uniqueness
+                  var sameTagSiblings = Array.from(curr.parentElement.children).filter(function(s) {
+                    return s.tagName === curr.tagName;
+                  });
+                  if (sameTagSiblings.length > 1) {
+                    var idx = sameTagSiblings.indexOf(curr) + 1;
+                    part += ':nth-of-type(' + idx + ')';
+                  }
+                }
+              }
+
+              path.unshift(part);
+
+              var candidatePath = path.join(' > ');
+              if (getSelectorMatchCount(candidatePath) === 1) {
+                return candidatePath;
+              }
+
+              curr = curr.parentElement;
+            }
+
+            return path.join(' > ');
           }
 
           function generateCssSelectorCandidates(el) {
@@ -982,7 +1041,7 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
 
               candidates.push({
                 selector: sel,
-                type: type, // 'attribute' | 'id' | 'semantic_class' | 'parent_compound' | 'tag'
+                type: type, // 'attribute' | 'id' | 'semantic_class' | 'hierarchical_unique' | 'parent_compound' | 'tag'
                 matchCount: count,
                 confidence: confidence,
                 stability: stability, // 'High' | 'Medium' | 'Low'
@@ -991,11 +1050,11 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
               });
             }
 
-            // 1. Stable Semantic Attributes (itemprop, data-*, etc.)
+            // 1. Stable Semantic Attributes (itemprop, data-*, name, etc.)
             var priorityAttrs = [
               'itemprop', 'data-sku', 'data-product-sku', 'data-product-title', 'data-product-name',
               'data-price', 'data-product-price', 'data-mpn', 'data-ean', 'data-gtin', 'data-model',
-              'data-gallery-role', 'data-role'
+              'data-gallery-role', 'data-role', 'name', 'aria-label'
             ];
             for (var i = 0; i < priorityAttrs.length; i++) {
               var attr = priorityAttrs[i];
@@ -1010,13 +1069,20 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
               }
             }
 
-            // 2. Element ID (if clean and unique)
+            // 2. Element ID (if clean and 100% unique)
             if (el.id && !isBadClassOrId(el.id)) {
               var idSel = '#' + CSS.escape(el.id);
               addCandidate(idSel, 'id', 'High', 'Unique Element ID');
+              addCandidate(tagName + idSel, 'id', 'High', 'Tag with Unique ID');
             }
 
-            // 3. Meaningful Semantic Class Names
+            // 3. Smart Hierarchical Unique Path (Parent-aware precision)
+            var uniquePath = generatePathToAncestor(el);
+            if (uniquePath) {
+              addCandidate(uniquePath, 'hierarchical_unique', 'High', 'Precision Unique DOM Path (Parent & Index Scoped)');
+            }
+
+            // 4. Meaningful Semantic Class Names
             var validClasses = Array.from(el.classList).filter(function(c) {
               return !c.startsWith('visual-mapper') && !isBadClassOrId(c) && c.length > 2;
             });
@@ -1024,7 +1090,7 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
             if (validClasses.length > 0) {
               // High priority semantic keywords
               var semanticClass = validClasses.find(function(c) {
-                return /^(product[-_]?title|product[-_]?name|page[-_]?title|price|product[-_]?price|sku|model|mpn|ean|overview|description|specs|attribute|gallery)/i.test(c);
+                return /^(product[-_]?title|product[-_]?name|page[-_]?title|price|product[-_]?price|sku|item_number|model|mpn|ean|overview|description|specs|attribute|gallery|custom-select)/i.test(c);
               });
 
               if (semanticClass) {
@@ -1041,15 +1107,15 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
               }
             }
 
-            // 4. Safe Parent / Container Context (up to 3 levels)
+            // 5. Safe Parent / Container Context (up to 4 levels)
             var currentParent = el.parentElement;
             var depth = 0;
-            while (currentParent && currentParent !== document.body && depth < 3) {
+            while (currentParent && currentParent !== document.body && depth < 4) {
               depth++;
               var pTag = currentParent.tagName.toLowerCase();
               var pId = currentParent.id && !isBadClassOrId(currentParent.id) ? '#' + CSS.escape(currentParent.id) : null;
               var pSemanticClass = Array.from(currentParent.classList).find(function(c) {
-                return !c.startsWith('visual-mapper') && !isBadClassOrId(c) && /product|detail|info|main|hero|gallery|specs|header|summary|box/i.test(c);
+                return !c.startsWith('visual-mapper') && !isBadClassOrId(c) && /product|detail|info|main|hero|gallery|specs|header|summary|box|content|price_wrap|table/i.test(c);
               });
 
               if (pId) {
@@ -1057,6 +1123,7 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
                   addCandidate(pId + ' .' + CSS.escape(validClasses[0]), 'parent_compound', 'High', 'Parent container ID + class');
                 }
                 addCandidate(pId + ' ' + tagName, 'parent_compound', 'Medium', 'Parent container ID + tag');
+                addCandidate(pId + ' > ' + tagName, 'parent_compound', 'High', 'Parent direct child');
               }
 
               if (pSemanticClass) {
@@ -1067,17 +1134,53 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
                 addCandidate(pClassSel + ' ' + tagName, 'parent_compound', 'Medium', 'Parent semantic container + tag');
               }
 
+              // Check if parent has table row or list item context
+              if (pTag === 'tr' || pTag === 'li') {
+                var rowLabel = currentParent.querySelector('td:first-child b, label, th, strong')?.textContent?.trim();
+                if (rowLabel && rowLabel.length < 30) {
+                  // Compound with element tag
+                  if (pId) addCandidate(pId + ' ' + pTag + ' ' + tagName, 'parent_compound', 'High', 'Table row / list item scoped');
+                }
+              }
+
               currentParent = currentParent.parentElement;
             }
 
-            // 5. Fallback generic selector
+            // 6. Fallback generic selector
             addCandidate(tagName, 'tag', 'Low', 'Generic tag selector (Broad)');
 
             // Rank candidates:
             // 1) Match count = 1 first (unique)
-            // 2) Stability High > Medium > Low
-            // 3) Shorter selector length for cleaner readability
+            // 2) Prefer 'hierarchical_unique', 'attribute', 'id', 'parent_compound' over broad classes
+            // 3) Stability High > Medium > Low
+            // 4) Shorter selector length for cleaner readability
             candidates.sort(function(a, b) {
+              var aIsOne = a.matchCount === 1 ? 1 : 0;
+              var bIsOne = b.matchCount === 1 ? 1 : 0;
+              if (aIsOne !== bIsOne) return bIsOne - aIsOne;
+
+              var typeScore = {
+                'id': 6,
+                'hierarchical_unique': 5,
+                'attribute': 4,
+                'parent_compound': 3,
+                'semantic_class': 2,
+                'tag': 1
+              };
+              var scoreTypeA = typeScore[a.type] || 1;
+              var scoreTypeB = typeScore[b.type] || 1;
+              if (scoreTypeA !== scoreTypeB) return scoreTypeB - scoreTypeA;
+
+              var stabScore = { High: 3, Medium: 2, Low: 1 };
+              var scoreA = stabScore[a.stability] || 1;
+              var scoreB = stabScore[b.stability] || 1;
+              if (scoreA !== scoreB) return scoreB - scoreA;
+
+              return a.selector.length - b.selector.length;
+            });
+
+            return candidates;
+          }
               var aIsOne = a.matchCount === 1 ? 1 : 0;
               var bIsOne = b.matchCount === 1 ? 1 : 0;
               if (aIsOne !== bIsOne) return bIsOne - aIsOne;
