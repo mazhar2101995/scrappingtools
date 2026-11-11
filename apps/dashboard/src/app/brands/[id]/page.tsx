@@ -34,7 +34,9 @@ import {
   Sliders,
   ShoppingBag,
   ShieldCheck,
-  AlertTriangle
+  AlertTriangle,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -169,6 +171,7 @@ export default function BrandProfileDetailPage() {
   const [visualProductUrl, setVisualProductUrl] = useState('');
   const [visualLoading, setVisualLoading] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [isVisualFullscreen, setIsVisualFullscreen] = useState(false);
   const [selectedTargetField, setSelectedTargetField] = useState('name');
   const [visualSelection, setVisualSelection] = useState<{
     selector: string;
@@ -1003,33 +1006,66 @@ export default function BrandProfileDetailPage() {
 
           {/* Interactive Split View: Left = Visual Preview Sandbox | Right = Mapping Confirmation Panel */}
           {previewHtml ? (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[680px]">
+            <div
+              className={
+                isVisualFullscreen
+                  ? 'fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md p-3 sm:p-6 flex flex-col animate-fadeIn'
+                  : 'grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[680px]'
+              }
+            >
               {/* Left Sandbox Preview */}
-              <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden">
+              <div
+                className={
+                  isVisualFullscreen
+                    ? 'flex-1 bg-white border border-slate-700/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden mb-3'
+                    : 'lg:col-span-8 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden'
+                }
+              >
                 <div className="px-4 py-2.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600">
                   <div className="flex items-center gap-2 truncate">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                    <span className="font-semibold text-slate-800">Visual Sandbox Preview:</span>
-                    <span className="text-slate-500 truncate max-w-sm">{visualProductUrl}</span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                    <span className="font-semibold text-slate-800 shrink-0">Visual Sandbox Preview:</span>
+                    <span className="text-slate-500 truncate max-w-sm sm:max-w-md md:max-w-xl">{visualProductUrl}</span>
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-200 px-2 py-0.5 rounded">
-                    Click Any Element
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-200 px-2 py-0.5 rounded hidden sm:inline-block">
+                      Click Any Element
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsVisualFullscreen(!isVisualFullscreen)}
+                      className="flex items-center gap-1 text-[11px] font-bold text-slate-800 bg-white hover:bg-slate-200 border border-slate-300 px-2.5 py-1 rounded-lg transition shadow-sm"
+                      title={isVisualFullscreen ? 'Exit Full Screen' : 'Open Full Screen Modal'}
+                    >
+                      {isVisualFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                      <span>{isVisualFullscreen ? 'Exit Fullscreen' : 'Full Screen'}</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex-1 relative bg-white">
+                <div className="flex-1 relative bg-white min-h-[500px]">
                   <iframe
                     ref={iframeRef}
                     srcDoc={previewHtml}
                     title="Product Page Visual Mapper"
-                    className="w-full h-[650px] border-none"
+                    className={
+                      isVisualFullscreen
+                        ? 'w-full h-full border-none min-h-[60vh]'
+                        : 'w-full h-[650px] border-none'
+                    }
                     sandbox="allow-scripts allow-same-origin"
                   />
                 </div>
               </div>
 
               {/* Right Configuration & Mapping Status Side Panel */}
-              <div className="lg:col-span-4 space-y-4">
+              <div
+                className={
+                  isVisualFullscreen
+                    ? 'h-auto max-h-[300px] sm:max-h-[320px] overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/95 backdrop-blur border border-slate-200 rounded-2xl p-4 shadow-xl'
+                    : 'lg:col-span-4 space-y-4'
+                }
+              >
                 {/* Active Selection Confirmation Card */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
                   <div className="border-b border-slate-100 pb-2">
