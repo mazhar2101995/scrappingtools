@@ -595,6 +595,80 @@ brandsRouter.post('/:id/test-mapping', async (req: Request, res: Response) => {
               } else {
                 extractedValue = firstEl.text().trim().replace(/\s+/g, ' ');
               }
+            } else if (targetField === 'options' || targetField === 'product_options' || targetField.includes('option') || (firstEl.is('select') && isArrayField)) {
+              // Extract Structured Product Options & Variations (e.g. Size, Color/Finish, Drawers with price modifiers)
+              const extractedOptions: Array<{
+                name: string;
+                identifier: string;
+                values: Array<{
+                  name: string;
+                  value: string;
+                  priceModifier?: number;
+                  pricePrefix?: '+' | '-';
+                  sku?: string;
+                  imageUrl?: string;
+                  isDefault?: boolean;
+                }>;
+              }> = [];
+
+              const selectElements = firstEl.is('select') ? matched : matched.find('select');
+              if (selectElements.length > 0) {
+                selectElements.each((_, sel) => {
+                  const selId = $html(sel).attr('id') || $html(sel).attr('name') || `option_${extractedOptions.length + 1}`;
+                  // Detect label from parent tr / label / heading
+                  let optLabel = $html(sel).closest('tr').find('td b, td span.black_link').first().text().trim();
+                  if (!optLabel) {
+                    optLabel = $html(sel).closest('.field_wrap, .row, .option-row, tr, div').find('label, b, strong').first().text().trim();
+                  }
+                  if (!optLabel) optLabel = selId.replace(/_/g, ' ');
+
+                  const optionChoices: any[] = [];
+                  $html(sel).find('option').each((_, opt) => {
+                    const fullText = $html(opt).text().trim().replace(/\s+/g, ' ');
+                    const valAttr = $html(opt).attr('value') || '';
+                    const dataImg = $html(opt).attr('data-img') || $html(opt).attr('data-image');
+                    const isSelected = $html(opt).is(':selected') || Boolean($html(opt).attr('selected'));
+
+                    // Parse price modifier from text (e.g. '2 Drawer Pedestal - $335.00' or '60" x 66" (+$475.00)')
+                    let priceMod: number | undefined;
+                    let pricePfx: '+' | '-' | undefined;
+                    const priceMatch = fullText.match(/([+-]?)\s*[\$€£]\s*([\d,]+\.?\d*)/);
+                    if (priceMatch) {
+                      pricePfx = priceMatch[1] === '-' ? '-' : '+';
+                      priceMod = parseFloat(priceMatch[2].replace(/,/g, ''));
+                    }
+
+                    // Extract Clean Option Name (strip price from label)
+                    let cleanChoiceName = fullText;
+                    if (priceMatch) {
+                      cleanChoiceName = fullText.replace(/[-–(]*\s*([+-]?)\s*[\$€£]\s*[\d,]+\.?\d*\s*[)]*/, '').trim();
+                      cleanChoiceName = cleanChoiceName.replace(/[-–]\s*$/, '').trim();
+                    }
+
+                    if (cleanChoiceName && cleanChoiceName.toLowerCase() !== 'select' && cleanChoiceName.toLowerCase() !== '-- choose --') {
+                      optionChoices.push({
+                        name: cleanChoiceName,
+                        value: valAttr || cleanChoiceName,
+                        priceModifier: priceMod,
+                        pricePrefix: pricePfx,
+                        sku: valAttr && /^\d+$/.test(valAttr) ? valAttr : undefined,
+                        imageUrl: dataImg ? (dataImg.startsWith('http') ? dataImg : (sampleUrl ? `${new URL(sampleUrl).origin}${dataImg.startsWith('/') ? '' : '/'}${dataImg}` : dataImg)) : undefined,
+                        isDefault: isSelected,
+                      });
+                    }
+                  });
+
+                  if (optionChoices.length > 0) {
+                    extractedOptions.push({
+                      name: optLabel,
+                      identifier: selId,
+                      values: optionChoices,
+                    });
+                  }
+                });
+              }
+
+              extractedValue = extractedOptions.length > 0 ? (extractedOptions as any) : '';
             } else if (isArrayField && matched.length > 1) {
               // Extract multiple text items
               const list: string[] = [];
