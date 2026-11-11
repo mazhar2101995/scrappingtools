@@ -1181,20 +1181,6 @@ brandsRouter.post('/:id/preview-page', async (req: Request, res: Response) => {
 
             return candidates;
           }
-              var aIsOne = a.matchCount === 1 ? 1 : 0;
-              var bIsOne = b.matchCount === 1 ? 1 : 0;
-              if (aIsOne !== bIsOne) return bIsOne - aIsOne;
-
-              var stabScore = { High: 3, Medium: 2, Low: 1 };
-              var scoreA = stabScore[a.stability] || 1;
-              var scoreB = stabScore[b.stability] || 1;
-              if (scoreA !== scoreB) return scoreB - scoreA;
-
-              return a.selector.length - b.selector.length;
-            });
-
-            return candidates;
-          }
 
           document.addEventListener('mouseover', function(e) {
             var target = e.target;
