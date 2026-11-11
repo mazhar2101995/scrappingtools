@@ -37,6 +37,12 @@ export const tenantBrandProfiles = pgTable('tenant_brand_profiles', {
   languagePromptRules: jsonb('language_prompt_rules').notNull().default(sql`'{}'::jsonb`),
   modelPatternRules: jsonb('model_pattern_rules').notNull().default(sql`'{}'::jsonb`),
   seoSettings: jsonb('seo_settings').notNull().default(sql`'{}'::jsonb`),
+  // Phase 9D: Product Presentation, Field Control & Business Rules Engine
+  fieldConfigs: jsonb('field_configs').notNull().default(sql`'[]'::jsonb`),
+  imageExtractionRules: jsonb('image_extraction_rules').notNull().default(sql`'{"galleryImages": true, "contentImages": true, "decorativeImages": false, "logosAndIcons": false}'::jsonb`),
+  contentTemplates: jsonb('content_templates').notNull().default(sql`'[]'::jsonb`),
+  missingDataRules: jsonb('missing_data_rules').notNull().default(sql`'{}'::jsonb`),
+  pricingRules: jsonb('pricing_rules').notNull().default(sql`'{"strategy": "none", "value": 0, "applyMargin": false}'::jsonb`),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [

@@ -137,6 +137,11 @@ brandsRouter.post('/', async (req: Request, res: Response) => {
         aiPromptRules: aiPromptRules || '',
         modelPatternRules: req.body.modelPatternRules || {},
         seoSettings: req.body.seoSettings || {},
+        fieldConfigs: req.body.fieldConfigs || [],
+        imageExtractionRules: req.body.imageExtractionRules || { galleryImages: true, contentImages: true, decorativeImages: false, logosAndIcons: false },
+        contentTemplates: req.body.contentTemplates || [],
+        missingDataRules: req.body.missingDataRules || {},
+        pricingRules: req.body.pricingRules || { strategy: 'none', value: 0, applyMargin: false },
       })
       .returning();
 
@@ -208,6 +213,11 @@ brandsRouter.put('/:id', async (req: Request, res: Response) => {
     if (req.body.languagePromptRules !== undefined) updatePayload.languagePromptRules = req.body.languagePromptRules;
     if (req.body.modelPatternRules !== undefined) updatePayload.modelPatternRules = req.body.modelPatternRules;
     if (req.body.seoSettings !== undefined) updatePayload.seoSettings = req.body.seoSettings;
+    if (req.body.fieldConfigs !== undefined) updatePayload.fieldConfigs = req.body.fieldConfigs;
+    if (req.body.imageExtractionRules !== undefined) updatePayload.imageExtractionRules = req.body.imageExtractionRules;
+    if (req.body.contentTemplates !== undefined) updatePayload.contentTemplates = req.body.contentTemplates;
+    if (req.body.missingDataRules !== undefined) updatePayload.missingDataRules = req.body.missingDataRules;
+    if (req.body.pricingRules !== undefined) updatePayload.pricingRules = req.body.pricingRules;
 
     const [updated] = await db
       .update(tenantBrandProfiles)

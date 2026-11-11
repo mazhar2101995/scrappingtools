@@ -570,6 +570,17 @@ export class DashboardApiClient {
     });
   }
 
+  async updateProductManualFields(id: string, payload: {
+    manualFields?: Record<string, any>;
+    customTitle?: string;
+    customDescription?: string;
+  }): Promise<any> {
+    return this.fetchJson(`/products/${id}/manual-fields`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  }
+
   // --- Phase 1: Smart Product Intelligence Lookup & Canonical Reuse ---
   async lookupProductIntelligence(payload: {
     productUrl?: string;
@@ -671,6 +682,11 @@ export class DashboardApiClient {
     languagePromptRules?: Record<string, string>;
     modelPatternRules?: any;
     seoSettings?: any;
+    fieldConfigs?: any[];
+    imageExtractionRules?: any;
+    contentTemplates?: any[];
+    missingDataRules?: any;
+    pricingRules?: any;
   }): Promise<any> {
     return this.fetchJson(`/brands/${id}`, {
       method: 'PUT',

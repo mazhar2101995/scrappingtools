@@ -87,6 +87,12 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   });
   const [activeLang, setActiveLang] = useState<string>('en');
 
+  // Phase 9D: Dynamic Tab Selection & Manual Information State
+  const [activeDynamicTab, setActiveDynamicTab] = useState<string>('Overview');
+  const [manualFieldsData, setManualFieldsData] = useState<Record<string, any>>({});
+  const [savingManualFields, setSavingManualFields] = useState(false);
+  const [manualSavedSuccess, setManualSavedSuccess] = useState(false);
+
   // Raw Data Modal State
   const [showRawDataModal, setShowRawDataModal] = useState(false);
   const [showQualityModal, setShowQualityModal] = useState(false);
@@ -124,6 +130,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       setError(null);
       const res = await apiClient.getProductById(params.id);
       setData(res);
+      if (res?.customFields?.manualFields) {
+        setManualFieldsData(res.customFields.manualFields);
+      } else if (res?.rawScrapedData?.manualFields) {
+        setManualFieldsData(res.rawScrapedData.manualFields);
+      }
       if (res?.images && res.images.length > 0) {
         const primary = res.images.find((img: any) => img.isPrimary) || res.images[0];
         setSelectedImage(primary.originUrl || primary.storageUri);
@@ -192,6 +203,22 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       console.error(e);
     } finally {
       setSavingMonitoring(false);
+    }
+  }
+
+  async function handleSaveManualFields() {
+    if (!data?.product?.id) return;
+    try {
+      setSavingManualFields(true);
+      await apiClient.updateProductManualFields(data.product.id, {
+        manualFields: manualFieldsData,
+      });
+      setManualSavedSuccess(true);
+      setTimeout(() => setManualSavedSuccess(false), 3000);
+    } catch (err: any) {
+      alert(`Failed to save manual fields: ${err.message || 'Unknown error'}`);
+    } finally {
+      setSavingManualFields(false);
     }
   }
 
@@ -592,10 +619,23 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </div>
               )}
 
+              {/* Pricing Display: Shows Raw Source Price + Calculated Price if Margin Rules applied */}
               {product.price && (
-                <div className="inline-flex items-baseline gap-1 text-2xl font-black text-slate-900 bg-amber-50/80 border border-amber-200 px-4 py-2 rounded-xl">
-                  <span>{product.price}</span>
-                  <span className="text-xs font-bold text-slate-500">USD</span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="inline-flex items-baseline gap-1 text-2xl font-black text-slate-900 bg-amber-50/80 border border-amber-200 px-4 py-2 rounded-xl">
+                    <span>{product.calculatedPrice || product.price}</span>
+                    <span className="text-xs font-bold text-slate-500">USD</span>
+                  </div>
+
+                  {product.calculatedPrice && product.calculatedPrice !== product.price && (
+                    <div className="text-xs bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl space-y-0.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase block">Raw Scraped Price:</span>
+                      <span className="font-mono font-bold text-slate-600 line-through">{product.price}</span>
+                      <span className="text-[10px] font-extrabold text-amber-800 ml-1.5 bg-amber-100 px-1.5 py-0.2 rounded">
+                        Margin Rule Applied
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -845,7 +885,236 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         </div>
       )}
 
-      {/* 4. Structured Field Groups (per Brand Profile) */}
+      {/* ========================================================================= */}
+      {/* PHASE 9D: DYNAMIC BRAND GROUPS & PRODUCT DETAIL TABS                      */}
+      {/* ========================================================================= */}
+      {(() => {
+        const brandProfile = data?.brandProfileConfig;
+        const brandGroups = (brandProfile?.fieldGroups as any[]) || [];
+        const fieldConfigs = (brandProfile?.fieldConfigs as any[]) || [];
+
+        // Build dynamic tabs from brand groups or default standard tabs
+        const tabList: string[] = [];
+        if (brandGroups.length > 0) {
+          brandGroups.forEach((g: any) => {
+            const gName = g.name || g.title || g.id;
+            if (gName && !tabList.includes(gName)) tabList.push(gName);
+          });
+        }
+
+        // Always include default tabs if not present
+        if (!tabList.includes('Description')) tabList.unshift('Description');
+        if ((data.features?.length > 0 || data.aiProcessedData?.keyHighlights?.length > 0) && !tabList.includes('Features')) {
+          tabList.push('Features');
+        }
+        if ((Object.keys(data.specifications || attributes || {}).length > 0) && !tabList.includes('Specifications')) {
+          tabList.push('Specifications');
+        }
+        if (data.compatibleModels?.length > 0 && !tabList.includes('Compatible Models')) {
+          tabList.push('Compatible Models');
+        }
+
+        const currentActive = tabList.includes(activeDynamicTab) ? activeDynamicTab : tabList[0] || 'Description';
+
+        return (
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+            {/* Dynamic Tab Bar Navigation */}
+            <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+              {tabList.map((tabName) => {
+                const isActive = currentActive === tabName;
+                return (
+                  <button
+                    key={tabName}
+                    type="button"
+                    onClick={() => setActiveDynamicTab(tabName)}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 border ${
+                      isActive
+                        ? 'bg-[#0d2a2c] text-[#fad982] border-[#0d2a2c] shadow-xs'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>{tabName}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Dynamic Tab Contents */}
+            <div className="min-h-[220px]">
+              {/* Tab: Description */}
+              {currentActive === 'Description' && (
+                <div className="space-y-4">
+                  {/<[a-z][\s\S]*>/i.test(product.standardizedDescription || '') ? (
+                    <div
+                      className="p-5 rounded-2xl bg-slate-50/50 border border-slate-200 text-xs text-slate-700 leading-relaxed max-h-[500px] overflow-y-auto prose prose-slate prose-sm max-w-none shadow-xs"
+                      dangerouslySetInnerHTML={{ __html: product.standardizedDescription }}
+                    />
+                  ) : (
+                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                      {product.standardizedDescription || 'No description available for this product.'}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab: Features */}
+              {currentActive === 'Features' && (
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-700">
+                  {(data.features && Array.isArray(data.features) && data.features.length > 0 ? data.features : data.aiProcessedData?.keyHighlights || []).map((feat: any, fIdx: number) => (
+                    <li key={fIdx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{String(feat)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* Tab: Specifications */}
+              {currentActive === 'Specifications' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  {Object.entries(data.specifications || attributes || {}).map(([k, v]) => {
+                    if (String(v).includes('(Not found on tested page)')) return null;
+                    return (
+                      <div key={k} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex justify-between gap-4">
+                        <span className="font-semibold text-slate-700">{k}</span>
+                        <span className="font-mono text-slate-900 text-right">{String(v)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Tab: Compatible Models */}
+              {currentActive === 'Compatible Models' && (
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {(data.compatibleModels || []).map((mod: any, mIdx: number) => (
+                    <span key={mIdx} className="px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-mono font-bold">
+                      {String(mod)}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Dynamic Group Tabs configured by Brand */}
+              {!['Description', 'Features', 'Specifications', 'Compatible Models'].includes(currentActive) && (
+                <div className="space-y-3">
+                  <div className="text-xs text-slate-500 mb-2">
+                    Dynamic Tab rendered according to Brand Profile group: <strong className="text-slate-800">{currentActive}</strong>
+                  </div>
+                  {(() => {
+                    const matchedGroup = brandGroups.find((g) => (g.name || g.id) === currentActive);
+                    const groupFields = matchedGroup?.fields || [];
+                    if (groupFields.length === 0) {
+                      return <div className="p-4 bg-slate-50 rounded-xl text-xs text-slate-400">No active fields mapped inside this group.</div>;
+                    }
+                    return (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        {groupFields.map((fName: string, i: number) => {
+                          const val = data?.attributes?.[fName] || data?.customFields?.[fName] || data?.rawScrapedData?.[fName] || '(Configured Field)';
+                          return (
+                            <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex justify-between gap-3">
+                              <span className="font-semibold text-slate-700">{fName}</span>
+                              <span className="font-mono text-slate-900">{String(val)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ========================================================================= */}
+      {/* PHASE 9D: MANUAL INFORMATION SECTION (Client Controlled Input)            */}
+      {/* ========================================================================= */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <Edit2 className="w-4 h-4 text-amber-600" />
+              <span>Manual Information &amp; Client Fields</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Approved manual inputs are protected from automatic overwrite during re-scraping or AI reprocessing.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {manualSavedSuccess && (
+              <span className="text-xs font-bold text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                <Check className="w-3.5 h-3.5" /> Saved &amp; Protected!
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleSaveManualFields}
+              disabled={savingManualFields}
+              className="px-4 py-2 bg-[#0d2a2c] hover:bg-[#143d40] text-white text-xs font-bold rounded-xl transition shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+            >
+              <Save className="w-3.5 h-3.5 text-[#fad982]" />
+              <span>{savingManualFields ? 'Saving...' : 'Save Manual Data'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Product Weight</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={manualFieldsData.product_weight || ''}
+                onChange={(e) => setManualFieldsData({ ...manualFieldsData, product_weight: e.target.value })}
+                placeholder="e.g. 2.5"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 font-semibold text-slate-900"
+              />
+              <span className="px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 font-bold text-slate-500">KG</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Package Dimensions</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={manualFieldsData.package_dimensions || ''}
+                onChange={(e) => setManualFieldsData({ ...manualFieldsData, package_dimensions: e.target.value })}
+                placeholder="L x W x H"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 font-semibold text-slate-900"
+              />
+              <span className="px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 font-bold text-slate-500">CM</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Country of Origin / OEM</label>
+            <input
+              type="text"
+              value={manualFieldsData.country_of_origin || ''}
+              onChange={(e) => setManualFieldsData({ ...manualFieldsData, country_of_origin: e.target.value })}
+              placeholder="e.g. USA / Germany"
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 font-semibold text-slate-900"
+            />
+          </div>
+
+          <div className="sm:col-span-2 md:col-span-3">
+            <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Internal Notes &amp; Handling Instructions</label>
+            <textarea
+              rows={2}
+              value={manualFieldsData.internal_handling_notes || ''}
+              onChange={(e) => setManualFieldsData({ ...manualFieldsData, internal_handling_notes: e.target.value })}
+              placeholder="Add client-internal operational or handling specifications..."
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Structured Field Groups (per Brand Profile) */}
       {data?.fieldGroupsData && Array.isArray(data.fieldGroupsData) && data.fieldGroupsData.length > 0 && !/<[a-z][\s\S]*>/i.test(product.standardizedDescription || '') && (
         <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">

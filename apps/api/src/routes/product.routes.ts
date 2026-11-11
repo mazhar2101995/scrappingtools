@@ -857,11 +857,27 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
     { step: 'QualityValidation', label: 'Data quality validated', status: 'completed', timestamp: product.createdAt },
   ];
 
-  // Fetch brand profile pattern rules dynamically for consistent display
+  // Fetch brand profile presentation & business rules dynamically
   let dynamicFormattedModel = customAttrs.formattedModelNumber || product.modelNumber;
+  let brandProfileConfig: any = null;
+  let calculatedPrice: string | null = null;
+  let rawSourcePriceStr: string | null = price ? (String(price).startsWith('$') ? String(price) : `$${price}`) : null;
+
   if (product.brandId && orgId) {
     const [bp] = await db
-      .select({ modelPatternRules: tenantBrandProfiles.modelPatternRules })
+      .select({
+        id: tenantBrandProfiles.id,
+        name: tenantBrandProfiles.name,
+        modelPatternRules: tenantBrandProfiles.modelPatternRules,
+        fieldConfigs: tenantBrandProfiles.fieldConfigs,
+        fieldGroups: tenantBrandProfiles.fieldGroups,
+        fieldMappings: tenantBrandProfiles.fieldMappings,
+        customFields: tenantBrandProfiles.customFields,
+        contentTemplates: tenantBrandProfiles.contentTemplates,
+        missingDataRules: tenantBrandProfiles.missingDataRules,
+        pricingRules: tenantBrandProfiles.pricingRules,
+        imageExtractionRules: tenantBrandProfiles.imageExtractionRules,
+      })
       .from(tenantBrandProfiles)
       .where(
         or(
@@ -871,18 +887,41 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
       )
       .limit(1);
 
-    const mRules = (bp?.modelPatternRules as any) || {};
-    if (mRules?.enabled && product.modelNumber) {
-      const pfx = mRules.prefix || '';
-      const sfx = mRules.suffix || '';
-      let base = String(product.modelNumber).trim();
-      if (mRules.transform === 'UPPERCASE') base = base.toUpperCase();
-      else if (mRules.transform === 'LOWERCASE') base = base.toLowerCase();
-      else if (mRules.transform === 'STRIP_SPECIAL') base = base.replace(/[^a-zA-Z0-9]/g, '');
+    if (bp) {
+      brandProfileConfig = bp;
+      const mRules = (bp?.modelPatternRules as any) || {};
+      if (mRules?.enabled && product.modelNumber) {
+        const pfx = mRules.prefix || '';
+        const sfx = mRules.suffix || '';
+        let base = String(product.modelNumber).trim();
+        if (mRules.transform === 'UPPERCASE') base = base.toUpperCase();
+        else if (mRules.transform === 'LOWERCASE') base = base.toLowerCase();
+        else if (mRules.transform === 'STRIP_SPECIAL') base = base.replace(/[^a-zA-Z0-9]/g, '');
 
-      if (!base.startsWith(pfx)) base = `${pfx}${base}`;
-      if (!base.endsWith(sfx)) base = `${base}${sfx}`;
-      dynamicFormattedModel = base;
+        if (!base.startsWith(pfx)) base = `${pfx}${base}`;
+        if (!base.endsWith(sfx)) base = `${base}${sfx}`;
+        dynamicFormattedModel = base;
+      }
+
+      // Phase 9D: Pricing Rules Evaluation (Preserves Raw Source Price, Computes Calculated Price)
+      const pRules = (bp?.pricingRules as any) || {};
+      if (pRules && pRules.strategy && pRules.strategy !== 'none' && price) {
+        const numericSourcePrice = parseFloat(String(price).replace(/[^0-9.]/g, ''));
+        if (!isNaN(numericSourcePrice)) {
+          let calc = numericSourcePrice;
+          const ruleVal = parseFloat(pRules.value) || 0;
+          if (pRules.strategy === 'percent_inc') {
+            calc = numericSourcePrice * (1 + ruleVal / 100);
+          } else if (pRules.strategy === 'percent_dec') {
+            calc = numericSourcePrice * (1 - ruleVal / 100);
+          } else if (pRules.strategy === 'fixed_inc') {
+            calc = numericSourcePrice + ruleVal;
+          } else if (pRules.strategy === 'fixed_dec') {
+            calc = Math.max(0, numericSourcePrice - ruleVal);
+          }
+          calculatedPrice = `$${calc.toFixed(2)}`;
+        }
+      }
     }
   }
 
@@ -895,7 +934,8 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
       standardizedDescription: override?.customDescription || product.standardizedDescription,
       modelNumber: dynamicFormattedModel,
       rawModelNumber: product.modelNumber,
-      price: price ? (String(price).startsWith('$') ? String(price) : `$${price}`) : null,
+      price: rawSourcePriceStr,
+      calculatedPrice: calculatedPrice || rawSourcePriceStr,
       productUrl,
     },
     brandName: product.brandName || '',
@@ -914,6 +954,7 @@ productsRouter.get('/:id', async (req: Request, res: Response) => {
     specifications,
     processingHistory,
     brandAiRules,
+    brandProfileConfig,
     images: images.length > 0 ? images : (product.primaryImageUrl ? [{ originUrl: product.primaryImageUrl, storageUri: product.primaryImageUrl, isPrimary: true }] : []),
   });
 });
@@ -1435,6 +1476,87 @@ productsRouter.get('/export/csv', async (req: Request, res: Response) => {
   }
 });
 
+// 7.1 Update Product Overrides & Manual Fields (Phase 9D: Manual Information Section)
+productsRouter.patch('/:id/manual-fields', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  const paramId = req.params.id as string;
+  const { manualFields, customTitle, customDescription } = req.body;
+
+  if (!orgId) return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
+
+  try {
+    let targetGlobalId = paramId;
+    const [cpm] = await db
+      .select()
+      .from(customerProductMappings)
+      .where(
+        or(
+          and(eq(customerProductMappings.organizationId, orgId), eq(customerProductMappings.id, paramId)),
+          and(eq(customerProductMappings.organizationId, orgId), eq(customerProductMappings.globalProductId, paramId))
+        )
+      )
+      .limit(1);
+
+    if (cpm) targetGlobalId = cpm.globalProductId;
+
+    const [existing] = await db
+      .select()
+      .from(customerProductOverrides)
+      .where(
+        and(
+          eq(customerProductOverrides.organizationId, orgId),
+          eq(customerProductOverrides.globalProductId, targetGlobalId)
+        )
+      )
+      .limit(1);
+
+    const existingAttrs = (existing?.customAttributes as any) || {};
+    const updatedAttrs = {
+      ...existingAttrs,
+      manualFields: {
+        ...(existingAttrs.manualFields || {}),
+        ...(manualFields || {}),
+      },
+    };
+
+    const updateSet: Record<string, any> = {
+      customAttributes: updatedAttrs,
+      updatedAt: new Date(),
+    };
+    if (customTitle !== undefined) updateSet.customTitle = customTitle;
+    if (customDescription !== undefined) updateSet.customDescription = customDescription;
+
+    if (existing) {
+      await db
+        .update(customerProductOverrides)
+        .set(updateSet)
+        .where(
+          and(
+            eq(customerProductOverrides.organizationId, orgId),
+            eq(customerProductOverrides.globalProductId, targetGlobalId)
+          )
+        );
+    } else {
+      await db.insert(customerProductOverrides).values({
+        organizationId: orgId,
+        globalProductId: targetGlobalId,
+        customTitle: customTitle || null,
+        customDescription: customDescription || null,
+        customAttributes: updatedAttrs,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Manual fields updated and protected successfully',
+      manualFields: updatedAttrs.manualFields,
+    });
+  } catch (err: any) {
+    console.error('[ManualFieldsUpdate] Failed:', err);
+    return res.status(500).json({ error: 'Failed to save manual fields', details: err.message });
+  }
+});
+
 // 8. BATCH IMPORT & SCRAPE JOB DISPATCHER
 productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
@@ -1627,6 +1749,23 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
           const price = extracted.price || $('[data-price-type="finalPrice"], .price, .product-price').first().text().trim() || null;
           const desc = extracted.description || $('.product-info-detailed, #description, .product.attribute.description .value, meta[name="description"]').first().text().trim() || null;
           const images = Array.isArray(extracted.images) ? extracted.images : extracted.primaryImage ? [extracted.primaryImage] : [];
+          
+          // Phase 9D: Source Content Image Extraction (Extract images inside product description / content area)
+          const imgRules = (brandProfile?.imageExtractionRules as any) || { galleryImages: true, contentImages: true };
+          if (imgRules.contentImages) {
+            const descHtml = $('div#description, div.product-info-detailed, div.panel.ada_panel, div.description, article, .product-description').html() || '';
+            if (descHtml) {
+              const $desc = cheerio.load(descHtml);
+              $desc('img').each((_, el) => {
+                const s = $desc(el).attr('src') || $desc(el).attr('data-src');
+                if (s && !s.includes('placeholder') && !s.includes('icon') && !s.includes('spacer') && !s.includes('logo')) {
+                  const full = s.startsWith('//') ? `https:${s}` : s.startsWith('/') && brandProfile.officialWebsite ? new URL(s, brandProfile.officialWebsite).href : s;
+                  if (!images.includes(full)) images.push(full);
+                }
+              });
+            }
+          }
+
           const primaryImg = images[0] || $('meta[property="og:image"]').attr('content') || null;
 
           // Collect custom non-standard fields mapped for this brand (e.g. futured, compatible_models, etc.)
@@ -1740,19 +1879,36 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
               batchEffectiveModel = base;
             }
 
+            // Phase 9D: Manual Field Protection Check
+            // If the product already has overrides with approved manual entries, preserve them from silent overwrite!
+            const [existingOverride] = await db
+              .select()
+              .from(customerProductOverrides)
+              .where(
+                and(
+                  eq(customerProductOverrides.organizationId, orgId),
+                  eq(customerProductOverrides.globalProductId, savedProduct.id)
+                )
+              )
+              .limit(1);
+
+            const existingAttrs = (existingOverride?.customAttributes as any) || {};
+            const existingManualFields = existingAttrs.manualFields || {};
+
             // Overrides preserving raw data and final AI data separately
             await db
               .insert(customerProductOverrides)
               .values({
                 organizationId: orgId,
                 globalProductId: savedProduct.id,
-                customTitle: finalTitle,
-                customDescription: finalDesc,
+                customTitle: existingOverride?.customTitle || finalTitle,
+                customDescription: existingOverride?.customDescription || finalDesc,
                 customAttributes: {
                   price: price || null,
                   formattedModelNumber: batchEffectiveModel,
                   extractedAttributes: extracted.attributes || {},
                   customFields: customCollected,
+                  manualFields: existingManualFields,
                   productUrl: job.targetUrl,
                   rawScrapedData,
                   aiProcessedData: aiEnhanced,
@@ -1767,13 +1923,15 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
               .onConflictDoUpdate({
                 target: [customerProductOverrides.organizationId, customerProductOverrides.globalProductId],
                 set: {
-                  customTitle: finalTitle,
-                  customDescription: finalDesc,
+                  // Keep user-edited title and description if already customized manually
+                  customTitle: existingOverride?.customTitle ? existingOverride.customTitle : finalTitle,
+                  customDescription: existingOverride?.customDescription ? existingOverride.customDescription : finalDesc,
                   customAttributes: {
                     price: price || null,
                     formattedModelNumber: batchEffectiveModel,
                     extractedAttributes: extracted.attributes || {},
                     customFields: customCollected,
+                    manualFields: existingManualFields,
                     productUrl: job.targetUrl,
                     rawScrapedData,
                     aiProcessedData: aiEnhanced,

@@ -36,9 +36,14 @@ import {
   ShieldCheck,
   AlertTriangle,
   Maximize2,
-  Minimize2
+  Minimize2,
+  LayoutTemplate,
+  DollarSign,
+  Image as ImageIcon,
+  HelpCircle as QuestionIcon
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import { STARTER_CONTENT_TEMPLATES, ContentTemplate } from '@/lib/starter-templates';
 
 const STANDARD_TARGET_FIELDS = [
   { key: 'name', label: 'Product Name', desc: 'Canonical product title or heading' },
@@ -81,12 +86,54 @@ export default function BrandProfileDetailPage() {
   const router = useRouter();
   const brandId = params.id as string;
 
-  const [activeTab, setActiveTab] = useState<'visual' | 'mappings' | 'groups' | 'sources' | 'store_export' | 'custom' | 'ai_prompts' | 'model_rules' | 'seo' | 'test' | 'overview'>('visual');
+  const [activeTab, setActiveTab] = useState<'visual' | 'mappings' | 'groups' | 'sources' | 'store_export' | 'custom' | 'ai_prompts' | 'model_rules' | 'seo' | 'test' | 'overview' | 'field_configs' | 'image_rules' | 'templates' | 'missing_rules' | 'pricing_rules'>('visual');
   const [brand, setBrand] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Phase 9D: Brand Product Presentation & Business Rules State
+  const [fieldConfigs, setFieldConfigs] = useState<any[]>([]);
+  const [imageExtractionRules, setImageExtractionRules] = useState<{
+    galleryImages: boolean;
+    contentImages: boolean;
+    decorativeImages: boolean;
+    logosAndIcons: boolean;
+  }>({
+    galleryImages: true,
+    contentImages: true,
+    decorativeImages: false,
+    logosAndIcons: false,
+  });
+  const [contentTemplates, setContentTemplates] = useState<ContentTemplate[]>(STARTER_CONTENT_TEMPLATES);
+  const [missingDataRules, setMissingDataRules] = useState<Record<string, { behavior: 'leave_empty' | 'manual_required' | 'default_value'; defaultValue?: string }>>({});
+  const [pricingRules, setPricingRules] = useState<{
+    strategy: 'none' | 'percent_inc' | 'percent_dec' | 'fixed_inc' | 'fixed_dec';
+    value: number;
+    applyMargin: boolean;
+    exportPriceCalculated: boolean;
+  }>({
+    strategy: 'none',
+    value: 0,
+    applyMargin: false,
+    exportPriceCalculated: false,
+  });
+
+  // Template Preview & Custom Template Editor Modal State
+  const [previewTemplate, setPreviewTemplate] = useState<ContentTemplate | null>(null);
+  const [showCustomTemplateModal, setShowCustomTemplateModal] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<Partial<ContentTemplate>>({
+    name: '',
+    description: '',
+    type: 'custom',
+    appliedToFields: ['description'],
+    layoutMode: 'simple',
+    sections: [{ id: 'sec_1', title: 'Section Title', fieldKey: 'description' }],
+    advancedHtml: '<h3>{{title}}</h3>\n<p>{{description}}</p>\n{{#if features}}\n<ul>{{features}}</ul>\n{{/if}}',
+    scopedCss: '.product-custom-content { line-height: 1.6; }',
+    status: 'active',
+  });
 
   // Editable brand state
   const [brandName, setBrandName] = useState('');
@@ -236,6 +283,42 @@ export default function BrandProfileDetailPage() {
       setModelSuffix(mRules.suffix || '');
       setModelTransform(mRules.transform || 'NONE');
 
+      // Phase 9D: Load Product Presentation & Business Rules
+      if (Array.isArray(data.fieldConfigs) && data.fieldConfigs.length > 0) {
+        setFieldConfigs(data.fieldConfigs);
+      } else {
+        // Initialize default field configs for standard fields
+        const initConfigs = STANDARD_TARGET_FIELDS.map((f, idx) => ({
+          fieldKey: f.key,
+          label: f.label,
+          dataSource: f.key === 'brand' ? 'scraped' : f.key === 'description' ? 'scraped' : 'scraped',
+          displayLocation: f.key === 'brand' || f.key === 'name' || f.key === 'price' || f.key === 'sku' ? 'main' : f.key === 'meta_title' || f.key === 'meta_description' ? 'hidden' : 'tab',
+          groupId: f.key === 'attributes' ? 'Specifications' : null,
+          required: ['name', 'price'].includes(f.key),
+          status: 'active',
+          sourcePriority: ['scraped', 'manual', 'default'],
+        }));
+        setFieldConfigs(initConfigs);
+      }
+
+      if (data.imageExtractionRules) {
+        setImageExtractionRules(data.imageExtractionRules);
+      }
+
+      if (Array.isArray(data.contentTemplates) && data.contentTemplates.length > 0) {
+        setContentTemplates(data.contentTemplates);
+      } else {
+        setContentTemplates(STARTER_CONTENT_TEMPLATES);
+      }
+
+      if (data.missingDataRules && typeof data.missingDataRules === 'object') {
+        setMissingDataRules(data.missingDataRules);
+      }
+
+      if (data.pricingRules && typeof data.pricingRules === 'object') {
+        setPricingRules(data.pricingRules);
+      }
+
       // Load SEO Settings
       const sSettings = data.seoSettings || {};
       setSeoEnabled(Boolean(sSettings.enabled));
@@ -347,6 +430,12 @@ export default function BrandProfileDetailPage() {
           fields: seoFields,
           customPrompt: customSeoPrompt.trim(),
         },
+        // Phase 9D: Persist Product Presentation & Business Rules
+        fieldConfigs,
+        imageExtractionRules,
+        contentTemplates,
+        missingDataRules,
+        pricingRules,
       });
       if (res?.brand?.modelPatternRules) {
         const mRules = res.brand.modelPatternRules;
@@ -904,15 +993,98 @@ export default function BrandProfileDetailPage() {
         <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-2.5 shadow-sm space-y-1 sticky top-6">
           <div className="px-3 py-2 border-b border-slate-100 mb-1">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-              Configuration Modules
+              Scraping & Mapping
             </span>
           </div>
 
           {[
             { key: 'visual', label: 'Visual Auto Mapping', icon: MousePointerClick, badge: 'NEW' },
             { key: 'mappings', label: 'Manual Field Mapping', icon: SlidersHorizontal, count: fieldMappings.length },
-            { key: 'groups', label: 'Field Groups', icon: FolderKanban, count: fieldGroups.length },
+            { key: 'image_rules', label: 'Source Content Images', icon: ImageIcon, badge: 'Phase 9D' },
+            { key: 'groups', label: 'Groups & Product Tabs', icon: FolderKanban, count: fieldGroups.length },
             { key: 'sources', label: 'Product Sources', icon: Layers, count: sourceConfigs.length },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key as any)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left ${
+                  isActive
+                    ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm'
+                    : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#fad982]' : 'text-slate-400'}`} />
+                  <span className="truncate">{tab.label}</span>
+                </div>
+                {tab.badge && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-extrabold ${isActive ? 'bg-[#fad982] text-slate-950' : 'bg-amber-100 text-amber-900'}`}>
+                    {tab.badge}
+                  </span>
+                )}
+                {tab.count !== undefined && (
+                  <span className={`px-2 py-0.2 rounded-full text-[10px] font-mono font-bold ${isActive ? 'bg-teal-900 text-[#fad982]' : 'bg-slate-100 text-slate-600'}`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+
+          <div className="px-3 pt-3 pb-1 border-t border-slate-100 mt-2 mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Presentation & Business Rules (9D)
+            </span>
+          </div>
+
+          {[
+            { key: 'field_configs', label: 'Field Control & Visibility', icon: Sliders, badge: '9D' },
+            { key: 'templates', label: 'Content Templates', icon: LayoutTemplate, count: contentTemplates.length },
+            { key: 'missing_rules', label: 'Missing Data Rules', icon: QuestionIcon },
+            { key: 'pricing_rules', label: 'Pricing Rules', icon: DollarSign, badge: pricingRules.strategy !== 'none' ? 'ACTIVE' : undefined },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key as any)}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all text-left ${
+                  isActive
+                    ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm'
+                    : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 truncate">
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#fad982]' : 'text-slate-400'}`} />
+                  <span className="truncate">{tab.label}</span>
+                </div>
+                {tab.badge && (
+                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-extrabold ${isActive ? 'bg-[#fad982] text-slate-950' : 'bg-emerald-100 text-emerald-900'}`}>
+                    {tab.badge}
+                  </span>
+                )}
+                {tab.count !== undefined && (
+                  <span className={`px-2 py-0.2 rounded-full text-[10px] font-mono font-bold ${isActive ? 'bg-teal-900 text-[#fad982]' : 'bg-slate-100 text-slate-600'}`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+
+          <div className="px-3 pt-3 pb-1 border-t border-slate-100 mt-2 mb-1">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Export & AI Config
+            </span>
+          </div>
+
+          {[
             { key: 'store_export', label: 'Store Export Mapping', icon: ShoppingBag, badge: 'Phase 9A' },
             { key: 'custom', label: 'Custom Client Fields', icon: ListPlus, count: customFields.length },
             { key: 'model_rules', label: 'Model Normalization', icon: Sliders, badge: modelPatternEnabled ? 'ON' : undefined },
@@ -2369,7 +2541,720 @@ export default function BrandProfileDetailPage() {
         </div>
       )}
 
-      {/* TAB: DYNAMIC AI SEO GENERATION SETTINGS */}
+      {/* ========================================================================= */}
+      {/* PHASE 9D TAB: SOURCE CONTENT IMAGE EXTRACTION RULES                       */}
+      {/* ========================================================================= */}
+      {activeTab === 'image_rules' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+          <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
+                  Scraping &amp; Media Rules
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Phase 9D</span>
+              </div>
+              <h2 className="text-lg font-black tracking-tight text-slate-900">
+                Source Content &amp; Media Extraction Control
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Configure which images should be collected from the product source page. Extracted assets automatically preserve provenance and deduplicate via SHA-256 asset linking.
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleSaveChanges()}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
+            >
+              <Save className="w-4 h-4" />
+              <span>{saving ? 'Saving...' : 'Save Image Rules'}</span>
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Image Types to Collect</h4>
+              
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 transition">
+                  <input
+                    type="checkbox"
+                    checked={imageExtractionRules.galleryImages}
+                    onChange={(e) => setImageExtractionRules({ ...imageExtractionRules, galleryImages: e.target.checked })}
+                    className="w-4 h-4 rounded text-[#0d2a2c] accent-[#0d2a2c] mt-0.5"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">Product Gallery Images</span>
+                    <span className="text-[11px] text-slate-500">Collect primary hero photos, slider shots, and multi-angle catalog pictures.</span>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 transition">
+                  <input
+                    type="checkbox"
+                    checked={imageExtractionRules.contentImages}
+                    onChange={(e) => setImageExtractionRules({ ...imageExtractionRules, contentImages: e.target.checked })}
+                    className="w-4 h-4 rounded text-[#0d2a2c] accent-[#0d2a2c] mt-0.5"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">Extract images found inside product description / content</span>
+                    <span className="text-[11px] text-slate-500">Scans inner HTML of description panels, overview tabs, and technical diagrams to extract product diagrams.</span>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 transition">
+                  <input
+                    type="checkbox"
+                    checked={imageExtractionRules.decorativeImages}
+                    onChange={(e) => setImageExtractionRules({ ...imageExtractionRules, decorativeImages: e.target.checked })}
+                    className="w-4 h-4 rounded text-[#0d2a2c] accent-[#0d2a2c] mt-0.5"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">Decorative Banners &amp; Marketing Images</span>
+                    <span className="text-[11px] text-slate-500">Collect lifestyle backgrounds and promotional headers (Usually disabled for clean store push).</span>
+                  </div>
+                </label>
+
+                <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 transition">
+                  <input
+                    type="checkbox"
+                    checked={imageExtractionRules.logosAndIcons}
+                    onChange={(e) => setImageExtractionRules({ ...imageExtractionRules, logosAndIcons: e.target.checked })}
+                    className="w-4 h-4 rounded text-[#0d2a2c] accent-[#0d2a2c] mt-0.5"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">Logos and Icons</span>
+                    <span className="text-[11px] text-slate-500">Certification badges, warranty stamps, and vendor icons.</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 space-y-1">
+              <span className="font-bold flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Multi-Tenant SHA-256 Storage Deduplication Active
+              </span>
+              <p className="text-[11px] text-emerald-700">
+                Images discovered with matching SHA-256 content hashes reuse verified cloud storage objects. Duplicate physical files are never stored repeatedly.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PHASE 9D TAB: FIELD CONFIGURATION & VISIBILITY ENGINE                     */}
+      {/* ========================================================================= */}
+      {activeTab === 'field_configs' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+          <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
+                  Field Presentation Control
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Phase 9D</span>
+              </div>
+              <h2 className="text-lg font-black tracking-tight text-slate-900">
+                Field Control, Data Source &amp; Display Visibility
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Decide where each product attribute originates (Scraped, AI, Manual, Default) and where it is displayed (Main Product View, Group Tab, Manual Information, Hidden, or Internal Only).
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleSaveChanges()}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
+            >
+              <Save className="w-4 h-4" />
+              <span>{saving ? 'Saving...' : 'Save Field Controls'}</span>
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="divide-y divide-slate-100">
+              {fieldConfigs.map((fc: any, fIdx: number) => {
+                const groupOptions = fieldGroups.map((g) => g.name || g.id);
+                return (
+                  <div key={fc.fieldKey || fIdx} className="py-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                    <div className="md:col-span-3">
+                      <span className="font-bold text-xs text-slate-900 block">{fc.label || fc.fieldKey}</span>
+                      <span className="font-mono text-[10px] text-slate-400 block">{fc.fieldKey}</span>
+                    </div>
+
+                    <div className="md:col-span-3">
+                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Data Source</label>
+                      <select
+                        value={fc.dataSource || 'scraped'}
+                        onChange={(e) => {
+                          const updated = [...fieldConfigs];
+                          updated[fIdx].dataSource = e.target.value;
+                          setFieldConfigs(updated);
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800"
+                      >
+                        <option value="scraped">Scraped Source</option>
+                        <option value="ai">AI Processed</option>
+                        <option value="manual">Manual Client Input</option>
+                        <option value="default">Default Value</option>
+                        <option value="internal">Internal Operational</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-3">
+                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Display Location</label>
+                      <select
+                        value={fc.displayLocation || 'main'}
+                        onChange={(e) => {
+                          const updated = [...fieldConfigs];
+                          updated[fIdx].displayLocation = e.target.value;
+                          setFieldConfigs(updated);
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800"
+                      >
+                        <option value="main">Main Product View</option>
+                        <option value="tab">Group Tab</option>
+                        <option value="manual">Manual Information</option>
+                        <option value="hidden">Hidden (Stored but not shown)</option>
+                        <option value="internal">Internal Only (System ops)</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Group / Tab</label>
+                      <select
+                        value={fc.groupId || ''}
+                        onChange={(e) => {
+                          const updated = [...fieldConfigs];
+                          updated[fIdx].groupId = e.target.value || null;
+                          setFieldConfigs(updated);
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800"
+                      >
+                        <option value="">(None / Ungrouped)</option>
+                        {groupOptions.map((gName: string) => (
+                          <option key={gName} value={gName}>{gName}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-1 flex items-center justify-end">
+                      <label className="flex items-center gap-1.5 cursor-pointer text-[11px] font-bold text-slate-600">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(fc.required)}
+                          onChange={(e) => {
+                            const updated = [...fieldConfigs];
+                            updated[fIdx].required = e.target.checked;
+                            setFieldConfigs(updated);
+                          }}
+                          className="w-3.5 h-3.5 rounded text-[#0d2a2c] accent-[#0d2a2c]"
+                        />
+                        <span>Req</span>
+                      </label>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PHASE 9D TAB: CONTENT TEMPLATES & CLIENT TEMPLATE BUILDER                 */}
+      {/* ========================================================================= */}
+      {activeTab === 'templates' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+          <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
+                  Brand Presentation Engine
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Phase 9D</span>
+              </div>
+              <h2 className="text-lg font-black tracking-tight text-slate-900">
+                Content Templates &amp; Presentation Rules
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Choose from 5 starter templates or craft custom layouts. Templates format product descriptions, technical tabs and highlights with conditional display rules.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingTemplate({
+                    id: `tpl_custom_${Date.now()}`,
+                    name: 'New Custom Layout',
+                    description: 'Custom client defined presentation template',
+                    type: 'custom',
+                    appliedToFields: ['description'],
+                    layoutMode: 'simple',
+                    sections: [
+                      { id: 'sec_1', title: 'Product Overview', fieldKey: 'description' },
+                      { id: 'sec_2', title: 'Specifications', fieldKey: 'specifications', conditionField: 'specifications' },
+                    ],
+                    advancedHtml: '<h3>{{title}}</h3>\n<p>{{description}}</p>',
+                    scopedCss: '.product-custom-content { line-height: 1.6; }',
+                    status: 'active',
+                    updatedAt: new Date().toISOString(),
+                  });
+                  setShowCustomTemplateModal(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Create Custom Template</span>
+              </button>
+
+              <button
+                onClick={() => handleSaveChanges()}
+                disabled={saving}
+                className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
+              >
+                <Save className="w-4 h-4" />
+                <span>{saving ? 'Saving...' : 'Save Templates'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {contentTemplates.map((tpl) => (
+              <div key={tpl.id} className="p-5 rounded-2xl border border-slate-200 bg-white hover:border-[#0d2a2c] transition shadow-xs flex flex-col justify-between space-y-3">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
+                      {tpl.type === 'starter' ? 'Default Starter' : 'Custom Template'}
+                    </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${tpl.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      {tpl.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <h3 className="font-bold text-sm text-slate-900">{tpl.name}</h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">{tpl.description}</p>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <div className="text-[11px] text-slate-600">
+                    <span className="font-semibold text-slate-400 block mb-0.5">Applies To Fields:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {tpl.appliedToFields.map((fKey) => (
+                        <span key={fKey} className="px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 font-mono text-[10px]">
+                          {fKey}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewTemplate(tpl)}
+                      className="text-xs font-bold text-[#0d2a2c] hover:underline flex items-center gap-1"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Live Preview</span>
+                    </button>
+                    {tpl.type === 'custom' && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setContentTemplates(contentTemplates.filter((t) => t.id !== tpl.id));
+                        }}
+                        className="text-slate-400 hover:text-rose-600 p-1"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Template Preview Drawer / Modal */}
+          {previewTemplate && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">{previewTemplate.name}</h3>
+                    <span className="text-[10px] text-slate-400">Template Render Preview</span>
+                  </div>
+                  <button type="button" onClick={() => setPreviewTemplate(null)} className="text-slate-400 hover:text-slate-700">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs text-slate-700">
+                  <div className="font-bold text-slate-900 text-sm">Sample Product Title: Industrial High-Flow Return Desk</div>
+                  <p className="leading-relaxed">
+                    Engineered with durable melamine surfaces, integrated power channels, and structural reinforcement.
+                  </p>
+                  <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1">
+                    <span className="font-bold text-slate-800 block">Features:</span>
+                    <ul className="list-disc list-inside space-y-0.5 text-slate-600">
+                      <li>Scratch-resistant thermofused laminate surface</li>
+                      <li>Heavy-duty steel frame supports up to 400 lbs</li>
+                      <li>Commercial ANSI/BIFMA certified construction</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setPreviewTemplate(null)}
+                    className="px-4 py-2 bg-[#0d2a2c] text-white text-xs font-bold rounded-xl"
+                  >
+                    Close Preview
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Create Custom Template Modal */}
+          {showCustomTemplateModal && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+              <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl border border-slate-200 my-8">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <h3 className="text-sm font-black text-slate-900">Create Custom Content Template</h3>
+                  <button type="button" onClick={() => setShowCustomTemplateModal(false)} className="text-slate-400 hover:text-slate-700">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="space-y-3 text-xs">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Template Name</label>
+                    <input
+                      type="text"
+                      value={editingTemplate.name || ''}
+                      onChange={(e) => setEditingTemplate({ ...editingTemplate, name: e.target.value })}
+                      placeholder="e.g. Modern Minimalist Layout"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300 font-semibold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Description</label>
+                    <input
+                      type="text"
+                      value={editingTemplate.description || ''}
+                      onChange={(e) => setEditingTemplate({ ...editingTemplate, description: e.target.value })}
+                      placeholder="Short explanation of when to use this layout"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Mode</label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="layoutMode"
+                          checked={editingTemplate.layoutMode === 'simple'}
+                          onChange={() => setEditingTemplate({ ...editingTemplate, layoutMode: 'simple' })}
+                        />
+                        <span>Simple Mode (No-code Section Builder)</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="layoutMode"
+                          checked={editingTemplate.layoutMode === 'advanced'}
+                          onChange={() => setEditingTemplate({ ...editingTemplate, layoutMode: 'advanced' })}
+                        />
+                        <span>Advanced Mode (Controlled HTML/CSS Tokens)</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {editingTemplate.layoutMode === 'advanced' ? (
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
+                          Sanitized HTML Structure (Supports &#123;&#123;title&#125;&#125;, &#123;&#123;description&#125;&#125;, &#123;&#123;features&#125;&#125;, &#123;&#123;specifications&#125;&#125;)
+                        </label>
+                        <textarea
+                          rows={4}
+                          value={editingTemplate.advancedHtml || ''}
+                          onChange={(e) => setEditingTemplate({ ...editingTemplate, advancedHtml: e.target.value })}
+                          className="w-full p-2.5 rounded-xl border border-slate-300 font-mono text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">Scoped CSS</label>
+                        <textarea
+                          rows={2}
+                          value={editingTemplate.scopedCss || ''}
+                          onChange={(e) => setEditingTemplate({ ...editingTemplate, scopedCss: e.target.value })}
+                          className="w-full p-2.5 rounded-xl border border-slate-300 font-mono text-xs"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                      <span className="font-bold text-slate-800 block">Configured Sections:</span>
+                      <p className="text-[11px] text-slate-500">
+                        Sections automatically adapt: if a field like features or specifications is missing, the template hides that section safely.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowCustomTemplateModal(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!editingTemplate.name) return;
+                      const newTpl: ContentTemplate = {
+                        id: editingTemplate.id || `tpl_${Date.now()}`,
+                        name: editingTemplate.name,
+                        description: editingTemplate.description || '',
+                        type: 'custom',
+                        appliedToFields: editingTemplate.appliedToFields || ['description'],
+                        layoutMode: editingTemplate.layoutMode || 'simple',
+                        sections: editingTemplate.sections || [],
+                        advancedHtml: editingTemplate.advancedHtml,
+                        scopedCss: editingTemplate.scopedCss,
+                        status: 'active',
+                        updatedAt: new Date().toISOString(),
+                      };
+                      setContentTemplates([...contentTemplates, newTpl]);
+                      setShowCustomTemplateModal(false);
+                    }}
+                    className="px-4 py-2 bg-[#0d2a2c] text-white text-xs font-bold rounded-xl"
+                  >
+                    Add Template
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PHASE 9D TAB: MISSING DATA RULES                                          */}
+      {/* ========================================================================= */}
+      {activeTab === 'missing_rules' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+          <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
+                  Data Governance
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Phase 9D</span>
+              </div>
+              <h2 className="text-lg font-black tracking-tight text-slate-900">
+                Missing Data Rules &amp; Fallback Handlers
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Configure how missing source attributes are handled. AI never invents technical specifications or dimensions. Default values apply strictly with client authorization.
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleSaveChanges()}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
+            >
+              <Save className="w-4 h-4" />
+              <span>{saving ? 'Saving...' : 'Save Missing Rules'}</span>
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div className="divide-y divide-slate-100">
+              {['weight', 'dimensions', 'color', 'warranty', 'material', 'lead_time'].map((fieldKey) => {
+                const currentRule = missingDataRules[fieldKey] || { behavior: 'leave_empty', defaultValue: '' };
+                return (
+                  <div key={fieldKey} className="py-3.5 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                    <div className="md:col-span-4">
+                      <span className="font-bold text-xs text-slate-900 capitalize block">{fieldKey.replace('_', ' ')}</span>
+                      <span className="font-mono text-[10px] text-slate-400">Target Field: {fieldKey}</span>
+                    </div>
+
+                    <div className="md:col-span-4">
+                      <select
+                        value={currentRule.behavior}
+                        onChange={(e) => {
+                          setMissingDataRules({
+                            ...missingDataRules,
+                            [fieldKey]: {
+                              ...currentRule,
+                              behavior: e.target.value as any,
+                            },
+                          });
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800"
+                      >
+                        <option value="leave_empty">Leave Empty</option>
+                        <option value="manual_required">Request Manual Input (Needs Review)</option>
+                        <option value="default_value">Use Client Default Value</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-4">
+                      {currentRule.behavior === 'default_value' && (
+                        <input
+                          type="text"
+                          value={currentRule.defaultValue || ''}
+                          onChange={(e) => {
+                            setMissingDataRules({
+                              ...missingDataRules,
+                              [fieldKey]: {
+                                ...currentRule,
+                                defaultValue: e.target.value,
+                              },
+                            });
+                          }}
+                          placeholder="e.g. Standard 1 Year"
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold"
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PHASE 9D TAB: BRAND PRICING RULES                                         */}
+      {/* ========================================================================= */}
+      {activeTab === 'pricing_rules' && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+          <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
+                  Margin &amp; Pricing Engine
+                </span>
+                <span className="text-xs text-slate-400 font-mono">Phase 9D</span>
+              </div>
+              <h2 className="text-lg font-black tracking-tight text-slate-900">
+                Brand Margin &amp; Price Adjustment Rules
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Adjust client catalog prices without mutating the original scraped source price. Calculated prices remain separate and do not export to stores without client permission.
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleSaveChanges()}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
+            >
+              <Save className="w-4 h-4" />
+              <span>{saving ? 'Saving...' : 'Save Pricing Rules'}</span>
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Adjustment Strategy
+                </label>
+                <select
+                  value={pricingRules.strategy}
+                  onChange={(e) => setPricingRules({ ...pricingRules, strategy: e.target.value as any })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900"
+                >
+                  <option value="none">No Adjustment (Raw Source Price)</option>
+                  <option value="percent_inc">Percentage Increase (+ %)</option>
+                  <option value="percent_dec">Percentage Decrease (- %)</option>
+                  <option value="fixed_inc">Fixed Increase (+ $)</option>
+                  <option value="fixed_dec">Fixed Decrease (- $)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Adjustment Value {pricingRules.strategy.includes('percent') ? '(%)' : '($)'}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={pricingRules.value}
+                  onChange={(e) => setPricingRules({ ...pricingRules, value: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-bold text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Store Export Control
+                </label>
+                <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pricingRules.exportPriceCalculated}
+                    onChange={(e) => setPricingRules({ ...pricingRules, exportPriceCalculated: e.target.checked })}
+                    className="w-4 h-4 rounded text-[#0d2a2c] accent-[#0d2a2c]"
+                  />
+                  <span className="text-xs font-bold text-slate-800">Export Calculated Price to Store</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Live Pricing Formula Calculator Simulation */}
+            <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4 text-amber-700" /> Live Margin &amp; Price Calculation Preview
+              </span>
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="p-3 bg-white rounded-xl border border-amber-200">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase">Raw Source Price</span>
+                  <span className="font-mono text-sm font-black text-slate-900">$100.00</span>
+                </div>
+                <div className="p-3 bg-white rounded-xl border border-amber-200">
+                  <span className="text-[10px] font-bold text-slate-400 block uppercase">Applied Rule</span>
+                  <span className="font-mono text-xs font-bold text-amber-800">
+                    {pricingRules.strategy === 'none'
+                      ? 'No Adjustment'
+                      : `${pricingRules.strategy.includes('inc') ? '+' : '-'}${pricingRules.value}${pricingRules.strategy.includes('percent') ? '%' : '$'}`}
+                  </span>
+                </div>
+                <div className="p-3 bg-white rounded-xl border border-emerald-300">
+                  <span className="text-[10px] font-bold text-emerald-600 block uppercase">Calculated Catalog Price</span>
+                  <span className="font-mono text-sm font-black text-emerald-800">
+                    {(() => {
+                      const base = 100;
+                      let res = base;
+                      if (pricingRules.strategy === 'percent_inc') res = base * (1 + pricingRules.value / 100);
+                      else if (pricingRules.strategy === 'percent_dec') res = base * (1 - pricingRules.value / 100);
+                      else if (pricingRules.strategy === 'fixed_inc') res = base + pricingRules.value;
+                      else if (pricingRules.strategy === 'fixed_dec') res = Math.max(0, base - pricingRules.value);
+                      return `$${res.toFixed(2)}`;
+                    })()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {activeTab === 'seo' && (
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
