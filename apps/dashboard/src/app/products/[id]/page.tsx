@@ -547,6 +547,14 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </button>
               </div>
 
+              {/* Brand Label Under Title */}
+              <div className="flex items-center gap-2 pt-0.5">
+                <span className="text-xs font-semibold text-slate-500">Brand:</span>
+                <span className="text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-200 transition">
+                  {brandName || 'Unspecified Brand'}
+                </span>
+              </div>
+
               {/* Multi-Language Store Switcher Pills */}
               {storeLanguages?.supported && storeLanguages.supported.length > 1 && (
                 <div className="flex items-center gap-1.5 pt-1 overflow-x-auto">
@@ -671,6 +679,60 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </div>
               )}
             </div>
+
+            {/* Configurable Product Options & Addons Section */}
+            {(() => {
+              const options = data?.customFields?.options || data?.rawCustomData?.options || data?.customAttributes?.options;
+              if (!Array.isArray(options) || options.length === 0) return null;
+
+              return (
+                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                        Configurable Product Options ({options.length})
+                      </h3>
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                      Interactive Dropdowns &amp; Price Modifiers
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    {options.map((optGroup: any, gIdx: number) => (
+                      <div key={gIdx} className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-slate-700 capitalize flex items-center gap-1.5">
+                            <span>{optGroup.name || optGroup.identifier}</span>
+                          </label>
+                          <span className="text-[10px] font-mono text-slate-400">
+                            {optGroup.values?.length || 0} choices
+                          </span>
+                        </div>
+
+                        <select
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0d2a2c]"
+                          defaultValue={optGroup.values?.find((v: any) => v.isDefault)?.value || optGroup.values?.[0]?.value}
+                        >
+                          {(optGroup.values || []).map((v: any, vIdx: number) => {
+                            const priceStr = v.priceModifier !== undefined && v.priceModifier > 0
+                              ? ` (${v.pricePrefix || '+'}$${Number(v.priceModifier).toFixed(2)})`
+                              : '';
+                            const skuStr = v.sku ? ` [SKU: ${v.sku}]` : '';
+                            return (
+                              <option key={vIdx} value={v.value}>
+                                {v.name}{priceStr}{skuStr}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Description */}
             {(() => {

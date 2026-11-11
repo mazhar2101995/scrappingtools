@@ -447,9 +447,8 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
     // Resilient deterministic fallback generator if API fails or no keys configured
     if (!rawOutput) {
       const cleanTitle = rawTitle.replace(/\s+/g, ' ').trim();
-      const brandPfx = resolvedBrandName && !cleanTitle.toLowerCase().includes(resolvedBrandName.toLowerCase())
-        ? `${resolvedBrandName} `
-        : '';
+      // Keep product title clean without prepending brand name if brand is displayed separately
+      const brandPfx = '';
       const modelSfx = modelNumber && !cleanTitle.includes(modelNumber) ? ` (${modelNumber})` : '';
 
       // Check if prompt or rules specifically ask to assemble HTML description with desc, compatible models, specs, features
