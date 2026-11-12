@@ -903,7 +903,9 @@ export default function BrandProfileDetailPage() {
       return;
     }
 
-    const platform = (storeSchema?.platform || 'opencart').toLowerCase();
+    // Determine target platform: from schema or from connectedStores list
+    const currentStore = connectedStores.find((st) => st.id === selectedExportStoreId);
+    const platform = (storeSchema?.platform || currentStore?.platformType || 'opencart').toLowerCase();
 
     // Standard high-accuracy automatic mapping table by platform
     const autoMapLookup: Record<string, Record<string, string>> = {
@@ -917,8 +919,10 @@ export default function BrandProfileDetailPage() {
         ean: 'ean',
         mpn: 'mpn',
         images: 'images',
+        image: 'image',
         quantity: 'quantity',
         brand: 'manufacturer',
+        manufacturer: 'manufacturer',
         category: 'category',
         compatible_models: 'custom_fields',
         overview: 'description',
@@ -934,14 +938,15 @@ export default function BrandProfileDetailPage() {
         sku: 'sku',
         model: 'barcode',
         images: 'images',
+        image: 'images',
         quantity: 'inventory_quantity',
         brand: 'vendor',
         category: 'product_type',
         compatible_models: 'tags',
         overview: 'body_html',
         features: 'body_html',
-        specifications: 'metafields',
-        part_list: 'metafields',
+        specifications: 'metafield_specs',
+        part_list: 'metafield_specs',
       },
       woocommerce: {
         name: 'name',
@@ -949,49 +954,52 @@ export default function BrandProfileDetailPage() {
         price: 'regular_price',
         sku: 'sku',
         images: 'images',
+        image: 'images',
         quantity: 'stock_quantity',
         brand: 'brand',
         category: 'categories',
         compatible_models: 'attributes',
-        overview: 'short_description',
+        overview: 'description',
         features: 'description',
         specifications: 'attributes',
-        part_list: 'meta_data',
+        part_list: 'post_meta_compatible_models',
       }
     };
 
     const targetLookup = autoMapLookup[platform] || autoMapLookup.opencart;
 
-    // Available fields from discovered schema (if any)
+    // Available fields from discovered schema
     const storeFields = storeSchema?.fields || [];
-    const availableFieldNames = storeFields.map((f: any) => String(f.name || f.key || '').toLowerCase());
 
     const updated = exportMappings.map((row) => {
       const src = (row.sourceField || '').toLowerCase();
       let matchedTarget = '';
 
-      // Direct dictionary lookup
+      // Direct lookup from dictionary
       if (targetLookup[src]) {
         matchedTarget = targetLookup[src];
-      } else {
-        // Fallback: match by name similarity
-        const found = storeFields.find((sf: any) => {
-          const fn = String(sf.name || sf.key || '').toLowerCase();
-          return fn === src || fn.includes(src) || src.includes(fn);
-        });
-        if (found) {
-          matchedTarget = found.name || found.key;
-        }
       }
 
-      // If discovered schema exists and has this target, use exact schema field name
-      if (storeFields.length > 0 && matchedTarget) {
-        const exactMatch = storeFields.find((sf: any) => {
-          const fn = String(sf.name || sf.key || '').toLowerCase();
-          return fn === matchedTarget.toLowerCase() || fn.includes(matchedTarget.toLowerCase());
+      // If discovered schema exists, ensure the field key is recognized
+      if (storeFields.length > 0) {
+        // Try exact match on key or name
+        const exact = storeFields.find((sf: any) => {
+          const k = String(sf.key || sf.name || '').toLowerCase();
+          return k === matchedTarget.toLowerCase() || k === src;
         });
-        if (exactMatch) {
-          matchedTarget = exactMatch.name || exactMatch.key;
+
+        if (exact) {
+          matchedTarget = exact.key || exact.name;
+        } else if (!matchedTarget) {
+          // Similarity matching
+          const fuzzy = storeFields.find((sf: any) => {
+            const k = String(sf.key || sf.name || '').toLowerCase();
+            const lbl = String(sf.label || '').toLowerCase();
+            return k.includes(src) || src.includes(k) || lbl.includes(src);
+          });
+          if (fuzzy) {
+            matchedTarget = fuzzy.key || fuzzy.name;
+          }
         }
       }
 
@@ -1005,7 +1013,7 @@ export default function BrandProfileDetailPage() {
     setExportMappings(updated);
     setExportStatusMsg({
       type: 'success',
-      text: `1-Click Auto Mapping Complete! Automatically mapped ${updated.filter((m) => m.storeTargetField).length} fields to ${platform.toUpperCase()} store schema. Click "Save & Validate Profile" to persist.`,
+      text: `Auto-mapping applied! Mapped ${updated.filter((m) => m.storeTargetField).length} fields for ${platform.toUpperCase()}. Click "Save & Validate Profile" to persist.`,
     });
   }
 
