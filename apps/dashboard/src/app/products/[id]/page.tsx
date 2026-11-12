@@ -1126,13 +1126,43 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   }
                 }
 
-                // 3. If fKey is finishes, render material color swatch cards (Matching Template 5)
+                // 3. If fKey is finishes, render material color swatch cards with real image assets (Matching Template 5)
                 if (fKey === 'finishes' || fKey === 'finish') {
-                  const rawFinishes = data?.customFields?.finishes || data?.rawScrapedData?.rawCustomData?.finishes || '';
-                  const cleanListStr = rawFinishes.replace(/^Available\s+Finishes\s*/i, '').trim();
-                  const finishNames = cleanListStr.length > 0
-                    ? cleanListStr.split(/(?=[A-Z][a-z]+)/).map((s: string) => s.trim()).filter(Boolean)
-                    : ['Ash Gray', 'Walnut', 'Mahogany'];
+                  const rawFinishes = data?.customFields?.finishes ?? data?.rawScrapedData?.rawCustomData?.finishes ?? '';
+                  
+                  // Check if structured array of swatches with real images is present
+                  let swatchList: Array<{ name: string; imageUrl?: string; bg?: string }> = [];
+
+                  if (Array.isArray(rawFinishes) && rawFinishes.length > 0 && typeof rawFinishes[0] === 'object') {
+                    swatchList = rawFinishes.map((item: any) => ({
+                      name: item.name || 'Finish',
+                      imageUrl: item.imageUrl || item.src,
+                    }));
+                  } else {
+                    // Check if swatch images are present in product page or custom attributes
+                    const finishImagesMap: Record<string, string> = {
+                      'American Elm': 'https://madisonliquidators.com/images/office-source-furniture/finish/70/american-elm_150x150.webp',
+                      'Arcadia White': 'https://madisonliquidators.com/images/office-source-furniture/finish/70/arcadia-white_150x150.webp',
+                      'Cherry': 'https://madisonliquidators.com/images/office-source-furniture/finish/70/cherry_150x150.webp',
+                      'Coastal Gray': 'https://madisonliquidators.com/images/office-source-furniture/finish/70/coastal-gray_150x150.webp',
+                      'Java': 'https://madisonliquidators.com/images/office-source-furniture/finish/70/java_150x150.webp',
+                      'Mahogany': 'https://madisonliquidators.com/images/office-source-furniture/finish/70/mahogany_150x150.webp',
+                      'Modern Walnut': 'https://madisonliquidators.com/images/office-source-furniture/finish/70/modern-walnut_150x150.webp',
+                      'White': 'https://madisonliquidators.com/images/office-source-furniture/finish/70/white_150x150.webp',
+                      'Ash Gray': 'https://madisonliquidators.com/images/office-source-furniture/finish/70/ash-gray_150x150.webp',
+                      'Walnut': 'https://madisonliquidators.com/images/office-source-furniture/finish/70/modern-walnut_150x150.webp',
+                    };
+
+                    const cleanListStr = String(rawFinishes).replace(/^Available\s+Finishes\s*/i, '').trim();
+                    const finishNames = cleanListStr.length > 0
+                      ? cleanListStr.split(/(?=[A-Z][a-z]+)/).map((s: string) => s.trim()).filter(Boolean)
+                      : ['American Elm', 'Arcadia White', 'Cherry', 'Coastal Gray', 'Java', 'Mahogany', 'Modern Walnut', 'White'];
+
+                    swatchList = finishNames.map((name) => ({
+                      name,
+                      imageUrl: finishImagesMap[name],
+                    }));
+                  }
 
                   const finishColorMap: Record<string, string> = {
                     'American Elm': '#8b7355',
@@ -1148,27 +1178,35 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   };
 
                   return (
-                    <div className="space-y-4 bg-white p-5 rounded-xl border border-slate-200">
-                      <div className="border-b border-slate-100 pb-2 flex items-center justify-between">
+                    <div className="space-y-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+                      <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                         <h4 className="font-bold text-slate-900 text-sm">Available Finishes</h4>
-                        <span className="text-[11px] text-slate-400">{finishNames.length} finishes available</span>
+                        <span className="text-[11px] text-slate-400 font-mono">{swatchList.length} swatches available</span>
                       </div>
-                      <div className="flex flex-wrap gap-4 items-start">
-                        {finishNames.map((fName: string, idx: number) => {
-                          const bg = finishColorMap[fName] || '#64748b';
-                          const isLight = bg === '#ffffff' || bg === '#f3f4f6';
+                      <div className="flex flex-wrap gap-5 items-start">
+                        {swatchList.map((swatch, idx: number) => {
+                          const bg = finishColorMap[swatch.name] || '#64748b';
                           return (
-                            <div key={idx} className="space-y-1.5 flex flex-col items-center">
+                            <div key={idx} className="space-y-2 flex flex-col items-center group">
                               <div
-                                className="w-20 h-20 rounded-xl border-2 border-slate-300 shadow-xs flex items-center justify-center overflow-hidden transition hover:scale-105"
-                                style={{ backgroundColor: bg }}
+                                className="w-24 h-24 rounded-xl border border-slate-300 shadow-xs overflow-hidden transition group-hover:scale-105 group-hover:shadow-md bg-slate-50 flex items-center justify-center relative"
                               >
-                                <span className={`text-[10px] font-bold ${isLight ? 'text-slate-800' : 'text-white/90'}`}>
-                                  {isLight ? 'Solid' : 'Laminate'}
-                                </span>
+                                {swatch.imageUrl ? (
+                                  <img
+                                    src={swatch.imageUrl}
+                                    alt={swatch.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      // Fallback to stylized color block if remote image blocked
+                                      (e.target as HTMLElement).style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full" style={{ backgroundColor: bg }} />
+                                )}
                               </div>
-                              <span className="text-xs font-semibold text-slate-800 text-center max-w-[90px] leading-tight">
-                                {fName}
+                              <span className="text-xs font-semibold text-slate-800 text-center max-w-[100px] leading-tight">
+                                {swatch.name}
                               </span>
                             </div>
                           );

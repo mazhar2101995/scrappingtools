@@ -700,6 +700,35 @@ brandsRouter.post('/:id/test-mapping', async (req: Request, res: Response) => {
               extractedValue = (firstEl.val() as string) || '';
             } else if (firstEl.attr('content')) {
               extractedValue = firstEl.attr('content') || '';
+            } else if (firstEl.find('img').length > 0 && (targetField.includes('finish') || targetField.includes('swatch') || targetField.includes('color') || targetField.includes('material') || (profile?.imageExtractionRules as any)?.contentImages)) {
+              // Extraction of structured swatches or content items with images (e.g. Madison Liquidators Available Finishes Swatch Grid)
+              const swatchItems: Array<{ name: string; imageUrl: string; fullUrl?: string }> = [];
+              firstEl.find('div, td, li, a').each((_, container) => {
+                const img = $html(container).find('img').first();
+                const src = img.attr('src') || img.attr('data-src') || img.attr('data-zoom-image');
+                if (src && !src.includes('loader') && !src.includes('placeholder')) {
+                  let name = img.attr('alt') || img.attr('title') || $html(container).text().trim();
+                  name = name.replace(/\s*Finish$/i, '').replace(/\s+/g, ' ').trim();
+                  
+                  let absSrc = src;
+                  if (absSrc.startsWith('/') && sampleUrl) {
+                    try { absSrc = `${new URL(sampleUrl).origin}${absSrc}`; } catch (_) {}
+                  }
+
+                  if (name && !swatchItems.some((s) => s.name === name || s.imageUrl === absSrc)) {
+                    swatchItems.push({
+                      name,
+                      imageUrl: absSrc,
+                    });
+                  }
+                }
+              });
+
+              if (swatchItems.length > 0) {
+                extractedValue = swatchItems as any;
+              } else {
+                extractedValue = firstEl.text().trim();
+              }
             } else {
               // Part 5 — Price Integrity Rule:
               // If target field is 'price' and multiple elements match across the page (matchCount > 1),
