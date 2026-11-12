@@ -268,6 +268,23 @@ export class StoreExportExecutionService {
       exportProfile = bsep;
     }
 
+    // Fallback: If no profile found for this brand, check if there's any active export profile for this store
+    if (!exportProfile) {
+      const [storeBp] = await db
+        .select()
+        .from(brandStoreExportProfiles)
+        .where(
+          and(
+            eq(brandStoreExportProfiles.organizationId, organizationId),
+            eq(brandStoreExportProfiles.connectedStoreId, connectedStoreId)
+          )
+        )
+        .limit(1);
+      if (storeBp) {
+        exportProfile = storeBp;
+      }
+    }
+
     // If no explicit profile saved, load standard safe default export directives
     const rawMappings: any[] = exportProfile?.fieldMappings || [
       { sourceField: 'name', storeTargetField: 'name', permission: 'new_and_existing', writePolicy: 'replace', enabled: true },
