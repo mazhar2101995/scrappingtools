@@ -832,70 +832,80 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       </div>
 
       {/* MAIN STRUCTURED PRODUCT CONTENT SECTIONS (FEATURES, COMPATIBLE MODELS, SPECIFICATIONS) */}
-      {/* Hide redundant standalone sections if unified formatted HTML description is active and already contains features/specifications */}
-      {!/<[a-z][\s\S]*>/i.test(product.standardizedDescription || '') && (
-        <div className="space-y-6">
-          {/* 1. Features Section */}
-          {((data.features && Array.isArray(data.features) && data.features.length > 0) ||
-            (data.aiProcessedData?.keyHighlights && data.aiProcessedData.keyHighlights.length > 0)) && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                <Sparkles className="w-4 h-4 text-amber-500" />
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Product Features &amp; Key Highlights</h3>
-              </div>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs text-slate-700">
-                {(data.features && Array.isArray(data.features) && data.features.length > 0 ? data.features : data.aiProcessedData?.keyHighlights || []).map((feat: any, fIdx: number) => (
-                  <li key={fIdx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                    <span>{String(feat)}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+      {/* PHASE 9D: If the brand has mapped fields directly to dynamic tabs, suppress duplicate standalone sections below */}
+      {(() => {
+        const brandProfile = data?.brandProfileConfig;
+        const brandGroups = (brandProfile?.fieldGroups as any[]) || [];
+        const fieldMappings = (brandProfile?.fieldMappings as any[]) || [];
+        const hasMappedTabs = fieldMappings.some((m: any) => m.enabled !== false && m.displayLocation === 'tab') || brandGroups.length > 0;
+        
+        // If tabs are active, do not render duplicate standalone sections
+        if (hasMappedTabs) return null;
 
-          {/* 2. Compatible Models Section */}
-          {data.compatibleModels && Array.isArray(data.compatibleModels) && data.compatibleModels.length > 0 && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                <Layers className="w-4 h-4 text-[#0d2a2c]" />
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Compatible Models &amp; Fitment</h3>
+        return (
+          <div className="space-y-6">
+            {/* 1. Features Section */}
+            {((data.features && Array.isArray(data.features) && data.features.length > 0) ||
+              (data.aiProcessedData?.keyHighlights && data.aiProcessedData.keyHighlights.length > 0)) && (
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                  <Sparkles className="w-4 h-4 text-amber-500" />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Product Features &amp; Key Highlights</h3>
+                </div>
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs text-slate-700">
+                  {(data.features && Array.isArray(data.features) && data.features.length > 0 ? data.features : data.aiProcessedData?.keyHighlights || []).map((feat: any, fIdx: number) => (
+                    <li key={fIdx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-start gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                      <span>{String(feat)}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <div className="flex flex-wrap gap-2 text-xs">
-                {data.compatibleModels.map((mod: any, mIdx: number) => (
-                  <span key={mIdx} className="px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-mono font-bold">
-                    {String(mod)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+            )}
 
-          {/* 3. Specifications Section */}
-          {((data.specifications && typeof data.specifications === 'object' && Object.keys(data.specifications).length > 0) ||
-            (attributes && typeof attributes === 'object' && Object.keys(attributes).length > 0)) && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-                <Sliders className="w-4 h-4 text-[#0d2a2c]" />
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                  Technical Specifications ({Object.keys(data.specifications || attributes).length})
-                </h3>
+            {/* 2. Compatible Models Section */}
+            {data.compatibleModels && Array.isArray(data.compatibleModels) && data.compatibleModels.length > 0 && (
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                  <Layers className="w-4 h-4 text-[#0d2a2c]" />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Compatible Models &amp; Fitment</h3>
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {data.compatibleModels.map((mod: any, mIdx: number) => (
+                    <span key={mIdx} className="px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-mono font-bold">
+                      {String(mod)}
+                    </span>
+                  ))}
+                </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs">
-                {Object.entries(data.specifications || attributes).map(([k, v]) => {
-                  if (String(v).includes('(Not found on tested page)')) return null;
-                  return (
-                    <div key={k} className="py-2 px-3 rounded-lg bg-slate-50/70 border border-slate-100 flex justify-between gap-4">
-                      <span className="font-semibold text-slate-700">{k}</span>
-                      <span className="font-mono text-slate-900 text-right">{String(v)}</span>
-                    </div>
-                  );
-                })}
+            )}
+
+            {/* 3. Specifications Section */}
+            {((data.specifications && typeof data.specifications === 'object' && Object.keys(data.specifications).length > 0) ||
+              (attributes && typeof attributes === 'object' && Object.keys(attributes).length > 0)) && (
+              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+                  <Sliders className="w-4 h-4 text-[#0d2a2c]" />
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    Technical Specifications ({Object.keys(data.specifications || attributes).length})
+                  </h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                  {Object.entries(data.specifications || attributes).map(([k, v]) => {
+                    if (String(v).includes('(Not found on tested page)')) return null;
+                    return (
+                      <div key={k} className="py-2 px-3 rounded-lg bg-slate-50/70 border border-slate-100 flex justify-between gap-4">
+                        <span className="font-semibold text-slate-700">{k}</span>
+                        <span className="font-mono text-slate-900 text-right">{String(v)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* PHASE 9D: DYNAMIC BRAND GROUPS & PRODUCT DETAIL TABS                      */}
