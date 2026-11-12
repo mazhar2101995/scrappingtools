@@ -99,6 +99,11 @@ export class BrandStoreExportService {
         { key: 'location', label: 'Warehouse / Location Code', dataType: 'string', table: 'oc_product' },
         { key: 'images', label: 'Additional Gallery Images', dataType: 'image', description: 'Extra photo gallery rows', table: 'oc_product_image' },
         { key: 'custom_fields', label: 'Attribute Specifications', dataType: 'text', description: 'Technical specifications attributes', table: 'oc_product_attribute' },
+        // Phase 9 Dedicated Module Fields
+        { key: 'options', label: 'Product Options & Variant SKUs (Select/Radio)', dataType: 'json', description: 'Managed via oc_product_option & oc_saas_option_sku_map', table: 'oc_option / oc_saas_option_sku_map' },
+        { key: 'tab_overview', label: 'Custom Tab: Overview (Bullet Highlights)', dataType: 'text', description: 'Rendered dynamically in storefront via oc_saas_product_tabs', table: 'oc_saas_product_tabs' },
+        { key: 'tab_part_list', label: 'Custom Tab: Part List (B2B Components)', dataType: 'text', description: 'B2B breakdown stored in oc_saas_product_tabs', table: 'oc_saas_product_tabs' },
+        { key: 'tab_finishes', label: 'Custom Tab: Finishing Swatches', dataType: 'text', description: 'Swatch thumbnails stored in oc_saas_product_tabs', table: 'oc_saas_product_tabs' },
       ];
       discoveredAttributes = [
         { id: 'attr_compatible_models', name: 'Compatible Models List', group: 'Compatibility' },
@@ -106,6 +111,10 @@ export class BrandStoreExportService {
         { id: 'attr_material', name: 'Chassis / Body Material', group: 'Specifications' },
       ];
       discoveredCustomFields = [
+        { key: 'options', label: 'Product Options (Dynamic Selectors)', dataType: 'json', table: 'oc_saas_option_sku_map' },
+        { key: 'tab_overview', label: 'Custom Tab: Overview', dataType: 'text', table: 'oc_saas_product_tabs' },
+        { key: 'tab_part_list', label: 'Custom Tab: Part List', dataType: 'text', table: 'oc_saas_product_tabs' },
+        { key: 'tab_finishes', label: 'Custom Tab: Finishing Swatches', dataType: 'text', table: 'oc_saas_product_tabs' },
         { key: 'custom_field_compatible_models', label: 'Compatible Models (Rich List)', dataType: 'text', table: 'oc_product_attribute' },
         { key: 'custom_field_ai_highlights', label: 'AI Bullet Highlights', dataType: 'text', table: 'oc_product_description' },
       ];

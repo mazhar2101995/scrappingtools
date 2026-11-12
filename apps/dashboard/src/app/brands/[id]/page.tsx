@@ -57,6 +57,10 @@ const STANDARD_TARGET_FIELDS = [
   { key: 'images', label: 'Image Gallery URLs', desc: 'Primary and secondary product image assets' },
   { key: 'attributes', label: 'Technical Specifications', desc: 'Key-value specification pairs table' },
   { key: 'compatible_models', label: 'Compatible Models', desc: 'Associated fitment or compatibility list' },
+  { key: 'options', label: 'Product Options (Size, Finish, Drawers)', desc: 'Variant options with choices and modifier prices' },
+  { key: 'overview', label: 'Custom Tab: Overview (Bullet Highlights)', desc: 'Bullet specifications or summary tab' },
+  { key: 'part_list', label: 'Custom Tab: Part List (B2B Components)', desc: 'B2B breakdown or modular hardware component list' },
+  { key: 'finishes', label: 'Custom Tab: Finishing Swatches', desc: 'Material finish swatches and color thumbnails' },
 ];
 
 const SOURCE_TYPES = [
@@ -922,14 +926,13 @@ export default function BrandProfileDetailPage() {
         image: 'image',
         quantity: 'quantity',
         brand: 'manufacturer',
-        manufacturer: 'manufacturer',
         category: 'category',
         compatible_models: 'custom_fields',
-        overview: 'description',
-        features: 'description',
-        specifications: 'custom_fields',
-        part_list: 'custom_fields',
-        finishes: 'images',
+        attributes: 'custom_fields',
+        options: 'options',
+        overview: 'tab_overview',
+        part_list: 'tab_part_list',
+        finishes: 'tab_finishes',
       },
       shopify: {
         name: 'title',
@@ -943,10 +946,11 @@ export default function BrandProfileDetailPage() {
         brand: 'vendor',
         category: 'product_type',
         compatible_models: 'tags',
-        overview: 'body_html',
-        features: 'body_html',
-        specifications: 'metafield_specs',
+        attributes: 'metafield_specs',
+        options: 'options',
+        overview: 'metafield_specs',
         part_list: 'metafield_specs',
+        finishes: 'images',
       },
       woocommerce: {
         name: 'name',
@@ -959,10 +963,11 @@ export default function BrandProfileDetailPage() {
         brand: 'brand',
         category: 'categories',
         compatible_models: 'attributes',
+        attributes: 'attributes',
+        options: 'attributes',
         overview: 'description',
-        features: 'description',
-        specifications: 'attributes',
         part_list: 'post_meta_compatible_models',
+        finishes: 'images',
       }
     };
 
