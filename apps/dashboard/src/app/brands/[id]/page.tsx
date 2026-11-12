@@ -57,10 +57,6 @@ const STANDARD_TARGET_FIELDS = [
   { key: 'images', label: 'Image Gallery URLs', desc: 'Primary and secondary product image assets' },
   { key: 'attributes', label: 'Technical Specifications', desc: 'Key-value specification pairs table' },
   { key: 'compatible_models', label: 'Compatible Models', desc: 'Associated fitment or compatibility list' },
-  { key: 'meta_title', label: 'SEO Meta Title', desc: 'Search engine preview title' },
-  { key: 'meta_description', label: 'SEO Meta Description', desc: 'Search engine preview summary text' },
-  { key: 'meta_keyword', label: 'SEO Keywords / Tags', desc: 'Comma-separated search keywords' },
-  { key: 'seo_keyword', label: 'SEO URL Handle / Slug', desc: 'Unique SEF URL keyword' },
 ];
 
 const SOURCE_TYPES = [
@@ -1042,7 +1038,6 @@ export default function BrandProfileDetailPage() {
           </div>
 
           {[
-            { key: 'field_configs', label: 'Field Control & Visibility', icon: Sliders, badge: '9D' },
             { key: 'templates', label: 'Content Templates', icon: LayoutTemplate, count: contentTemplates.length },
             { key: 'missing_rules', label: 'Missing Data Rules', icon: QuestionIcon },
             { key: 'pricing_rules', label: 'Pricing Rules', icon: DollarSign, badge: pricingRules.strategy !== 'none' ? 'ACTIVE' : undefined },
@@ -1550,13 +1545,14 @@ export default function BrandProfileDetailPage() {
               <table className="w-full text-left text-xs text-slate-700">
                 <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
-                    <th className="px-6 py-3.5">Target Field</th>
-                    <th className="px-6 py-3.5">Source Type</th>
-                    <th className="px-6 py-3.5">Source Selector / Value</th>
-                    <th className="px-6 py-3.5">Selector Health</th>
-                    <th className="px-6 py-3.5">Transformation</th>
-                    <th className="px-6 py-3.5">Status</th>
-                    <th className="px-6 py-3.5 text-right">Actions</th>
+                    <th className="px-5 py-3.5">Target Field</th>
+                    <th className="px-4 py-3.5">Source Type</th>
+                    <th className="px-5 py-3.5">Source Selector / Value</th>
+                    <th className="px-4 py-3.5">Display Location</th>
+                    <th className="px-4 py-3.5">Assigned Template</th>
+                    <th className="px-3 py-3.5">Health</th>
+                    <th className="px-3 py-3.5">Status</th>
+                    <th className="px-4 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1567,49 +1563,70 @@ export default function BrandProfileDetailPage() {
 
                     return (
                       <tr key={m.id || idx} className="hover:bg-slate-50 transition">
-                        <td className="px-6 py-4">
+                        <td className="px-5 py-3.5">
                           <div className="font-bold text-slate-900">{label}</div>
                           <div className="text-[10px] text-slate-400 font-mono">{m.targetField}</div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3.5">
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 uppercase">
                             {m.sourceType || 'css'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 font-mono text-slate-900 font-semibold">
+                        <td className="px-5 py-3.5 font-mono text-slate-900 font-semibold max-w-xs truncate" title={m.sourceValue}>
                           {m.sourceValue}
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-3.5">
+                          <select
+                            value={m.displayLocation || 'main'}
+                            onChange={(e) => {
+                              const updated = [...fieldMappings];
+                              updated[idx].displayLocation = e.target.value;
+                              setFieldMappings(updated);
+                              handleSaveChanges(updated);
+                            }}
+                            className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white font-semibold text-xs text-slate-800 focus:outline-none focus:border-[#0d2a2c]"
+                          >
+                            <option value="main">Main Product View</option>
+                            <option value="tab">Group Tab</option>
+                            <option value="manual">Manual Fields</option>
+                            <option value="hidden">Hidden</option>
+                            <option value="internal">Internal Only</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <select
+                            value={m.templateId || ''}
+                            onChange={(e) => {
+                              const updated = [...fieldMappings];
+                              updated[idx].templateId = e.target.value || null;
+                              setFieldMappings(updated);
+                              handleSaveChanges(updated);
+                            }}
+                            className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white font-semibold text-xs text-slate-800 focus:outline-none focus:border-[#0d2a2c] max-w-[150px] truncate"
+                          >
+                            <option value="">(None / Default)</option>
+                            {contentTemplates.map((tpl) => (
+                              <option key={tpl.id} value={tpl.id}>{tpl.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-3 py-3.5">
                           {health === 'healthy' ? (
-                            <div className="flex items-center gap-1.5 text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 w-fit">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              <span className="text-[10px] font-bold">Healthy (100%)</span>
-                            </div>
-                          ) : health === 'degraded' ? (
-                            <div className="flex items-center gap-1.5 text-amber-700 bg-amber-50 px-2 py-1 rounded-lg border border-amber-200 w-fit">
-                              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                              <span className="text-[10px] font-bold">Degraded ({m.consecutiveFailures || 1} fails)</span>
+                            <div className="flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 w-fit">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span className="text-[9px] font-bold">100%</span>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-1.5 text-rose-700 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200 w-fit">
-                              <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                              <span className="text-[10px] font-bold">Broken / Re-map</span>
+                            <div className="flex items-center gap-1 text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 w-fit">
+                              <AlertCircle className="w-3 h-3 text-amber-600" />
+                              <span className="text-[9px] font-bold">Review</span>
                             </div>
                           )}
                         </td>
-                        <td className="px-6 py-4 text-slate-600">
-                          {m.transformation && m.transformation !== 'none' ? (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                              {m.transformation}
-                            </span>
-                          ) : (
-                            <span className="text-slate-400">Direct</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 py-3.5">
                           <button
                             onClick={() => handleToggleMapping(idx)}
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase transition ${
+                            className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase transition ${
                               m.enabled !== false
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                 : 'bg-slate-100 text-slate-400 border border-slate-200'
@@ -1618,7 +1635,7 @@ export default function BrandProfileDetailPage() {
                             {m.enabled !== false ? 'Active' : 'Disabled'}
                           </button>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-4 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               onClick={() => handleOpenEditModal(idx)}
