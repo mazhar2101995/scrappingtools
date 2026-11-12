@@ -626,7 +626,12 @@ export default function StoresPage() {
                     {s.platformType}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    {s.status === 'connected' ? (
+                    {s.status === 'connected' && s.healthStatus !== 'auth_required' && s.platformType !== 'opencart' ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>Connected &amp; Verified</span>
+                      </span>
+                    ) : s.status === 'connected' && s.platformType === 'opencart' && s.healthStatus === 'healthy' ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                         <span>Connected &amp; Verified</span>
@@ -669,7 +674,7 @@ export default function StoresPage() {
                 </div>
 
                 {/* Verification Guidance Banner if Pending */}
-                {s.status !== 'connected' && s.platformType === 'opencart' && (
+                {s.platformType === 'opencart' && (s.status !== 'connected' || s.healthStatus !== 'healthy') && (
                   <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-[11px] text-amber-900 space-y-1.5">
                     <div className="font-bold flex items-center gap-1.5 text-amber-950">
                       <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
