@@ -435,17 +435,18 @@ export default function StoresPage() {
 
                 {platformType === 'opencart' && (
                   <div className="space-y-3">
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 leading-relaxed">
-                      <div className="font-bold flex items-center gap-1.5 mb-1 text-amber-950">
-                        <FileCode className="w-3.5 h-3.5 text-amber-700" />
-                        <span>OpenCart Setup Step:</span>
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-[11px] text-emerald-900 leading-relaxed">
+                      <div className="font-bold flex items-center gap-1.5 mb-1 text-emerald-950">
+                        <FileCode className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Official OpenCart Extension Module Required:</span>
                       </div>
-                      1. Download <a href="http://localhost:4000/api/v1/stores/download-bridge" className="font-bold underline text-amber-800">saas_bridge.php</a> and upload it to your OpenCart root directory.<br/>
-                      2. Enter your OpenCart API credentials below.
+                      1. Download <a href="http://localhost:4000/api/v1/stores/download-module" className="font-bold underline text-emerald-800">saas_connector.ocmod.zip</a> and install it via <b>Extensions &gt; Installer</b> in OpenCart.<br/>
+                      2. Refresh modifications in <b>Extensions &gt; Modifications</b>.<br/>
+                      3. Enable <b>SaaS Connector</b> in <b>Extensions &gt; Modules</b> and enter your Store Secret Key.
                     </div>
 
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-600 mb-1">API Username</label>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">API Username (Optional)</label>
                       <input
                         type="text"
                         placeholder="api_user"
@@ -455,10 +456,10 @@ export default function StoresPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-600 mb-1">API Key</label>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">Store Signing Secret Key / Pair Token</label>
                       <input
                         type="password"
-                        placeholder="api_key_secret"
+                        placeholder="Paste Secret Key from OpenCart Module settings"
                         value={openCartApiKey}
                         onChange={(e) => setOpenCartApiKey(e.target.value)}
                         className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:border-[#0d2a2c]"

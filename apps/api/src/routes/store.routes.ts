@@ -11,15 +11,25 @@ import { MultiStoreExportService } from '../services/multi-store-export.service'
 
 export const storeRouter = Router();
 
-// Public route to download OpenCart connector bridge file
+// Public route to download official OpenCart connector module extension (OCMOD)
 storeRouter.get('/download-bridge', (req: Request, res: Response) => {
-  const bridgePath = path.resolve(__dirname, '../../../../packages/connectors/src/bridge/saas_bridge.php');
-  if (fs.existsSync(bridgePath)) {
-    res.setHeader('Content-Disposition', 'attachment; filename="saas_bridge.php"');
-    res.setHeader('Content-Type', 'application/x-php');
-    return res.sendFile(bridgePath);
+  const modulePath = path.resolve(__dirname, '../../public/saas_connector.ocmod.zip');
+  if (fs.existsSync(modulePath)) {
+    res.setHeader('Content-Disposition', 'attachment; filename="saas_connector.ocmod.zip"');
+    res.setHeader('Content-Type', 'application/zip');
+    return res.sendFile(modulePath);
   }
-  return res.status(404).json({ error: 'Bridge file not found' });
+  return res.status(404).json({ error: 'OpenCart module package not found' });
+});
+
+storeRouter.get('/download-module', (req: Request, res: Response) => {
+  const modulePath = path.resolve(__dirname, '../../public/saas_connector.ocmod.zip');
+  if (fs.existsSync(modulePath)) {
+    res.setHeader('Content-Disposition', 'attachment; filename="saas_connector.ocmod.zip"');
+    res.setHeader('Content-Type', 'application/zip');
+    return res.sendFile(modulePath);
+  }
+  return res.status(404).json({ error: 'OpenCart module package not found' });
 });
 
 // Apply auth middleware to all remaining store routes

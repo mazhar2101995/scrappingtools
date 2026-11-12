@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>SaaS Product Intelligence Connector Tabs &amp; Option SKU</name>
+    <code>saas_connector_tabs_sku</code>
+    <version>2.0.0</version>
+    <author>SaaS Platform Team</author>
+    <link>https://saas-product-intelligence.local</link>
+
+    <!-- 1. Inject Dedicated Custom Tabs into Product Controller -->
+    <file path="catalog/controller/product/product.php">
+        <operation>
+            <search><![CDATA[$data['tab_description'] = $this->language->get('tab_description');]]></search>
+            <add position="after"><![CDATA[
+            // SaaS Dedicated Product Tabs Injection
+            $data['saas_custom_tabs'] = [];
+            $saas_tabs_query = $this->db->query("SELECT tab_key, title, content FROM `" . DB_PREFIX . "saas_product_tabs` WHERE product_id = '" . (int)$product_id . "' AND status = 1 ORDER BY sort_order ASC");
+            if ($saas_tabs_query && $saas_tabs_query->num_rows > 0) {
+                foreach ($saas_tabs_query->rows as $st) {
+                    $data['saas_custom_tabs'][] = [
+                        'key' => $st['tab_key'],
+                        'title' => $st['title'],
+                        'content' => html_entity_decode($st['content'], ENT_QUOTES, 'UTF-8')
+                    ];
+                }
+            }
+            ]]></add>
+        </operation>
+    </file>
+
+    <!-- 2. Inject Dedicated Custom Tabs into Product Template (Twig) -->
+    <file path="catalog/view/theme/*/template/product/product.twig">
+        <operation>
+            <search><![CDATA[<li class="active"><a href="#tab-description" data-toggle="tab">{{ tab_description }}</a></li>]]></search>
+            <add position="after"><![CDATA[
+            {% if saas_custom_tabs %}
+                {% for ctab in saas_custom_tabs %}
+                    <li><a href="#tab-saas-{{ ctab.key }}" data-toggle="tab">{{ ctab.title }}</a></li>
+                {% endfor %}
+            {% endif %}
+            ]]></add>
+        </operation>
+        <operation>
+            <search><![CDATA[<div class="tab-pane active" id="tab-description">{{ description }}</div>]]></search>
+            <add position="after"><![CDATA[
+            {% if saas_custom_tabs %}
+                {% for ctab in saas_custom_tabs %}
+                    <div class="tab-pane" id="tab-saas-{{ ctab.key }}">{{ ctab.content }}</div>
+                {% endfor %}
+            {% endif %}
+            ]]></add>
+        </operation>
+    </file>
+
+</modification>
