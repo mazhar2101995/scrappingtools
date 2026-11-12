@@ -591,38 +591,38 @@ export default function StoresPage() {
 
       {/* Stores Grid in Clean Brand Style */}
       {loading ? (
-        <div className="bg-white p-12 text-center rounded-2xl border border-slate-200 text-slate-400 text-xs">
+        <div className="bg-white p-12 text-center rounded-xl border border-slate-200/80 text-slate-400 text-xs">
           Loading connected stores...
         </div>
       ) : stores.length === 0 ? (
-        <div className="bg-white p-12 text-center rounded-3xl border border-slate-200 shadow-sm space-y-4 max-w-xl mx-auto my-8">
-          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto text-2xl border border-amber-200">
-            🏪
+        <div className="bg-white p-10 text-center rounded-2xl border border-slate-200/80 shadow-xs space-y-4 max-w-lg mx-auto my-8">
+          <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center mx-auto text-xl border border-amber-200/70">
+            <Store className="w-6 h-6 text-amber-600" />
           </div>
           <div>
-            <h3 className="text-base font-black text-slate-900">No Stores Connected Yet</h3>
+            <h3 className="text-sm font-bold text-slate-900">No Stores Connected Yet</h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto font-medium mt-1">
-              Link your Shopify, WooCommerce, or OpenCart store to enable 1-click publishing and automated two-way inventory sync.
+              Connect your Shopify, WooCommerce, or OpenCart store to enable live product publishing and schema mappings.
             </p>
           </div>
           <button
             onClick={handleOpenModal}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0d2a2c] hover:bg-[#143d40] text-white font-bold text-xs rounded-xl shadow-sm transition"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0d2a2c] hover:bg-[#143d40] text-white font-bold text-xs rounded-lg shadow-xs transition"
           >
-            <Plus className="w-4 h-4 text-[#fad982]" />
+            <Plus className="w-3.5 h-3.5 text-[#fad982]" />
             <span>Connect First Store</span>
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {stores.map((s) => (
             <div
               key={s.id}
-              className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:border-slate-300 transition flex flex-col justify-between space-y-4"
+              className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs hover:border-slate-300 transition flex flex-col justify-between space-y-4"
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#0d2a2c] text-[#fad982]">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-[#0d2a2c] text-[#fad982]">
                     {s.platformType}
                   </span>
                   <div className="flex items-center gap-1.5">
@@ -645,7 +645,7 @@ export default function StoresPage() {
                     <button
                       onClick={() => handleOpenEditModal(s)}
                       title="Edit Store Settings & Credentials"
-                      className="p-1 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200 transition"
+                      className="p-1 rounded-md hover:bg-slate-100 text-slate-500 hover:text-slate-900 border border-transparent hover:border-slate-200 transition"
                     >
                       <Edit className="w-3.5 h-3.5" />
                     </button>
@@ -653,7 +653,7 @@ export default function StoresPage() {
                       onClick={() => handleDeleteStore(s)}
                       disabled={deletingStoreId === s.id}
                       title="Disconnect / Delete Store"
-                      className="p-1 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-transparent hover:border-rose-200 transition disabled:opacity-50"
+                      className="p-1 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-transparent hover:border-rose-200 transition disabled:opacity-50"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -661,41 +661,41 @@ export default function StoresPage() {
                 </div>
 
                 <div>
-                  <h3 className="text-base font-black text-slate-900 tracking-tight">{s.storeName}</h3>
+                  <h3 className="text-sm font-bold text-slate-900 tracking-tight">{s.storeName}</h3>
                   <a
                     href={s.storeUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="text-xs text-slate-400 font-mono hover:text-[#0d2a2c] flex items-center gap-1 mt-0.5 truncate"
                   >
-                    <span>{s.storeUrl}</span>
+                    <span className="truncate">{s.storeUrl}</span>
                     <ExternalLink className="w-3 h-3 shrink-0" />
                   </a>
                 </div>
 
                 {/* Verification Guidance Banner if Pending */}
                 {s.platformType === 'opencart' && (s.status !== 'connected' || s.healthStatus !== 'healthy') && (
-                  <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-[11px] text-amber-900 space-y-1.5">
+                  <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-lg text-[11px] text-amber-900 space-y-1.5">
                     <div className="font-bold flex items-center gap-1.5 text-amber-950">
                       <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                       <span>Setup Steps Incomplete:</span>
                     </div>
-                    <div className="text-[10px] space-y-1 text-amber-800">
-                      <p>1. Download &amp; install <a href="http://localhost:4000/api/v1/stores/download-module" className="font-bold underline">saas_connector.ocmod.zip</a> in OpenCart.</p>
-                      <p>2. Go to <b>Extensions &gt; Modules &gt; SaaS Connector</b> and copy the Secret Key.</p>
+                    <div className="text-[10px] space-y-0.5 text-amber-800">
+                      <p>1. Install <a href="http://localhost:4000/api/v1/stores/download-module" className="font-bold underline">saas_connector.ocmod.zip</a> in OpenCart.</p>
+                      <p>2. Copy the Secret Key from <b>Extensions &gt; Modules &gt; SaaS Connector</b>.</p>
                       <p>3. Click <b>Edit</b> (pencil icon above) and paste the Secret Key.</p>
                     </div>
                   </div>
                 )}
 
-                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-600 space-y-1">
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-[11px] text-slate-600 space-y-1 font-mono">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Capabilities:</span>
-                    <span className="font-bold text-slate-800">Push, Pull, Pricing</span>
+                    <span className="text-slate-400 font-sans">Capabilities:</span>
+                    <span className="font-semibold text-slate-800 font-sans">Push, Pull, Pricing</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Last Synced:</span>
-                    <span className="font-mono text-slate-800">
+                    <span className="text-slate-400 font-sans">Last Synced:</span>
+                    <span className="text-slate-800">
                       {s.lastSyncAt ? new Date(s.lastSyncAt).toLocaleString() : 'Never'}
                     </span>
                   </div>
@@ -705,10 +705,10 @@ export default function StoresPage() {
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
                 <button
                   onClick={() => openLanguagesModal(s)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-200 font-bold text-xs rounded-lg transition"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-lg transition"
                   title="Manage destination languages for this store"
                 >
-                  <Globe className="w-3.5 h-3.5 text-teal-700" />
+                  <Globe className="w-3.5 h-3.5 text-slate-600" />
                   <span>Languages</span>
                 </button>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -726,7 +726,7 @@ export default function StoresPage() {
                   <button
                     onClick={() => handleTriggerSync(s.id)}
                     disabled={isSyncing === s.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-lg transition disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0d2a2c] hover:bg-[#143d40] text-white font-bold text-xs rounded-lg transition disabled:opacity-50 shadow-xs"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isSyncing === s.id ? 'animate-spin' : ''}`} />
                     <span>{isSyncing === s.id ? 'Syncing...' : 'Sync Now'}</span>

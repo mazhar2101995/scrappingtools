@@ -102,6 +102,12 @@ importers:
       '@saas/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      framer-motion:
+        specifier: ^14.12.0
+        version: 14.12.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       lucide-react:
         specifier: ^1.67.0
         version: 1.67.0(@types/react@18.3.31)(react@18.3.1)
@@ -114,6 +120,9 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      tailwind-merge:
+        specifier: ^3.7.0
+        version: 3.7.0
     devDependencies:
       '@types/node':
         specifier: ^20.17.14
@@ -1368,6 +1377,10 @@ packages:
     resolution: {integrity: sha512-k7ndgKhwoQveBL+/1tqGJYNz097I7WOvwbmmU2AR5+magtbjPWQTS1C5vzGkBC8Ym8UWRzfKUzUUqFLypY4Q+w==}
     engines: {node: '>=20'}
 
+  clsx@2.1.1:
+    resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
+    engines: {node: '>=6'}
+
   cluster-key-slot@1.1.1:
     resolution: {integrity: sha512-rwHwUfXL40Chm1r08yrhU3qpUvdVlgkKNeyeGPOxnW8/SyVDvgRaed/Uz54AqWNaTCAThlj6QAs3TZcKI0xDEw==}
     engines: {node: '>=0.10.0'}
@@ -1751,6 +1764,20 @@ packages:
   fraction.js@5.3.4:
     resolution: {integrity: sha512-1X1NTtiJphryn/uLQz3whtY6jK3fTqoE3ohKs0tT+Ujr1W59oopxmoEh7Lu5p6vBaPbgoM0bzveAW4Qi5RyWDQ==}
 
+  framer-motion@14.12.0:
+    resolution: {integrity: sha512-4m+10xYan0ic8nFI8zyB5hJkW5F8F4Rer617UecOs8esw0he9unDgXaEZ0rUX7oztz1w4iuvyPWhk4jltMX5iw==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+      remix: ^3.1.0
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+      remix:
+        optional: true
+
   fresh@0.5.2:
     resolution: {integrity: sha512-zJ2mQYM18rEFOudeV4GShTGIQ7RbzA7ozbU9I/XBpm7kqgMywgmylMwXHxZJmkVoYkna9d2pVXVXPdYTP9ej8Q==}
     engines: {node: '>= 0.6'}
@@ -1983,6 +2010,12 @@ packages:
   modern-tar@0.8.6:
     resolution: {integrity: sha512-LYSks0tNVqbtez/9OB0YFP6qLRSqkdAxJWOQpVaR67lNTbj2zNLyYpowkRMia5lXLCZKzxwoxkxH2MbbBR2aEg==}
     engines: {node: '>=18.0.0'}
+
+  motion-dom@14.12.0:
+    resolution: {integrity: sha512-YnAY17g8mXRVoXGZbH+v/O2SkNBJqz2TMuqL9yek9Omfhsdjw7gJwNgI5nsGZFpbbm3vINyOo+VtGPryIslatw==}
+
+  motion-utils@14.7.0:
+    resolution: {integrity: sha512-woO0/Nb7ys75f94fjvQi/6leiHGvZUYkeHUPEZ3vxsV+9OpEVhkxp01x8MlRwX0zt31EqgXsKDAoBoJLC148Tw==}
 
   ms@2.0.0:
     resolution: {integrity: sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==}
@@ -2367,6 +2400,9 @@ packages:
     engines: {node: '>= v0.10.32'}
     peerDependencies:
       express: '>=4.0.0 || >=5.0.0-beta'
+
+  tailwind-merge@3.7.0:
+    resolution: {integrity: sha512-XPPUyAc+cvspz3lHTcR/QgPfW2A0lv/xQNIjX3HGhLR+Nq2lHaLq5MtTesHn8GUr3W3DguT2KT5x3NVgRtYwmA==}
 
   tailwindcss@3.4.19:
     resolution: {integrity: sha512-3ofp+LL8E+pK/JuPLPggVAIaEuhvIz4qNcf3nA1Xn2o/7fb7s/TYpHhwGDv1ZU3PkBluUVaF8PyCHcm48cKLWQ==}
@@ -3376,6 +3412,8 @@ snapshots:
       strip-ansi: 7.2.0
       wrap-ansi: 9.0.2
 
+  clsx@2.1.1: {}
+
   cluster-key-slot@1.1.1: {}
 
   combined-stream@1.0.8:
@@ -3754,6 +3792,15 @@ snapshots:
 
   fraction.js@5.3.4: {}
 
+  framer-motion@14.12.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+    dependencies:
+      motion-dom: 14.12.0
+      motion-utils: 14.7.0
+      tslib: 2.9.1
+    optionalDependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+
   fresh@0.5.2: {}
 
   fsevents@2.3.3:
@@ -3976,6 +4023,12 @@ snapshots:
   mitt@3.0.1: {}
 
   modern-tar@0.8.6: {}
+
+  motion-dom@14.12.0:
+    dependencies:
+      motion-utils: 14.7.0
+
+  motion-utils@14.7.0: {}
 
   ms@2.0.0: {}
 
@@ -4413,6 +4466,8 @@ snapshots:
     dependencies:
       express: 4.22.3
       swagger-ui-dist: 5.34.1
+
+  tailwind-merge@3.7.0: {}
 
   tailwindcss@3.4.19(tsx@4.23.15):
     dependencies:
