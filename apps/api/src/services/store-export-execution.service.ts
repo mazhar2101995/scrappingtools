@@ -722,6 +722,35 @@ export class StoreExportExecutionService {
       if (!nameMap.en) nameMap.en = details.productTitle || product.canonicalTitle;
       if (!descMap.en) descMap.en = product.standardizedDescription || '';
 
+      const customFields = customAttrs.customFields || {};
+      const customTabsList: Array<{ key: string; title: string; content: string; templateId?: string }> = [];
+
+      if (customFields.overview || customAttrs.overview) {
+        customTabsList.push({
+          key: 'overview',
+          title: 'Overview',
+          content: String(customFields.overview || customAttrs.overview || ''),
+          templateId: 'tpl_overview',
+        });
+      }
+      if (customFields.part_list || customAttrs.part_list) {
+        customTabsList.push({
+          key: 'part_list',
+          title: 'Parts List',
+          content: String(customFields.part_list || customAttrs.part_list || ''),
+          templateId: 'tpl_part_list',
+        });
+      }
+      if (customFields.finishes || customAttrs.finishes) {
+        const finishesVal = customFields.finishes || customAttrs.finishes;
+        customTabsList.push({
+          key: 'finishes',
+          title: 'Finishes',
+          content: typeof finishesVal === 'string' ? finishesVal : JSON.stringify(finishesVal),
+          templateId: 'tpl_finishing',
+        });
+      }
+
       const canonicalModel: any = {
         id: plan.globalProductId,
         externalId: plan.externalProductId || undefined,
@@ -739,6 +768,8 @@ export class StoreExportExecutionService {
         images: imagesList,
         attributes: (product as any).extractedAttributes || {},
         variants: [],
+        options: customFields.options || customAttrs.options || [],
+        customTabs: customTabsList,
         seo: {
           metaTitle: metaTitleMap,
           metaDescription: metaDescMap,

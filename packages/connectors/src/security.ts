@@ -56,6 +56,20 @@ export class CredentialSecurity {
   }
 
   /**
+   * Generates random hex salt/nonce
+   */
+  public static generateSalt(length = 16): string {
+    return crypto.randomBytes(length).toString('hex');
+  }
+
+  /**
+   * Generates HMAC-SHA256 signature in hex
+   */
+  public static generateHmacSha256(payload: string, secret: string): string {
+    return crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  }
+
+  /**
    * Webhook HMAC-SHA256 signature verification
    */
   public static verifyHmacSha256(payload: string, secret: string, signature: string): boolean {

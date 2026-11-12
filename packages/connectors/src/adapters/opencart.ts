@@ -126,7 +126,46 @@ export class OpenCartConnector implements UniversalConnector {
   }> {
     const cleanUrl = this.config.storeUrl.replace(/\/+$/, '');
 
-    // 1. First, check if the high-speed OpenCart SaaS bridge file (saas_bridge.php) is present on customer's store
+    // 1. First Priority: Official SaaS Connector Extension (saas_connector.ocmod.zip)
+    const modulePushUrl = `${cleanUrl}/index.php?route=extension/module/saas_connector&action=push_product`;
+    try {
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const nonce = CredentialSecurity.generateSalt(16);
+      const rawPayload = JSON.stringify(product);
+      const signature = CredentialSecurity.generateHmacSha256(
+        rawPayload + timestamp + nonce,
+        this.config.apiKey
+      );
+
+      const moduleResp = await fetch(modulePushUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Saas-Timestamp': timestamp,
+          'X-Saas-Nonce': nonce,
+          'X-Saas-Signature': signature,
+        },
+        body: rawPayload,
+      });
+
+      if (moduleResp.ok) {
+        const moduleData = await moduleResp.json().catch(() => null);
+        if (moduleData && moduleData.success && (moduleData.productId || moduleData.product_id)) {
+          return {
+            externalProductId: String(moduleData.productId || moduleData.product_id),
+            externalSku: moduleData.sku || product.sku,
+          };
+        } else if (moduleData && moduleData.error) {
+          throw new Error(`OpenCart SaaS Connector Error: ${moduleData.error}`);
+        }
+      }
+    } catch (modErr: any) {
+      if (!modErr.message?.includes('404') && !modErr.message?.includes('Unexpected token')) {
+        throw modErr;
+      }
+    }
+
+    // 2. Second Priority: Standalone Bridge file (saas_bridge.php)
     const bridgeUrl = `${cleanUrl}/saas_bridge.php?action=push_product`;
     try {
       const bridgeResp = await fetch(bridgeUrl, {
@@ -161,7 +200,7 @@ export class OpenCartConnector implements UniversalConnector {
       }
     }
 
-    // 2. Fallback to OpenCart native REST API login verification
+    // 3. Fallback to OpenCart native REST API login verification
     const loginUrl = `${cleanUrl}/index.php?route=api/login`;
     
     const formParams = new URLSearchParams();
