@@ -3775,16 +3775,6 @@ export default function BrandProfileDetailPage() {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleAutoMapAllFields}
-                  disabled={!selectedExportStoreId}
-                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-400 to-[#fad982] hover:from-amber-300 hover:to-amber-200 text-slate-950 rounded-xl text-xs font-black shadow-xs transition hover:scale-[1.02]"
-                  title="Automatically map all portal fields to destination store fields with 1 click"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-slate-950" />
-                  <span>1-Click Auto Map Fields</span>
-                </button>
-                <button
-                  type="button"
                   onClick={handleOpenHealthCard}
                   disabled={!selectedExportStoreId || healthCardLoading}
                   className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition shadow-xs"
@@ -4299,12 +4289,26 @@ export default function BrandProfileDetailPage() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowHealthCardModal(false)}
-                className="w-8 h-8 rounded-xl hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleAutoMapAllFields();
+                    setShowHealthCardModal(false);
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-amber-400 to-[#fad982] hover:from-amber-300 hover:to-amber-200 text-slate-950 rounded-xl text-xs font-black shadow-xs transition hover:scale-[1.02]"
+                  title="Apply recommended field mapping based on this Health Card analysis"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                  <span>Apply Auto Mapping from Suggestions</span>
+                </button>
+                <button
+                  onClick={() => setShowHealthCardModal(false)}
+                  className="w-8 h-8 rounded-xl hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-700">
@@ -4483,7 +4487,18 @@ export default function BrandProfileDetailPage() {
               ) : null}
             </div>
 
-            <div className="p-4 border-t border-slate-100 flex items-center justify-end bg-slate-50/50">
+            <div className="p-4 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <button
+                type="button"
+                onClick={() => {
+                  handleAutoMapAllFields();
+                  setShowHealthCardModal(false);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-amber-400 to-[#fad982] hover:from-amber-300 text-slate-950 font-black rounded-xl text-xs shadow-xs transition"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                <span>Apply Auto-Mapping from Recommendations</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setShowHealthCardModal(false)}

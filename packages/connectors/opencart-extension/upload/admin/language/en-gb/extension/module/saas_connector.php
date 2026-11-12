@@ -16,3 +16,4 @@ $_['help_secret_key']  = 'Copy this Secret Key and paste it into your SaaS Platf
 
 // Error
 $_['error_permission'] = 'Warning: You do not have permission to modify SaaS Connector module!';
+

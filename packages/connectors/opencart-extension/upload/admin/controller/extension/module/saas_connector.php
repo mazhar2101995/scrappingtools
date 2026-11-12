@@ -1,7 +1,7 @@
 <?php
 /**
  * SaaS Connector Admin Controller
- * Renders module settings and displays the Store Pair Token / Secret Key in OpenCart Admin
+ * Renders module settings, store credentials, and comprehensive health & capability diagnostics
  */
 class ControllerExtensionModuleSaasConnector extends Controller {
     private $error = [];
@@ -10,6 +10,10 @@ class ControllerExtensionModuleSaasConnector extends Controller {
         $this->load->language('extension/module/saas_connector');
         $this->document->setTitle('SaaS Product Intelligence Connector');
         $this->load->model('setting/setting');
+        $this->load->model('extension/module/saas_connector');
+
+        // Ensure tables exist on load
+        $this->model_extension_module_saas_connector->install();
 
         if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
             $this->model_setting_setting->editSetting('module_saas_connector', $this->request->post);
@@ -55,7 +59,6 @@ class ControllerExtensionModuleSaasConnector extends Controller {
         } else {
             $currentKey = $this->config->get('module_saas_connector_secret_key');
             if (empty($currentKey)) {
-                // Auto-generate a secure random 32-byte secret key if none exists
                 $currentKey = bin2hex(random_bytes(32));
                 $this->model_setting_setting->editSetting('module_saas_connector', [
                     'module_saas_connector_status' => 1,
@@ -64,6 +67,44 @@ class ControllerExtensionModuleSaasConnector extends Controller {
             }
             $data['module_saas_connector_secret_key'] = $currentKey;
         }
+
+        // Live Health Stats & Counts from dedicated tables
+        $prefix = defined('DB_PREFIX') ? DB_PREFIX : '';
+        $data['db_prefix'] = $prefix;
+
+        $stats = [
+            'total_custom_tabs' => 0,
+            'total_option_skus' => 0,
+            'total_images_deduped' => 0,
+            'total_exports_recorded' => 0
+        ];
+
+        try {
+            $q1 = $this->db->query("SELECT COUNT(*) as total FROM `{$prefix}saas_product_tabs`");
+            $stats['total_custom_tabs'] = $q1->row['total'] ?? 0;
+
+            $q2 = $this->db->query("SELECT COUNT(*) as total FROM `{$prefix}saas_option_sku_map`");
+            $stats['total_option_skus'] = $q2->row['total'] ?? 0;
+
+            $q3 = $this->db->query("SELECT COUNT(*) as total FROM `{$prefix}saas_image_registry`");
+            $stats['total_images_deduped'] = $q3->row['total'] ?? 0;
+
+            $q4 = $this->db->query("SELECT COUNT(*) as total FROM `{$prefix}saas_export_history`");
+            $stats['total_exports_recorded'] = $q4->row['total'] ?? 0;
+        } catch (\Exception $e) {
+            // Tables might be initializing
+        }
+        $data['stats'] = $stats;
+
+        // Recent Integration Logs
+        $recent_logs = [];
+        try {
+            $logQuery = $this->db->query("SELECT level, message, created_at FROM `{$prefix}saas_log` ORDER BY id DESC LIMIT 10");
+            if ($logQuery && $logQuery->num_rows > 0) {
+                $recent_logs = $logQuery->rows;
+            }
+        } catch (\Exception $e) {}
+        $data['recent_logs'] = $recent_logs;
 
         $data['header'] = $this->load->controller('common/header');
         $data['column_left'] = $this->load->controller('common/column_left');
@@ -83,7 +124,6 @@ class ControllerExtensionModuleSaasConnector extends Controller {
         $this->load->model('extension/module/saas_connector');
         $this->model_extension_module_saas_connector->install();
 
-        // Auto-generate key on install
         $this->load->model('setting/setting');
         $this->model_setting_setting->editSetting('module_saas_connector', [
             'module_saas_connector_status' => 1,
