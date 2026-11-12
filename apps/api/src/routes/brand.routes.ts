@@ -1387,6 +1387,21 @@ brandsRouter.get('/:id/store-exports/:storeId', async (req: Request, res: Respon
   }
 });
 
+// 3B. Get Store Field Health Card (Field Compatibility Audit with real scraped product)
+brandsRouter.get('/:id/store-health-card/:storeId', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  if (!orgId) return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const storeId = Array.isArray(req.params.storeId) ? req.params.storeId[0] : req.params.storeId;
+
+  try {
+    const healthCard = await BrandStoreExportService.inspectStoreFieldHealthCard(orgId, id, storeId);
+    return res.json({ success: true, healthCard });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // 4. Save or Update Brand Store Export Profile (with Compatibility & Policy Validation)
 brandsRouter.post('/:id/store-exports/:storeId', async (req: Request, res: Response) => {
   const orgId = getOrgId(req);

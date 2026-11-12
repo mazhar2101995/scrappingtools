@@ -970,6 +970,10 @@ export class DashboardApiClient {
     }, 'client');
   }
 
+  async getStoreFieldHealthCard(brandId: string, storeId: string): Promise<any> {
+    return this.fetchJson(`/brands/${brandId}/store-health-card/${storeId}`, {}, 'client');
+  }
+
   // --- Phase 9B: Store Change Preview & Controlled Manual Push Methods ---
   async generateStoreChangePlan(productId: string, storeId: string, targetLanguage = 'en'): Promise<any> {
     return this.fetchJson('/stores/change-plan', {
