@@ -1717,6 +1717,105 @@ productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
               }
 
               val = imgs.length > 0 ? (targetField === 'images' ? imgs : imgs[0]) : '';
+            } else if (targetField === 'options' || targetField === 'product_options' || targetField.includes('option') || first.is('select')) {
+              // Extract Structured Product Options & Variations (e.g. Size, Color/Finish, Drawers with price modifiers)
+              const extractedOptions: Array<{
+                name: string;
+                identifier: string;
+                values: Array<{
+                  name: string;
+                  value: string;
+                  priceModifier?: number;
+                  pricePrefix?: '+' | '-';
+                  sku?: string;
+                  imageUrl?: string;
+                  isDefault?: boolean;
+                }>;
+              }> = [];
+
+              const selectElements = first.is('select') ? matched : matched.find('select');
+              if (selectElements.length > 0) {
+                selectElements.each((_, sel) => {
+                  const selId = $(sel).attr('id') || $(sel).attr('name') || `option_${extractedOptions.length + 1}`;
+                  // Detect label from parent tr / label / heading
+                  let optLabel = $(sel).closest('tr').find('td b, td span.black_link').first().text().trim();
+                  if (!optLabel) {
+                    optLabel = $(sel).closest('.field_wrap, .row, .option-row, tr, div').find('label, b, strong').first().text().trim();
+                  }
+                  if (!optLabel) optLabel = selId.replace(/_/g, ' ');
+
+                  const optionChoices: any[] = [];
+                  $(sel).find('option').each((_, opt) => {
+                    const fullText = $(opt).text().trim().replace(/\s+/g, ' ');
+                    const valAttr = $(opt).attr('value') || '';
+                    const dataImg = $(opt).attr('data-img') || $(opt).attr('data-image');
+                    const isSelected = $(opt).is(':selected') || Boolean($(opt).attr('selected'));
+
+                    // Parse price modifier from text (e.g. '2 Drawer Pedestal - $335.00' or '60" x 66" (+$475.00)')
+                    let priceMod: number | undefined;
+                    let pricePfx: '+' | '-' | undefined;
+                    const priceMatch = fullText.match(/([+-]?)\s*[\$€£]\s*([\d,]+\.?\d*)/);
+                    if (priceMatch) {
+                      pricePfx = priceMatch[1] === '-' ? '-' : '+';
+                      priceMod = parseFloat(priceMatch[2].replace(/,/g, ''));
+                    }
+
+                    // Extract Clean Option Name (strip price from label)
+                    let cleanChoiceName = fullText;
+                    if (priceMatch) {
+                      cleanChoiceName = fullText.replace(/[-–(]*\s*([+-]?)\s*[\$€£]\s*[\d,]+\.?\d*\s*[)]*/, '').trim();
+                      cleanChoiceName = cleanChoiceName.replace(/[-–]\s*$/, '').trim();
+                    }
+
+                    if (cleanChoiceName && cleanChoiceName.toLowerCase() !== 'select' && cleanChoiceName.toLowerCase() !== '-- choose --') {
+                      optionChoices.push({
+                        name: cleanChoiceName,
+                        value: valAttr || cleanChoiceName,
+                        priceModifier: priceMod,
+                        pricePrefix: pricePfx,
+                        sku: valAttr && /^\d+$/.test(valAttr) ? valAttr : undefined,
+                        imageUrl: dataImg ? (dataImg.startsWith('http') ? dataImg : (job.targetUrl ? `${new URL(job.targetUrl).origin}${dataImg.startsWith('/') ? '' : '/'}${dataImg}` : dataImg)) : undefined,
+                        isDefault: isSelected,
+                      });
+                    }
+                  });
+
+                  if (optionChoices.length > 0) {
+                    extractedOptions.push({
+                      name: optLabel,
+                      identifier: selId,
+                      values: optionChoices,
+                    });
+                  }
+                });
+              }
+
+              val = extractedOptions.length > 0 ? (extractedOptions as any) : '';
+            } else if (first.find('img').length > 0 && (targetField.includes('finish') || targetField.includes('swatch') || targetField.includes('color') || targetField.includes('material') || (brandProfile?.imageExtractionRules as any)?.contentImages)) {
+              // Extraction of structured swatches or content items with images (e.g. Madison Liquidators Available Finishes Swatch Grid)
+              const swatchItems: Array<{ name: string; imageUrl: string; fullUrl?: string }> = [];
+              first.find('div, td, li, a').each((_, container) => {
+                const img = $(container).find('img').first();
+                const src = img.attr('src') || img.attr('data-src') || img.attr('data-zoom-image');
+                if (src && !src.includes('loader') && !src.includes('placeholder')) {
+                  let name = img.attr('alt') || img.attr('title') || $(container).text().trim();
+                  name = name.replace(/\s*Finish$/i, '').replace(/\s+/g, ' ').trim();
+                  
+                  let absSrc = src;
+                  if (absSrc.startsWith('/') && job.targetUrl) {
+                    try { absSrc = `${new URL(job.targetUrl).origin}${absSrc}`; } catch (_) {}
+                  }
+
+                  if (name && !swatchItems.some((s) => s.name === name || s.imageUrl === absSrc)) {
+                    swatchItems.push({
+                      name,
+                      imageUrl: absSrc,
+                      fullUrl: absSrc,
+                    });
+                  }
+                }
+              });
+              val = swatchItems.length > 0 ? swatchItems : first.text().trim();
             } else if (targetField === 'attributes' || targetField.includes('spec')) {
               const specMap: Record<string, string> = {};
               matched.find('tr').each((_, tr) => {
