@@ -896,6 +896,119 @@ export default function BrandProfileDetailPage() {
     }
   }
 
+  // --- 1-Click Auto Map All Fields to Store Schema ---
+  function handleAutoMapAllFields() {
+    if (!selectedExportStoreId) {
+      alert('Please select a connected store first');
+      return;
+    }
+
+    const platform = (storeSchema?.platform || 'opencart').toLowerCase();
+
+    // Standard high-accuracy automatic mapping table by platform
+    const autoMapLookup: Record<string, Record<string, string>> = {
+      opencart: {
+        name: 'name',
+        description: 'description',
+        price: 'price',
+        model: 'model',
+        sku: 'sku',
+        upc: 'upc',
+        ean: 'ean',
+        mpn: 'mpn',
+        images: 'images',
+        quantity: 'quantity',
+        brand: 'manufacturer',
+        category: 'category',
+        compatible_models: 'custom_fields',
+        overview: 'description',
+        features: 'description',
+        specifications: 'custom_fields',
+        part_list: 'custom_fields',
+        finishes: 'images',
+      },
+      shopify: {
+        name: 'title',
+        description: 'body_html',
+        price: 'price',
+        sku: 'sku',
+        model: 'barcode',
+        images: 'images',
+        quantity: 'inventory_quantity',
+        brand: 'vendor',
+        category: 'product_type',
+        compatible_models: 'tags',
+        overview: 'body_html',
+        features: 'body_html',
+        specifications: 'metafields',
+        part_list: 'metafields',
+      },
+      woocommerce: {
+        name: 'name',
+        description: 'description',
+        price: 'regular_price',
+        sku: 'sku',
+        images: 'images',
+        quantity: 'stock_quantity',
+        brand: 'brand',
+        category: 'categories',
+        compatible_models: 'attributes',
+        overview: 'short_description',
+        features: 'description',
+        specifications: 'attributes',
+        part_list: 'meta_data',
+      }
+    };
+
+    const targetLookup = autoMapLookup[platform] || autoMapLookup.opencart;
+
+    // Available fields from discovered schema (if any)
+    const storeFields = storeSchema?.fields || [];
+    const availableFieldNames = storeFields.map((f: any) => String(f.name || f.key || '').toLowerCase());
+
+    const updated = exportMappings.map((row) => {
+      const src = (row.sourceField || '').toLowerCase();
+      let matchedTarget = '';
+
+      // Direct dictionary lookup
+      if (targetLookup[src]) {
+        matchedTarget = targetLookup[src];
+      } else {
+        // Fallback: match by name similarity
+        const found = storeFields.find((sf: any) => {
+          const fn = String(sf.name || sf.key || '').toLowerCase();
+          return fn === src || fn.includes(src) || src.includes(fn);
+        });
+        if (found) {
+          matchedTarget = found.name || found.key;
+        }
+      }
+
+      // If discovered schema exists and has this target, use exact schema field name
+      if (storeFields.length > 0 && matchedTarget) {
+        const exactMatch = storeFields.find((sf: any) => {
+          const fn = String(sf.name || sf.key || '').toLowerCase();
+          return fn === matchedTarget.toLowerCase() || fn.includes(matchedTarget.toLowerCase());
+        });
+        if (exactMatch) {
+          matchedTarget = exactMatch.name || exactMatch.key;
+        }
+      }
+
+      return {
+        ...row,
+        storeTargetField: matchedTarget || row.storeTargetField || '',
+        enabled: true,
+      };
+    });
+
+    setExportMappings(updated);
+    setExportStatusMsg({
+      type: 'success',
+      text: `1-Click Auto Mapping Complete! Automatically mapped ${updated.filter((m) => m.storeTargetField).length} fields to ${platform.toUpperCase()} store schema. Click "Save & Validate Profile" to persist.`,
+    });
+  }
+
   // --- Store Field Compatibility Health Card Popup ---
   async function handleOpenHealthCard() {
     if (!selectedExportStoreId) {
@@ -3660,6 +3773,16 @@ export default function BrandProfileDetailPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleAutoMapAllFields}
+                  disabled={!selectedExportStoreId}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-400 to-[#fad982] hover:from-amber-300 hover:to-amber-200 text-slate-950 rounded-xl text-xs font-black shadow-xs transition hover:scale-[1.02]"
+                  title="Automatically map all portal fields to destination store fields with 1 click"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-slate-950" />
+                  <span>1-Click Auto Map Fields</span>
+                </button>
                 <button
                   type="button"
                   onClick={handleOpenHealthCard}
