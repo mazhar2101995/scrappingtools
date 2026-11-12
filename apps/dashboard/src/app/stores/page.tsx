@@ -626,10 +626,17 @@ export default function StoresPage() {
                     {s.platformType}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                      <span>{s.status}</span>
-                    </span>
+                    {s.status === 'connected' ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>Connected &amp; Verified</span>
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <span>Action Required: Module Not Verified</span>
+                      </span>
+                    )}
                     <button
                       onClick={() => handleOpenEditModal(s)}
                       title="Edit Store Settings & Credentials"
@@ -661,6 +668,21 @@ export default function StoresPage() {
                   </a>
                 </div>
 
+                {/* Verification Guidance Banner if Pending */}
+                {s.status !== 'connected' && s.platformType === 'opencart' && (
+                  <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-[11px] text-amber-900 space-y-1.5">
+                    <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                      <span>Setup Steps Incomplete:</span>
+                    </div>
+                    <div className="text-[10px] space-y-1 text-amber-800">
+                      <p>1. Download &amp; install <a href="http://localhost:4000/api/v1/stores/download-module" className="font-bold underline">saas_connector.ocmod.zip</a> in OpenCart.</p>
+                      <p>2. Go to <b>Extensions &gt; Modules &gt; SaaS Connector</b> and copy the Secret Key.</p>
+                      <p>3. Click <b>Edit</b> (pencil icon above) and paste the Secret Key.</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-600 space-y-1">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Capabilities:</span>
@@ -687,13 +709,13 @@ export default function StoresPage() {
                 <div className="flex items-center gap-1.5 shrink-0">
                   {s.platformType === 'opencart' && (
                     <a
-                      href="http://localhost:4000/api/v1/stores/download-bridge"
-                      download="saas_bridge.php"
-                      title="Download saas_bridge.php for this OpenCart store"
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-bold text-xs rounded-lg transition shadow-2xs"
+                      href="http://localhost:4000/api/v1/stores/download-module"
+                      download="saas_connector.ocmod.zip"
+                      title="Download official saas_connector.ocmod.zip for this OpenCart store"
+                      className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 font-bold text-xs rounded-lg transition shadow-2xs"
                     >
-                      <Download className="w-3.5 h-3.5 text-amber-700" />
-                      <span>Download Bridge</span>
+                      <Download className="w-3.5 h-3.5 text-emerald-700" />
+                      <span>Download Module</span>
                     </a>
                   )}
                   <button

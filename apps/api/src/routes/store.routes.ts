@@ -55,6 +55,8 @@ storeRouter.get('/', async (req: Request, res: Response) => {
         storeName: connectedStores.storeName,
         storeUrl: connectedStores.storeUrl,
         status: connectedStores.status,
+        healthStatus: connectedStores.healthStatus,
+        healthDetails: connectedStores.healthDetails,
         capabilities: connectedStores.capabilities,
         lastSyncAt: connectedStores.lastSyncAt,
         createdAt: connectedStores.createdAt,
@@ -93,6 +95,28 @@ storeRouter.post('/', async (req: Request, res: Response, next) => {
 
     const encryptedCredentials = CredentialSecurity.encrypt(credentials);
 
+    // Test connection immediately before marking as connected
+    let initialStatus = 'pending_module_installation';
+    let healthDetails: any = null;
+
+    try {
+      const probeStore = {
+        platformType,
+        storeUrl,
+        encryptedCredentials,
+      } as any;
+      const connector = SynchronizationEngine.createConnector(probeStore);
+      const testResult = await connector.testConnection();
+      if (testResult.success) {
+        initialStatus = 'connected';
+        healthDetails = { verifiedAt: new Date().toISOString(), ...testResult };
+      } else {
+        healthDetails = { error: testResult.error, checkedAt: new Date().toISOString() };
+      }
+    } catch (testErr: any) {
+      healthDetails = { error: testErr.message, checkedAt: new Date().toISOString() };
+    }
+
     const [newStore] = await db
       .insert(connectedStores)
       .values({
@@ -101,6 +125,9 @@ storeRouter.post('/', async (req: Request, res: Response, next) => {
         storeName,
         storeUrl,
         encryptedCredentials,
+        status: initialStatus,
+        healthStatus: initialStatus === 'connected' ? 'healthy' : 'auth_required',
+        healthDetails,
         capabilities: capabilities || ['PULL_PRODUCTS', 'PUSH_PRODUCTS', 'UPDATE_PRICING'],
       })
       .returning({

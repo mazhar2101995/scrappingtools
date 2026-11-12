@@ -38,43 +38,65 @@ export class OpenCartConnector implements UniversalConnector {
       if (!this.config.storeUrl || !this.config.apiKey) {
         return {
           success: false,
-          error: 'Missing OpenCart store URL or API secret key',
+          error: 'Missing OpenCart store URL or Store Signing Secret Key',
           latencyMs: Date.now() - start,
         };
       }
 
-      // Live ping to OpenCart remote API
       const cleanUrl = this.config.storeUrl.replace(/\/+$/, '');
-      const loginUrl = `${cleanUrl}/index.php?route=api/login`;
-      
-      const formParams = new URLSearchParams();
-      formParams.append('username', this.config.apiUsername || 'Default');
-      formParams.append('key', this.config.apiKey);
 
-      const resp = await fetch(loginUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: formParams.toString(),
-      });
+      // 1. First probe the Official SaaS Connector Module endpoint
+      const moduleVerifyUrl = `${cleanUrl}/index.php?route=extension/module/saas_connector&action=verify`;
+      try {
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const nonce = CredentialSecurity.generateSalt(16);
+        const signature = CredentialSecurity.generateHmacSha256(
+          JSON.stringify({ check: 'verify' }) + timestamp + nonce,
+          this.config.apiKey
+        );
 
-      const data = await resp.json().catch(() => ({}));
+        const resp = await fetch(moduleVerifyUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Saas-Timestamp': timestamp,
+            'X-Saas-Nonce': nonce,
+            'X-Saas-Signature': signature,
+          },
+          body: JSON.stringify({ check: 'verify' }),
+        });
 
-      if (data.error) {
-        const errorMsg = typeof data.error === 'object' 
-          ? Object.values(data.error).join(' | ') 
-          : String(data.error);
-        return {
-          success: false,
-          error: `OpenCart API Error: ${errorMsg}`,
-          latencyMs: Date.now() - start,
-        };
+        if (resp.ok) {
+          const data = await resp.json().catch(() => null);
+          if (data && data.success && data.status === 'CONNECTED_VERIFIED') {
+            return {
+              success: true,
+              storeName: data.audit?.store_name || 'OpenCart Connected Store',
+              version: data.audit?.opencart_version || this.config.version || '3.x',
+              currency: 'USD',
+              latencyMs: Date.now() - start,
+            };
+          } else if (data && data.error) {
+            return {
+              success: false,
+              error: `SaaS Module Verification: ${data.error}`,
+              latencyMs: Date.now() - start,
+            };
+          }
+        } else if (resp.status === 404) {
+          return {
+            success: false,
+            error: 'Module Not Installed: saas_connector.ocmod.zip is not active on this OpenCart store. Please install it in Extensions > Installer.',
+            latencyMs: Date.now() - start,
+          };
+        }
+      } catch (modErr: any) {
+        // Fall through to strict error
       }
 
       return {
-        success: true,
-        storeName: 'OpenCart Live Store',
-        version: this.config.version || '3.0.3.8',
-        currency: 'EUR',
+        success: false,
+        error: 'SaaS Module Not Detected: OpenCart store did not respond to the official SaaS Connector handshake. Please install saas_connector.ocmod.zip.',
         latencyMs: Date.now() - start,
       };
     } catch (err: any) {
