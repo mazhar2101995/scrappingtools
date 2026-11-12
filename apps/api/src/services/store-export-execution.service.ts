@@ -342,7 +342,12 @@ export class StoreExportExecutionService {
       sku: dynamicFormattedModel,
       price: customAttrs.price ? parseFloat(String(customAttrs.price).replace(/[^0-9.]/g, '')) || 499.99 : 499.99,
       images: imagesList,
-      compatible_models: customFields.compatible_models || customAttrs.compatibleModels || ['Traxxas Slash', 'Traxxas Rustler'],
+      compatible_models: customFields.compatible_models || customAttrs.compatibleModels || [],
+      // Real Scraped Product Options & Custom Tabs Extraction
+      options: customFields.options || customAttrs.options || [],
+      overview: customFields.overview || customAttrs.overview || '',
+      part_list: customFields.part_list || customAttrs.part_list || '',
+      finishes: customFields.finishes || customAttrs.finishes || [],
       meta_title: resolvedMetaTitle,
       meta_description: resolvedMetaDescription,
       meta_keyword: resolvedMetaKeywords,
