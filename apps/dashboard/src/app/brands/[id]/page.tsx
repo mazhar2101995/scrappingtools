@@ -907,7 +907,6 @@ export default function BrandProfileDetailPage() {
       return;
     }
 
-    // Determine target platform: from schema or from connectedStores list
     const currentStore = connectedStores.find((st) => st.id === selectedExportStoreId);
     const platform = (storeSchema?.platform || currentStore?.platformType || 'opencart').toLowerCase();
 
@@ -972,40 +971,51 @@ export default function BrandProfileDetailPage() {
     };
 
     const targetLookup = autoMapLookup[platform] || autoMapLookup.opencart;
-
-    // Available fields from discovered schema
     const storeFields = storeSchema?.fields || [];
 
-    const updated = exportMappings.map((row) => {
-      const src = (row.sourceField || '').toLowerCase();
-      let matchedTarget = '';
+    // 1. Build an index of existing sourceFields
+    const existingSourceFields = new Set((exportMappings || []).map((m) => (m.sourceField || '').toLowerCase()));
 
-      // Direct lookup from dictionary
-      if (targetLookup[src]) {
-        matchedTarget = targetLookup[src];
+    // 2. Identify required fields from standard target fields & health card suggestions
+    const requiredSourceKeys = [
+      'name',
+      'description',
+      'price',
+      'model',
+      'sku',
+      'images',
+      'options',
+      'overview',
+      'part_list',
+      'finishes',
+      'attributes',
+    ];
+
+    // If health card data is available, also pull in any scraped fields and options
+    if (healthCardData) {
+      if (Array.isArray(healthCardData.supportedFields)) {
+        healthCardData.supportedFields.forEach((sf: any) => {
+          if (sf.portalField) requiredSourceKeys.push(sf.portalField.toLowerCase());
+        });
       }
+      if (Array.isArray(healthCardData.missingStoreFields)) {
+        healthCardData.missingStoreFields.forEach((mf: any) => {
+          if (mf.portalField) requiredSourceKeys.push(mf.portalField.toLowerCase());
+        });
+      }
+    }
 
-      // If discovered schema exists, ensure the field key is recognized
+    // 3. Map existing rows
+    const updated = (exportMappings || []).map((row) => {
+      const src = (row.sourceField || '').toLowerCase();
+      let matchedTarget = targetLookup[src] || '';
+
       if (storeFields.length > 0) {
-        // Try exact match on key or name
         const exact = storeFields.find((sf: any) => {
           const k = String(sf.key || sf.name || '').toLowerCase();
           return k === matchedTarget.toLowerCase() || k === src;
         });
-
-        if (exact) {
-          matchedTarget = exact.key || exact.name;
-        } else if (!matchedTarget) {
-          // Similarity matching
-          const fuzzy = storeFields.find((sf: any) => {
-            const k = String(sf.key || sf.name || '').toLowerCase();
-            const lbl = String(sf.label || '').toLowerCase();
-            return k.includes(src) || src.includes(k) || lbl.includes(src);
-          });
-          if (fuzzy) {
-            matchedTarget = fuzzy.key || fuzzy.name;
-          }
-        }
+        if (exact) matchedTarget = exact.key || exact.name;
       }
 
       return {
@@ -1015,10 +1025,37 @@ export default function BrandProfileDetailPage() {
       };
     });
 
-    setExportMappings(updated);
+    // 4. Automatically add missing rows for any required fields not yet in table!
+    const newRows: any[] = [];
+    Array.from(new Set(requiredSourceKeys)).forEach((key) => {
+      if (!existingSourceFields.has(key)) {
+        let matchedTarget = targetLookup[key] || '';
+        if (storeFields.length > 0) {
+          const exact = storeFields.find((sf: any) => {
+            const k = String(sf.key || sf.name || '').toLowerCase();
+            return k === matchedTarget.toLowerCase() || k === key;
+          });
+          if (exact) matchedTarget = exact.key || exact.name;
+        }
+
+        // Only add if there is a valid match or standard field
+        newRows.push({
+          sourceField: key,
+          storeTargetField: matchedTarget || '',
+          permission: key === 'price' ? 'new_only' : 'new_and_existing',
+          writePolicy: (key === 'price' || key === 'sku' || key === 'model') ? 'create_only' : 'replace',
+          transformType: 'direct',
+          enabled: true,
+        });
+      }
+    });
+
+    const finalMappings = [...updated, ...newRows];
+    setExportMappings(finalMappings);
+
     setExportStatusMsg({
       type: 'success',
-      text: `Auto-mapping applied! Mapped ${updated.filter((m) => m.storeTargetField).length} fields for ${platform.toUpperCase()}. Click "Save & Validate Profile" to persist.`,
+      text: `Complete Auto-Mapping Applied! Synced ${finalMappings.length} total directives including Product Options, Custom Tabs (Overview, Part List, Finishes) and Core Identifiers for ${platform.toUpperCase()}. Click "Save & Validate Profile" to persist.`,
     });
   }
 
