@@ -777,7 +777,19 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             {/* Description */}
             {(() => {
               const trans = data?.aiProcessedData?.translations?.[activeLang];
-              const descToRender = trans?.description || product.standardizedDescription;
+              // Prefer clean raw description if present, avoid forced HTML composite blocks with fake features
+              const rawClean = data?.rawScrapedData?.rawDescription;
+              let descToRender = trans?.description || (rawClean && rawClean.length > 5 ? rawClean : product.standardizedDescription);
+
+              // If descToRender is the synthetic wrapper containing "Key Features", clean it to just the real description
+              if (typeof descToRender === 'string' && descToRender.includes('product-content-formatted')) {
+                const matchP = descToRender.match(/<div class="section-description"[\s\S]*?<p[^>]*>([\s\S]*?)<\/p>/i);
+                if (matchP && matchP[1]) {
+                  descToRender = matchP[1].trim();
+                } else if (rawClean) {
+                  descToRender = rawClean;
+                }
+              }
 
               if (!descToRender || descToRender.includes('(Not found on tested page)')) {
                 return null;
@@ -891,49 +903,94 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       {(() => {
         const brandProfile = data?.brandProfileConfig;
         const brandGroups = (brandProfile?.fieldGroups as any[]) || [];
-        const fieldConfigs = (brandProfile?.fieldConfigs as any[]) || [];
+        const fieldMappings = (brandProfile?.fieldMappings as any[]) || [];
 
-        // Build dynamic tabs from brand groups or default standard tabs
-        const tabList: string[] = [];
-        if (brandGroups.length > 0) {
+        // Check if user has explicitly mapped fields with displayLocation: 'tab'
+        const tabMappings = fieldMappings.filter((m: any) => m.enabled !== false && m.displayLocation === 'tab');
+
+        interface TabItem {
+          id: string;
+          label: string;
+          type: 'mapped_tab' | 'brand_group' | 'standard';
+          targetField?: string;
+        }
+
+        const tabList: TabItem[] = [];
+
+        // 1. If user mapped specific fields to "Group Tab", use EXACTLY those mapped fields!
+        if (tabMappings.length > 0) {
+          tabMappings.forEach((m: any) => {
+            const rawKey = m.targetField;
+            const labelMap: Record<string, string> = {
+              overview: 'Overview',
+              attributes: 'Specifications',
+              part_list: 'Part List',
+              finishes: 'Finishing',
+              compatible_models: 'Compatible Models',
+              features: 'Features',
+              description: 'Description',
+            };
+            const label = labelMap[rawKey] || (rawKey.charAt(0).toUpperCase() + rawKey.slice(1).replace(/_/g, ' '));
+            if (!tabList.some((t) => t.id === rawKey)) {
+              tabList.push({
+                id: rawKey,
+                label,
+                type: 'mapped_tab',
+                targetField: rawKey,
+              });
+            }
+          });
+        } else if (brandGroups.length > 0) {
+          // 2. Otherwise if custom brand groups exist, build tabs from groups
           brandGroups.forEach((g: any) => {
             const gName = g.name || g.title || g.id;
-            if (gName && !tabList.includes(gName)) tabList.push(gName);
+            if (gName && !tabList.some((t) => t.id === gName)) {
+              tabList.push({
+                id: gName,
+                label: gName,
+                type: 'brand_group',
+              });
+            }
           });
+        } else {
+          // 3. Fallback to standard tabs only if NO tabs or groups configured
+          if (!tabList.some((t) => t.id === 'Description')) {
+            tabList.push({ id: 'Description', label: 'Description', type: 'standard' });
+          }
+          if ((data.features?.length > 0 || data.aiProcessedData?.keyHighlights?.length > 0) && !tabList.some((t) => t.id === 'Features')) {
+            tabList.push({ id: 'Features', label: 'Features', type: 'standard' });
+          }
+          if (Object.keys(data.specifications || attributes || {}).length > 0 && !tabList.some((t) => t.id === 'Specifications')) {
+            tabList.push({ id: 'Specifications', label: 'Specifications', type: 'standard' });
+          }
+          if (data.compatibleModels?.length > 0 && !tabList.some((t) => t.id === 'Compatible Models')) {
+            tabList.push({ id: 'Compatible Models', label: 'Compatible Models', type: 'standard' });
+          }
         }
 
-        // Always include default tabs if not present
-        if (!tabList.includes('Description')) tabList.unshift('Description');
-        if ((data.features?.length > 0 || data.aiProcessedData?.keyHighlights?.length > 0) && !tabList.includes('Features')) {
-          tabList.push('Features');
-        }
-        if ((Object.keys(data.specifications || attributes || {}).length > 0) && !tabList.includes('Specifications')) {
-          tabList.push('Specifications');
-        }
-        if (data.compatibleModels?.length > 0 && !tabList.includes('Compatible Models')) {
-          tabList.push('Compatible Models');
-        }
+        if (tabList.length === 0) return null;
 
-        const currentActive = tabList.includes(activeDynamicTab) ? activeDynamicTab : tabList[0] || 'Description';
+        const currentActiveId = tabList.some((t) => t.id === activeDynamicTab) ? activeDynamicTab : tabList[0].id;
+        const currentActiveTab = tabList.find((t) => t.id === currentActiveId) || tabList[0];
 
         return (
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
             {/* Dynamic Tab Bar Navigation */}
             <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
-              {tabList.map((tabName) => {
-                const isActive = currentActive === tabName;
+              {tabList.map((t) => {
+                const isActive = currentActiveTab.id === t.id;
                 return (
                   <button
-                    key={tabName}
+                    key={t.id}
                     type="button"
-                    onClick={() => setActiveDynamicTab(tabName)}
+                    onClick={() => setActiveDynamicTab(t.id)}
                     className={`px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 border ${
                       isActive
                         ? 'bg-[#0d2a2c] text-[#fad982] border-[#0d2a2c] shadow-xs'
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                     }`}
                   >
-                    <span>{tabName}</span>
+                    <span>{t.label}</span>
                   </button>
                 );
               })}
@@ -941,8 +998,64 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
             {/* Dynamic Tab Contents */}
             <div className="min-h-[220px]">
-              {/* Tab: Description */}
-              {currentActive === 'Description' && (
+              {/* Case A: Mapped Tab Field (e.g. overview, attributes, part_list, finishes) */}
+              {currentActiveTab.type === 'mapped_tab' && (() => {
+                const fKey = currentActiveTab.targetField!;
+                
+                // If it's attributes / specifications
+                if (fKey === 'attributes' || fKey === 'specifications') {
+                  const specsMap = data.specifications || attributes || {};
+                  const entries = Object.entries(specsMap).filter(([_, v]) => !String(v).includes('(Not found on tested page)'));
+                  if (entries.length > 0) {
+                    return (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        {entries.map(([k, v]) => (
+                          <div key={k} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex justify-between gap-4">
+                            <span className="font-semibold text-slate-700">{k}</span>
+                            <span className="font-mono text-slate-900 text-right">{String(v)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
+                }
+
+                // Retrieve tab content from customFields, rawScrapedData, or attributes
+                const tabVal =
+                  data?.customFields?.[fKey] ??
+                  data?.rawScrapedData?.rawCustomData?.[fKey] ??
+                  data?.rawScrapedData?.[fKey] ??
+                  data?.attributes?.[fKey] ??
+                  '';
+
+                if (!tabVal) {
+                  return (
+                    <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-400 text-center">
+                      No extracted content available for <strong className="text-slate-600">{currentActiveTab.label}</strong>.
+                    </div>
+                  );
+                }
+
+                // If content contains HTML tags
+                if (typeof tabVal === 'string' && /<[a-z][\s\S]*>/i.test(tabVal)) {
+                  return (
+                    <div
+                      className="p-5 rounded-2xl bg-slate-50/50 border border-slate-200 text-xs text-slate-700 leading-relaxed max-h-[500px] overflow-y-auto prose prose-slate prose-sm max-w-none shadow-xs"
+                      dangerouslySetInnerHTML={{ __html: tabVal }}
+                    />
+                  );
+                }
+
+                // Clean plain text representation with nice line breaks
+                return (
+                  <div className="p-5 rounded-2xl bg-slate-50/70 border border-slate-200 text-xs text-slate-700 leading-relaxed whitespace-pre-line font-normal">
+                    {String(tabVal)}
+                  </div>
+                );
+              })()}
+
+              {/* Case B: Standard Description */}
+              {currentActiveTab.type === 'standard' && currentActiveTab.id === 'Description' && (
                 <div className="space-y-4">
                   {/<[a-z][\s\S]*>/i.test(product.standardizedDescription || '') ? (
                     <div
@@ -957,8 +1070,8 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </div>
               )}
 
-              {/* Tab: Features */}
-              {currentActive === 'Features' && (
+              {/* Case C: Standard Features */}
+              {currentActiveTab.type === 'standard' && currentActiveTab.id === 'Features' && (
                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-700">
                   {(data.features && Array.isArray(data.features) && data.features.length > 0 ? data.features : data.aiProcessedData?.keyHighlights || []).map((feat: any, fIdx: number) => (
                     <li key={fIdx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
@@ -969,8 +1082,8 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </ul>
               )}
 
-              {/* Tab: Specifications */}
-              {currentActive === 'Specifications' && (
+              {/* Case D: Standard Specifications */}
+              {currentActiveTab.type === 'standard' && currentActiveTab.id === 'Specifications' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                   {Object.entries(data.specifications || attributes || {}).map(([k, v]) => {
                     if (String(v).includes('(Not found on tested page)')) return null;
@@ -984,8 +1097,8 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </div>
               )}
 
-              {/* Tab: Compatible Models */}
-              {currentActive === 'Compatible Models' && (
+              {/* Case E: Standard Compatible Models */}
+              {currentActiveTab.type === 'standard' && currentActiveTab.id === 'Compatible Models' && (
                 <div className="flex flex-wrap gap-2 text-xs">
                   {(data.compatibleModels || []).map((mod: any, mIdx: number) => (
                     <span key={mIdx} className="px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 font-mono font-bold">
@@ -995,14 +1108,14 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </div>
               )}
 
-              {/* Dynamic Group Tabs configured by Brand */}
-              {!['Description', 'Features', 'Specifications', 'Compatible Models'].includes(currentActive) && (
+              {/* Case F: Brand Group Tabs */}
+              {currentActiveTab.type === 'brand_group' && (
                 <div className="space-y-3">
                   <div className="text-xs text-slate-500 mb-2">
-                    Dynamic Tab rendered according to Brand Profile group: <strong className="text-slate-800">{currentActive}</strong>
+                    Dynamic Tab rendered according to Brand Profile group: <strong className="text-slate-800">{currentActiveTab.label}</strong>
                   </div>
                   {(() => {
-                    const matchedGroup = brandGroups.find((g) => (g.name || g.id) === currentActive);
+                    const matchedGroup = brandGroups.find((g) => (g.name || g.id) === currentActiveTab.id);
                     const groupFields = matchedGroup?.fields || [];
                     if (groupFields.length === 0) {
                       return <div className="p-4 bg-slate-50 rounded-xl text-xs text-slate-400">No active fields mapped inside this group.</div>;

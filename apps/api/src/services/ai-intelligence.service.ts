@@ -452,15 +452,12 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
       const modelSfx = modelNumber && !cleanTitle.includes(modelNumber) ? ` (${modelNumber})` : '';
 
       // Check if prompt or rules specifically ask to assemble HTML description with desc, compatible models, specs, features
-      const combinedRulesText = `${brandAiPromptRules} ${globalDescriptionPrompt} ${globalRules}`.toLowerCase();
+      const combinedRulesText = `${brandAiPromptRules || ''} ${globalDescriptionPrompt || ''} ${globalRules || ''}`.toLowerCase();
       const wantsHtmlCombined =
-        combinedRulesText.includes('html') ||
-        combinedRulesText.includes('descbtion') ||
-        combinedRulesText.includes('description') ||
         combinedRulesText.includes('fld grouping') ||
         combinedRulesText.includes('field grouping') ||
-        combinedRulesText.includes('compatible') ||
-        combinedRulesText.includes('specification');
+        combinedRulesText.includes('combine html') ||
+        combinedRulesText.includes('format html');
 
       // Resolve compatible models with intelligent regex splitting for Traxxas / RC / automotive model strings
       let compModelsList: string[] = [];
@@ -596,8 +593,8 @@ ${brandAiPromptRules || 'Apply standard brand styling'}`;
         htmlSections += `\n</div>`;
         enhancedDesc = htmlSections.trim();
       } else {
-        enhancedDesc = cleanRawDesc && cleanRawDesc.length > 25
-          ? `Engineered by ${resolvedBrandName || 'the manufacturer'}, the ${cleanTitle} provides standard-setting performance.\n\n${cleanRawDesc}`
+        enhancedDesc = cleanRawDesc && cleanRawDesc.length > 5
+          ? cleanRawDesc
           : `${cleanTitle} delivers dependable performance and verified manufacturer specifications.`;
       }
 

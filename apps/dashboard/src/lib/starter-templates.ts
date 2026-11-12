@@ -95,3 +95,4 @@ export const STARTER_CONTENT_TEMPLATES: ContentTemplate[] = [
     updatedAt: new Date().toISOString(),
   },
 ];
+
