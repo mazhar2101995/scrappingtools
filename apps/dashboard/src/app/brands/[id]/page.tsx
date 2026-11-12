@@ -4282,6 +4282,80 @@ export default function BrandProfileDetailPage() {
                       </div>
                     </div>
                   )}
+                  {/* Section 3: Deep Options Array Decoding & Store Strategy */}
+                  {healthCardData.optionsAnalysis && healthCardData.optionsAnalysis.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-black text-slate-900 text-xs uppercase tracking-wider flex items-center gap-2">
+                          <SlidersHorizontal className="w-4 h-4 text-indigo-600" />
+                          <span>Scraped Options Array Breakdown ({healthCardData.optionsAnalysis.length} Dynamic Selectors)</span>
+                        </h4>
+                        <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                          Decoded for {healthCardData.store?.platform?.toUpperCase()}
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        {healthCardData.optionsAnalysis.map((opt: any, idx: number) => (
+                          <div key={idx} className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/30 space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100/60 pb-2.5">
+                              <div>
+                                <span className="text-xs font-black text-slate-900">{opt.optionName}</span>
+                                <span className="text-[10px] text-slate-400 font-mono ml-2">id: {opt.identifier}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-slate-700 border border-slate-200">
+                                  {opt.totalChoices} choices
+                                </span>
+                                {opt.hasPriceModifiers && (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                                    + Price Modifiers
+                                  </span>
+                                )}
+                                {opt.hasOptionSkus && (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                                    + Option SKUs
+                                  </span>
+                                )}
+                                {opt.hasSwatchImages && (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-50 text-purple-800 border border-purple-200">
+                                    + Swatch Images
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="text-[11px] text-slate-600">
+                              <span className="font-semibold text-slate-700">Sample Choices:</span>{' '}
+                              <span className="font-mono text-slate-500">{opt.sampleChoices.join(' | ')}</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-[11px]">
+                              <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-1">
+                                <span className="font-bold text-slate-700 text-[10px] uppercase tracking-wider block">
+                                  Usable Store Field / Table:
+                                </span>
+                                <code className="text-slate-800 font-bold block">{opt.storeHandling.existingUsableField}</code>
+                              </div>
+                              <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 space-y-1">
+                                <span className="font-bold text-amber-900 text-[10px] uppercase tracking-wider block">
+                                  Missing Store Feature / Challenge:
+                                </span>
+                                <span className="text-amber-800 text-[10px] block leading-tight">{opt.storeHandling.missingStoreRequirement}</span>
+                              </div>
+                            </div>
+
+                            <div className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-start gap-2">
+                              <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                              <div className="text-[11px] text-emerald-900">
+                                <strong>How Module Handles It:</strong> {opt.storeHandling.moduleSolution}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : null}
             </div>

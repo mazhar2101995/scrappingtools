@@ -431,7 +431,7 @@ export class BrandStoreExportService {
       throw new Error('Brand profile not found');
     }
 
-    // 3. Fetch a REAL scraped product for this brand
+    // 3. Fetch a REAL scraped product for this brand that has rich options and tabs
     const realProducts = await db
       .select({
         id: globalProducts.id,
@@ -443,18 +443,25 @@ export class BrandStoreExportService {
       .from(globalProducts)
       .leftJoin(customerProductOverrides, eq(customerProductOverrides.globalProductId, globalProducts.id))
       .where(eq(customerProductOverrides.organizationId, organizationId))
-      .limit(5);
+      .limit(50);
 
-    // Pick first product that matches brand
+    // Prioritize product with rich options array and customFields (e.g. U Shaped Desk with 10+ options)
     let sampleProduct = realProducts.find((p) => {
       const attrs = (p.customAttributes as any) || {};
-      return p.canonicalTitle && (attrs.customFields || attrs.extractedAttributes || attrs.options);
+      const cf = attrs.customFields || {};
+      const opts = attrs.options || cf.options;
+      return Array.isArray(opts) && opts.length > 1;
+    }) || realProducts.find((p) => {
+      const attrs = (p.customAttributes as any) || {};
+      const cf = attrs.customFields || {};
+      const opts = attrs.options || cf.options;
+      return Array.isArray(opts) && opts.length > 0;
     }) || realProducts[0];
 
     const sampleAttrs = (sampleProduct?.customAttributes as any) || {};
     const customFields = sampleAttrs.customFields || {};
     const specs = sampleAttrs.specifications || sampleAttrs.extractedAttributes || {};
-    const options = sampleAttrs.options || customFields.options || [];
+    const options: any[] = sampleAttrs.options || customFields.options || [];
 
     // 4. Discover current store schema
     const schema = await this.discoverStoreSchema(connectedStoreId, organizationId);
@@ -586,24 +593,82 @@ export class BrandStoreExportService {
       }
     }
 
-    if (options && Array.isArray(options) && options.length > 0) {
+    // Deep analysis of the scraped options array: which fields can be used natively vs which require new structure
+    const optionsAnalysis: Array<{
+      optionName: string;
+      identifier: string;
+      totalChoices: number;
+      sampleChoices: string[];
+      hasPriceModifiers: boolean;
+      hasOptionSkus: boolean;
+      hasSwatchImages: boolean;
+      storeHandling: {
+        existingUsableField: string;
+        missingStoreRequirement: string;
+        moduleSolution: string;
+      };
+    }> = [];
+
+    if (Array.isArray(options) && options.length > 0) {
+      options.forEach((opt: any) => {
+        const vals: any[] = Array.isArray(opt.values) ? opt.values : [];
+        const hasPrice = vals.some((v) => v.priceModifier !== undefined && v.priceModifier !== null);
+        const hasSku = vals.some((v) => Boolean(v.sku));
+        const hasImg = vals.some((v) => Boolean(v.imageUrl));
+        const sampleNames = vals.slice(0, 3).map((v) => `${v.name}${v.priceModifier ? ` (${v.pricePrefix || '+'}$${v.priceModifier})` : ''}`);
+
+        let existingUsableField = '';
+        let missingStoreRequirement = '';
+        let moduleSolution = '';
+
+        if (store.platformType === 'opencart') {
+          existingUsableField = 'oc_option (Type: select) & oc_product_option_value (Price Modifier)';
+          if (hasSku) {
+            missingStoreRequirement = 'OpenCart core oc_product_option_value table has no "sku" column for option-level part numbers.';
+            moduleSolution = 'Dedicated oc_saas_option_sku_map table preserves option SKU without modifying core OpenCart tables.';
+          } else {
+            missingStoreRequirement = 'Requires auto-creating option in oc_option_description if not already present in store.';
+            moduleSolution = 'Handled automatically via SaaS Connector Engine.';
+          }
+        } else {
+          existingUsableField = 'Shopify Product Options (Option1, Option2, Option3)';
+          missingStoreRequirement = 'Shopify limits native variants to 3 options and 100 combinations. Cannot do open add-on price modifiers without apps.';
+          moduleSolution = 'Mapped as Cartesian Variant Matrix for standard axes, or Line Item Property for add-on accessories.';
+        }
+
+        optionsAnalysis.push({
+          optionName: opt.name || opt.identifier || 'Option',
+          identifier: opt.identifier || opt.name,
+          totalChoices: vals.length,
+          sampleChoices: sampleNames,
+          hasPriceModifiers: hasPrice,
+          hasOptionSkus: hasSku,
+          hasSwatchImages: hasImg,
+          storeHandling: {
+            existingUsableField,
+            missingStoreRequirement,
+            moduleSolution,
+          },
+        });
+      });
+
       if (store.platformType === 'opencart') {
         missingStoreFields.push({
           portalField: 'options',
-          label: 'Product Options (Size, Drawers with Price Modifiers)',
-          sampleValue: `${options.length} dropdown selectors (e.g. ${options[0].name})`,
-          recommendedStoreType: 'OpenCart Options Engine (oc_option + oc_saas_option_sku_map)',
-          reason: 'OpenCart core lacks option-level SKU tracking in oc_product_option_value.',
-          actionRequired: 'SaaS Connector Module auto-manages option SKUs in oc_saas_option_sku_map.',
+          label: `Product Options (${options.length} Selectors: ${options.map((o) => o.name).slice(0, 3).join(', ')}...)`,
+          sampleValue: `${options.length} option dropdowns (${options.reduce((acc, o) => acc + (o.values?.length || 0), 0)} total choices)`,
+          recommendedStoreType: 'OpenCart Native Options + Dedicated SKU Map',
+          reason: 'OpenCart natively supports dropdown options and price modifiers (oc_product_option_value), but lacks option-level SKU tracking.',
+          actionRequired: 'SaaS Connector Module auto-links option values and saves option SKUs in oc_saas_option_sku_map.',
         });
       } else {
         missingStoreFields.push({
           portalField: 'options',
-          label: 'Product Options & Price Modifiers',
-          sampleValue: `${options.length} dropdown selectors`,
-          recommendedStoreType: 'Shopify Matrix Variants (Option1, Option2)',
-          reason: 'Shopify converts options into Variant combinations rather than open dropdown modifiers.',
-          actionRequired: 'Will be mapped to Shopify Cartesian Variant Matrix upon export.',
+          label: `Product Options (${options.length} Selectors: ${options.map((o) => o.name).slice(0, 3).join(', ')}...)`,
+          sampleValue: `${options.length} options with price modifiers`,
+          recommendedStoreType: 'Shopify Cartesian Variant Matrix',
+          reason: 'Shopify converts options into full Matrix Variants rather than independent dropdown price modifiers.',
+          actionRequired: 'Mapped to Shopify variants array during export.',
         });
       }
     }
@@ -633,6 +698,7 @@ export class BrandStoreExportService {
       },
       supportedFields,
       missingStoreFields,
+      optionsAnalysis,
     };
   }
 }
