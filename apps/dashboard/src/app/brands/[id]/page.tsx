@@ -2910,7 +2910,7 @@ export default function BrandProfileDetailPage() {
                 </div>
 
                 <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 space-y-4">
-                  {previewTemplate.id === 'tpl_description' && (
+                  {(previewTemplate.id === 'tpl_description' || previewTemplate.id === 'tpl_classic_desc' || previewTemplate.name?.toLowerCase().includes('description')) && (
                     <div className="space-y-3">
                       <p className="leading-relaxed text-sm text-slate-800">
                         This <strong className="font-bold text-slate-900">L shaped desk with hutch</strong> presents a commanding workspace accented by a spacious hutch with four white glass doors, offering sleek, concealed storage for executive essentials. Built with solid steel frames and customizable drawer pedestals, it delivers long-term durability and tailored organization in a professional environment, backed by a <strong className="font-bold text-slate-900">10-year manufacturer&apos;s warranty</strong>.
@@ -2918,7 +2918,7 @@ export default function BrandProfileDetailPage() {
                     </div>
                   )}
 
-                  {previewTemplate.id === 'tpl_overview' && (
+                  {(previewTemplate.id === 'tpl_overview' || previewTemplate.name?.toLowerCase().includes('overview')) && (
                     <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
                       <h4 className="font-bold text-slate-900 text-sm">Details</h4>
                       <ul className="space-y-2 list-disc list-inside text-slate-700 leading-relaxed text-xs">
@@ -2945,7 +2945,7 @@ export default function BrandProfileDetailPage() {
                     </div>
                   )}
 
-                  {previewTemplate.id === 'tpl_specifications' && (
+                  {(previewTemplate.id === 'tpl_specifications' || previewTemplate.id === 'tpl_technical_layout' || previewTemplate.name?.toLowerCase().includes('spec')) && (
                     <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200">
                       <h4 className="font-bold text-slate-900 text-sm">Product Specs</h4>
                       
@@ -2995,7 +2995,7 @@ export default function BrandProfileDetailPage() {
                     </div>
                   )}
 
-                  {previewTemplate.id === 'tpl_part_list' && (
+                  {(previewTemplate.id === 'tpl_part_list' || previewTemplate.name?.toLowerCase().includes('part') || previewTemplate.id === 'tpl_feature_focused') && (
                     <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
                       <div>
                         <h4 className="font-bold text-slate-900 text-sm">Parts List</h4>
@@ -3054,7 +3054,7 @@ export default function BrandProfileDetailPage() {
                     </div>
                   )}
 
-                  {previewTemplate.id === 'tpl_finishing' && (
+                  {(previewTemplate.id === 'tpl_finishing' || previewTemplate.name?.toLowerCase().includes('finish') || previewTemplate.id === 'tpl_minimal_clean' || previewTemplate.id === 'tpl_premium_brand') && (
                     <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200">
                       <h4 className="font-bold text-slate-900 text-sm">Available Finishes</h4>
                       <div className="flex flex-wrap gap-4 items-start">
