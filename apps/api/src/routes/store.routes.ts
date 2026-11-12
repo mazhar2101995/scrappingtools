@@ -554,6 +554,30 @@ storeRouter.put('/:id', async (req: Request, res: Response) => {
 
     if (credentials && typeof credentials === 'object') {
       updateData.encryptedCredentials = CredentialSecurity.encrypt(credentials);
+
+      // Probe OpenCart connection on update
+      try {
+        const probeStore = {
+          platformType: existing.platformType,
+          storeUrl: updateData.storeUrl || existing.storeUrl,
+          encryptedCredentials: updateData.encryptedCredentials,
+        } as any;
+        const connector = SynchronizationEngine.createConnector(probeStore);
+        const testResult = await connector.testConnection();
+        if (testResult.success) {
+          updateData.status = 'connected';
+          updateData.healthStatus = 'healthy';
+          updateData.healthDetails = { verifiedAt: new Date().toISOString(), ...testResult };
+        } else {
+          updateData.status = 'pending_module_installation';
+          updateData.healthStatus = 'auth_required';
+          updateData.healthDetails = { error: testResult.error, checkedAt: new Date().toISOString() };
+        }
+      } catch (testErr: any) {
+        updateData.status = 'pending_module_installation';
+        updateData.healthStatus = 'auth_required';
+        updateData.healthDetails = { error: testErr.message, checkedAt: new Date().toISOString() };
+      }
     }
 
     const [updated] = await db
