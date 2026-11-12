@@ -48,3 +48,4 @@ class SaasSecurity {
         return ['valid' => true];
     }
 }
+
