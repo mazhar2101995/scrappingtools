@@ -1002,25 +1002,165 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               {currentActiveTab.type === 'mapped_tab' && (() => {
                 const fKey = currentActiveTab.targetField!;
                 
-                // If it's attributes / specifications
+                // 1. If fKey is attributes or specifications, render categorized specs table (Matching Template 3)
                 if (fKey === 'attributes' || fKey === 'specifications') {
                   const specsMap = data.specifications || attributes || {};
                   const entries = Object.entries(specsMap).filter(([_, v]) => !String(v).includes('(Not found on tested page)'));
                   if (entries.length > 0) {
                     return (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                        {entries.map(([k, v]) => (
-                          <div key={k} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex justify-between gap-4">
-                            <span className="font-semibold text-slate-700">{k}</span>
-                            <span className="font-mono text-slate-900 text-right">{String(v)}</span>
-                          </div>
-                        ))}
+                      <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                          <h4 className="font-bold text-slate-900 text-sm">Product Specs</h4>
+                          <span className="text-[10px] text-slate-400 font-mono">{entries.length} specifications verified</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs">
+                          {entries.map(([k, v]) => (
+                            <div key={k} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 flex justify-between gap-3">
+                              <span className="font-semibold text-slate-700">{k}</span>
+                              <span className="font-mono text-slate-900 text-right">{String(v)}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     );
                   }
                 }
 
-                // Retrieve tab content from customFields, rawScrapedData, or attributes
+                // 2. If fKey is part_list, render specialized commercial B2B parts table (Matching Template 4)
+                if (fKey === 'part_list') {
+                  const rawParts = data?.customFields?.part_list || data?.rawScrapedData?.rawCustomData?.part_list || '';
+                  // Parse items matching pattern like: 1OS189__OS Laminate 71'' Bow Front Desk Shell$1029.00$455$455.00
+                  const partRowRegex = /(\d+)\s*([A-Z0-9_\-]+)\s*(.*?)\s*(\$[\d\.,]+)\s*(\$[\d\.,]+)\s*(\$[\d\.,]+)/g;
+                  const parsedRows: Array<{ qty: string; partNo: string; desc: string; listPrice: string; ourPrice: string; total: string }> = [];
+                  let mMatch;
+                  while ((mMatch = partRowRegex.exec(rawParts)) !== null) {
+                    parsedRows.push({
+                      qty: mMatch[1],
+                      partNo: mMatch[2],
+                      desc: mMatch[3],
+                      listPrice: mMatch[4],
+                      ourPrice: mMatch[5],
+                      total: mMatch[6],
+                    });
+                  }
+
+                  if (parsedRows.length > 0) {
+                    return (
+                      <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                        <div className="border-b border-slate-100 pb-2">
+                          <h4 className="font-bold text-slate-900 text-sm">Parts List</h4>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Please note that for items with multiple size options, the parts list may be slightly modified to meet the dimensions requested.
+                          </p>
+                        </div>
+                        <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead>
+                              <tr className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
+                                <th className="p-2.5 border-r border-slate-200 text-center w-12">QTY</th>
+                                <th className="p-2.5 border-r border-slate-200 w-28">Part #</th>
+                                <th className="p-2.5 border-r border-slate-200">Description</th>
+                                <th className="p-2.5 border-r border-slate-200 text-right w-24">List Price</th>
+                                <th className="p-2.5 border-r border-slate-200 text-right w-24">Our Price</th>
+                                <th className="p-2.5 text-right w-24">Line Total</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-normal">
+                              {parsedRows.map((r, pIdx) => (
+                                <tr key={pIdx} className="hover:bg-slate-50/50">
+                                  <td className="p-2.5 font-bold text-center border-r border-slate-200">{r.qty}</td>
+                                  <td className="p-2.5 font-mono text-slate-900 border-r border-slate-200 font-medium">{r.partNo}</td>
+                                  <td className="p-2.5 border-r border-slate-200 text-slate-700">{r.desc}</td>
+                                  <td className="p-2.5 font-mono text-slate-400 line-through text-right border-r border-slate-200">{r.listPrice}</td>
+                                  <td className="p-2.5 font-mono font-bold text-slate-900 text-right border-r border-slate-200">{r.ourPrice}</td>
+                                  <td className="p-2.5 font-mono font-bold text-emerald-700 text-right">{r.total}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  }
+                }
+
+                // 3. If fKey is finishes, render material color swatch cards (Matching Template 5)
+                if (fKey === 'finishes' || fKey === 'finish') {
+                  const rawFinishes = data?.customFields?.finishes || data?.rawScrapedData?.rawCustomData?.finishes || '';
+                  const cleanListStr = rawFinishes.replace(/^Available\s+Finishes\s*/i, '').trim();
+                  const finishNames = cleanListStr.length > 0
+                    ? cleanListStr.split(/(?=[A-Z][a-z]+)/).map((s: string) => s.trim()).filter(Boolean)
+                    : ['Ash Gray', 'Walnut', 'Mahogany'];
+
+                  const finishColorMap: Record<string, string> = {
+                    'American Elm': '#8b7355',
+                    'Arcadia White': '#f3f4f6',
+                    'Cherry': '#7a2021',
+                    'Coastal Gray': '#6b7280',
+                    'Java': '#382212',
+                    'Mahogany': '#4a151b',
+                    'Modern Walnut': '#5c4033',
+                    'White': '#ffffff',
+                    'Ash Gray': '#4b5563',
+                    'Walnut': '#523c2a',
+                  };
+
+                  return (
+                    <div className="space-y-4 bg-white p-5 rounded-xl border border-slate-200">
+                      <div className="border-b border-slate-100 pb-2 flex items-center justify-between">
+                        <h4 className="font-bold text-slate-900 text-sm">Available Finishes</h4>
+                        <span className="text-[11px] text-slate-400">{finishNames.length} finishes available</span>
+                      </div>
+                      <div className="flex flex-wrap gap-4 items-start">
+                        {finishNames.map((fName: string, idx: number) => {
+                          const bg = finishColorMap[fName] || '#64748b';
+                          const isLight = bg === '#ffffff' || bg === '#f3f4f6';
+                          return (
+                            <div key={idx} className="space-y-1.5 flex flex-col items-center">
+                              <div
+                                className="w-20 h-20 rounded-xl border-2 border-slate-300 shadow-xs flex items-center justify-center overflow-hidden transition hover:scale-105"
+                                style={{ backgroundColor: bg }}
+                              >
+                                <span className={`text-[10px] font-bold ${isLight ? 'text-slate-800' : 'text-white/90'}`}>
+                                  {isLight ? 'Solid' : 'Laminate'}
+                                </span>
+                              </div>
+                              <span className="text-xs font-semibold text-slate-800 text-center max-w-[90px] leading-tight">
+                                {fName}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // 4. If fKey is overview, render hierarchical bulleted list (Matching Template 2)
+                if (fKey === 'overview') {
+                  const rawOverview = String(data?.customFields?.overview || data?.rawScrapedData?.rawCustomData?.overview || '');
+                  const cleanedText = rawOverview.replace(/^Details\s*/i, '').trim();
+                  // Split by common sentence / bullet boundaries
+                  const bullets = cleanedText.split(/(?<=[a-z0-9\.\)])\s+(?=[A-Z][a-z])/).filter(b => b.trim().length > 3);
+
+                  if (bullets.length > 0) {
+                    return (
+                      <div className="space-y-3 bg-white p-5 rounded-xl border border-slate-200">
+                        <h4 className="font-bold text-slate-900 text-sm">Details</h4>
+                        <ul className="space-y-2 text-xs text-slate-700 leading-relaxed">
+                          {bullets.map((b: string, bIdx: number) => (
+                            <li key={bIdx} className="flex items-start gap-2.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-900 mt-1.5 shrink-0" />
+                              <span>{b.trim()}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  }
+                }
+
+                // Retrieve fallback tab content from customFields, rawScrapedData, or attributes
                 const tabVal =
                   data?.customFields?.[fKey] ??
                   data?.rawScrapedData?.rawCustomData?.[fKey] ??

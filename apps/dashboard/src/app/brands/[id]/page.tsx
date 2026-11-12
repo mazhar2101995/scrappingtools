@@ -2909,19 +2909,176 @@ export default function BrandProfileDetailPage() {
                   </button>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs text-slate-700">
-                  <div className="font-bold text-slate-900 text-sm">Sample Product Title: Industrial High-Flow Return Desk</div>
-                  <p className="leading-relaxed">
-                    Engineered with durable melamine surfaces, integrated power channels, and structural reinforcement.
-                  </p>
-                  <div className="p-3 bg-white rounded-lg border border-slate-200 space-y-1">
-                    <span className="font-bold text-slate-800 block">Features:</span>
-                    <ul className="list-disc list-inside space-y-0.5 text-slate-600">
-                      <li>Scratch-resistant thermofused laminate surface</li>
-                      <li>Heavy-duty steel frame supports up to 400 lbs</li>
-                      <li>Commercial ANSI/BIFMA certified construction</li>
-                    </ul>
-                  </div>
+                <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 space-y-4">
+                  {previewTemplate.id === 'tpl_description' && (
+                    <div className="space-y-3">
+                      <p className="leading-relaxed text-sm text-slate-800">
+                        This <strong className="font-bold text-slate-900">L shaped desk with hutch</strong> presents a commanding workspace accented by a spacious hutch with four white glass doors, offering sleek, concealed storage for executive essentials. Built with solid steel frames and customizable drawer pedestals, it delivers long-term durability and tailored organization in a professional environment, backed by a <strong className="font-bold text-slate-900">10-year manufacturer&apos;s warranty</strong>.
+                      </p>
+                    </div>
+                  )}
+
+                  {previewTemplate.id === 'tpl_overview' && (
+                    <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                      <h4 className="font-bold text-slate-900 text-sm">Details</h4>
+                      <ul className="space-y-2 list-disc list-inside text-slate-700 leading-relaxed text-xs">
+                        <li>Available in different sizes</li>
+                        <li>Available in different finishes</li>
+                        <li>
+                          Your choice of drawers for storage
+                          <ul className="pl-6 space-y-1 list-circle list-inside text-slate-600 mt-1">
+                            <li>Lock &amp; key included for privacy</li>
+                            <li>Stylish flared drawer pulls</li>
+                          </ul>
+                        </li>
+                        <li>Adjustable foot glides for optimal stabilization</li>
+                        <li>Grommets for cable management are pre-installed</li>
+                        <li>Laminate tops have a reeded edge accent</li>
+                        <li>
+                          Certifications:
+                          <ul className="pl-6 space-y-1 list-circle list-inside text-slate-600 mt-1">
+                            <li>UL Greenguard Gold certified</li>
+                          </ul>
+                        </li>
+                        <li>Quality backed by a 10-year manufacturer&apos;s warranty</li>
+                      </ul>
+                    </div>
+                  )}
+
+                  {previewTemplate.id === 'tpl_specifications' && (
+                    <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200">
+                      <h4 className="font-bold text-slate-900 text-sm">Product Specs</h4>
+                      
+                      <div className="space-y-1.5">
+                        <span className="font-bold text-slate-800 text-[11px] uppercase tracking-wider block">Model</span>
+                        <div className="grid grid-cols-2 gap-2 text-xs py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Condition</span>
+                          <span className="font-medium text-slate-900">New</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Brand</span>
+                          <span className="font-medium text-slate-900">Heartland Office Source</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Series</span>
+                          <span className="font-medium text-slate-900">HL</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <span className="font-bold text-slate-800 text-[11px] uppercase tracking-wider block">Options</span>
+                        <div className="grid grid-cols-2 gap-2 text-xs py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Available Finishes</span>
+                          <span className="font-medium text-slate-900">Ash Gray, Walnut</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <span className="font-bold text-slate-800 text-[11px] uppercase tracking-wider block">Specifics</span>
+                        <div className="grid grid-cols-2 gap-2 text-xs py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Dimensions</span>
+                          <span className="font-mono text-slate-900">95&quot; x 72&quot; x 29/69&quot;</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Material</span>
+                          <span className="font-medium text-slate-900">Aluminum, Laminate</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Shape</span>
+                          <span className="font-medium text-slate-900">Corner, L Shaped</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs py-1 border-b border-slate-100">
+                          <span className="text-slate-500">Capacity</span>
+                          <span className="font-medium text-slate-900">1 Person</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {previewTemplate.id === 'tpl_part_list' && (
+                    <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-sm">Parts List</h4>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Please note that for items with multiple size options, the parts list may be slightly modified to meet the dimensions requested.
+                        </p>
+                      </div>
+                      <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                        <table className="w-full text-left text-[11px] border-collapse">
+                          <thead>
+                            <tr className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
+                              <th className="p-2 border-r border-slate-200">QTY</th>
+                              <th className="p-2 border-r border-slate-200">Part #</th>
+                              <th className="p-2 border-r border-slate-200">Description</th>
+                              <th className="p-2 border-r border-slate-200">List Price</th>
+                              <th className="p-2 border-r border-slate-200">Our Price</th>
+                              <th className="p-2">Line Total</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            <tr>
+                              <td className="p-2 font-bold text-center border-r border-slate-200">1</td>
+                              <td className="p-2 font-mono text-slate-900 border-r border-slate-200">HL-181R</td>
+                              <td className="p-2 border-r border-slate-200">Curved Credenza Shell w/ Right Extension - 71&quot;W x 24/36&quot;D x 29&quot;H</td>
+                              <td className="p-2 font-mono text-slate-500 line-through border-r border-slate-200">$555.00</td>
+                              <td className="p-2 font-mono font-bold text-slate-900 border-r border-slate-200">$375</td>
+                              <td className="p-2 font-mono font-bold text-emerald-700">$375.00</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold text-center border-r border-slate-200">1</td>
+                              <td className="p-2 font-mono text-slate-900 border-r border-slate-200">HL-192</td>
+                              <td className="p-2 border-r border-slate-200">Return Shell, Reversible - 36&quot;W x 24&quot;D x 29&quot;H</td>
+                              <td className="p-2 font-mono text-slate-500 line-through border-r border-slate-200">$266.00</td>
+                              <td className="p-2 font-mono font-bold text-slate-900 border-r border-slate-200">$180</td>
+                              <td className="p-2 font-mono font-bold text-emerald-700">$180.00</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold text-center border-r border-slate-200">1</td>
+                              <td className="p-2 font-mono text-slate-900 border-r border-slate-200">HL-144OH</td>
+                              <td className="p-2 border-r border-slate-200">Open Hutch - 71&quot;W x 15&quot;D x 40&quot;H</td>
+                              <td className="p-2 font-mono text-slate-500 line-through border-r border-slate-200">$555.00</td>
+                              <td className="p-2 font-mono font-bold text-slate-900 border-r border-slate-200">$375</td>
+                              <td className="p-2 font-mono font-bold text-emerald-700">$375.00</td>
+                            </tr>
+                            <tr>
+                              <td className="p-2 font-bold text-center border-r border-slate-200">2</td>
+                              <td className="p-2 font-mono text-slate-900 border-r border-slate-200">HL-144SGD</td>
+                              <td className="p-2 border-r border-slate-200">Silver Glass Doors for 71&quot;W Hutch, Set of 2</td>
+                              <td className="p-2 font-mono text-slate-500 line-through border-r border-slate-200">$223.00</td>
+                              <td className="p-2 font-mono font-bold text-slate-900 border-r border-slate-200">$150</td>
+                              <td className="p-2 font-mono font-bold text-emerald-700">$300.00</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {previewTemplate.id === 'tpl_finishing' && (
+                    <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200">
+                      <h4 className="font-bold text-slate-900 text-sm">Available Finishes</h4>
+                      <div className="flex flex-wrap gap-4 items-start">
+                        <div className="space-y-1.5">
+                          <div className="w-20 h-20 rounded-lg border-2 border-slate-300 shadow-xs bg-[#4a4744] flex items-center justify-center overflow-hidden">
+                            <span className="text-[9px] font-bold text-white/80">Woodgrain</span>
+                          </div>
+                          <span className="text-xs font-semibold text-slate-700 block">Ash Gray</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="w-20 h-20 rounded-lg border-2 border-slate-300 shadow-xs bg-[#855437] flex items-center justify-center overflow-hidden">
+                            <span className="text-[9px] font-bold text-white/80">Woodgrain</span>
+                          </div>
+                          <span className="text-xs font-semibold text-slate-700 block">Walnut</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="w-20 h-20 rounded-lg border-2 border-slate-300 shadow-xs bg-[#5a2a18] flex items-center justify-center overflow-hidden">
+                            <span className="text-[9px] font-bold text-white/80">Woodgrain</span>
+                          </div>
+                          <span className="text-xs font-semibold text-slate-700 block">Mahogany</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-end">

@@ -3,7 +3,7 @@ export interface ContentTemplate {
   name: string;
   description: string;
   type: 'starter' | 'custom';
-  appliedToFields: string[]; // e.g. ['description', 'features']
+  appliedToFields: string[]; // e.g. ['description', 'overview', 'specifications', 'part_list', 'finishes']
   layoutMode: 'simple' | 'advanced';
   sections?: Array<{
     id: string;
@@ -20,79 +20,70 @@ export interface ContentTemplate {
 
 export const STARTER_CONTENT_TEMPLATES: ContentTemplate[] = [
   {
-    id: 'tpl_classic_desc',
-    name: '1. Classic Product Description',
-    description: 'Clean paragraph layout with highlight bullets and structured feature summary.',
+    id: 'tpl_description',
+    name: '1. Description (Editorial Paragraph with Highlights)',
+    description: 'Clean paragraph typography with bold key phrases (e.g. L shaped desk with hutch, 10-year warranty) for maximum readability.',
     type: 'starter',
     appliedToFields: ['description'],
     layoutMode: 'simple',
     sections: [
-      { id: 'sec_1', title: 'Product Overview', fieldKey: 'description' },
-      { id: 'sec_2', title: 'Key Features & Benefits', fieldKey: 'features', conditionField: 'features' },
-      { id: 'sec_3', title: 'Specifications Summary', fieldKey: 'specifications', conditionField: 'specifications' },
+      { id: 'sec_desc', title: 'Product Description', fieldKey: 'description' },
     ],
     status: 'active',
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'tpl_technical_layout',
-    name: '2. Technical Product Layout',
-    description: 'Engineering & specification-first layout designed for industrial and B2B products.',
+    id: 'tpl_overview',
+    name: '2. Overview (Structured Bulleted Details)',
+    description: 'Formatted hierarchical bullet list with "Details" heading and nested circular sub-bullets for storage, locks, certifications.',
     type: 'starter',
-    appliedToFields: ['specifications'],
+    appliedToFields: ['overview'],
     layoutMode: 'simple',
     sections: [
-      { id: 'sec_1', title: 'Technical Specifications Table', fieldKey: 'specifications' },
-      { id: 'sec_2', title: 'Model & Part Compatibility', fieldKey: 'compatibleModels', conditionField: 'compatibleModels' },
-      { id: 'sec_3', title: 'Dimensions & Tolerances', fieldKey: 'dimensions', conditionField: 'dimensions' },
+      { id: 'sec_ov', title: 'Details', fieldKey: 'overview' },
     ],
     status: 'active',
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'tpl_feature_focused',
-    name: '3. Feature-Focused Layout',
-    description: 'Emphasizes value propositions, bullet points, and key differentiators.',
+    id: 'tpl_specifications',
+    name: '3. Specifications (Categorized Key-Value Specs)',
+    description: 'Grouped technical specifications categorized by Model, Options, and Specifics with clean 2-column alignment.',
     type: 'starter',
-    appliedToFields: ['features'],
+    appliedToFields: ['specifications', 'attributes'],
     layoutMode: 'simple',
     sections: [
-      { id: 'sec_1', title: 'Core Advantages', fieldKey: 'features' },
-      { id: 'sec_2', title: 'Product Description', fieldKey: 'description', conditionField: 'description' },
-      { id: 'sec_3', title: 'Warranty & Support Details', fieldKey: 'warranty', conditionField: 'warranty' },
+      { id: 'sec_specs', title: 'Product Specs', fieldKey: 'attributes' },
     ],
     status: 'active',
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'tpl_minimal_clean',
-    name: '4. Minimal Clean Layout',
-    description: 'Distraction-free high readability typography without excessive borders or badges.',
+    id: 'tpl_part_list',
+    name: '4. Part List (B2B Commercial Pricing Grid Table)',
+    description: 'Tabular bill-of-materials with QTY, Part #, Description, List Price, Our Price, and Line Total column headers.',
     type: 'starter',
-    appliedToFields: ['description'],
+    appliedToFields: ['part_list'],
     layoutMode: 'simple',
     sections: [
-      { id: 'sec_1', title: '', fieldKey: 'description' },
-      { id: 'sec_2', title: 'Details', fieldKey: 'specifications', conditionField: 'specifications' },
+      { id: 'sec_parts', title: 'Parts List', fieldKey: 'part_list' },
     ],
     status: 'active',
     updatedAt: new Date().toISOString(),
   },
   {
-    id: 'tpl_premium_brand',
-    name: '5. Premium Brand Layout',
-    description: 'High-end showcase format with bold titles, luxury styling and structured cards.',
+    id: 'tpl_finishing',
+    name: '5. Finishing (Available Finishes Swatches & Catalog)',
+    description: 'Visual finish swatch grid featuring material tiles, textures (Ash Gray, Walnut, Mahogany), and color variant chips.',
     type: 'starter',
-    appliedToFields: ['description', 'features'],
+    appliedToFields: ['finishes', 'finish'],
     layoutMode: 'simple',
     sections: [
-      { id: 'sec_1', title: 'Craftsmanship & Engineering', fieldKey: 'description' },
-      { id: 'sec_2', title: 'Executive Highlights', fieldKey: 'features', conditionField: 'features' },
-      { id: 'sec_3', title: 'Technical Verification', fieldKey: 'specifications', conditionField: 'specifications' },
-      { id: 'sec_4', title: 'Fitment & Verification', fieldKey: 'compatibleModels', conditionField: 'compatibleModels' },
+      { id: 'sec_finish', title: 'Available Finishes', fieldKey: 'finishes' },
     ],
     status: 'active',
     updatedAt: new Date().toISOString(),
   },
 ];
+
 
