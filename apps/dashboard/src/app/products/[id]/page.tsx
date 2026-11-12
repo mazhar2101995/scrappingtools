@@ -1007,17 +1007,59 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   const specsMap = data.specifications || attributes || {};
                   const entries = Object.entries(specsMap).filter(([_, v]) => !String(v).includes('(Not found on tested page)'));
                   if (entries.length > 0) {
+                    // Group specifications into clean sections like Template 3: MODEL, OPTIONS, SPECIFICS
+                    const modelKeys = ['condition', 'brand', 'series', 'manufacturer', 'model', 'mpn', 'sku'];
+                    const optionKeys = ['available finishes', 'finishes', 'finish', 'fabric', 'color', 'options'];
+                    
+                    const modelEntries: [string, any][] = [];
+                    const optionEntries: [string, any][] = [];
+                    const specificEntries: [string, any][] = [];
+
+                    entries.forEach(([k, v]) => {
+                      const lower = k.toLowerCase().trim();
+                      if (modelKeys.some((mk) => lower.includes(mk))) {
+                        modelEntries.push([k, v]);
+                      } else if (optionKeys.some((ok) => lower.includes(ok))) {
+                        optionEntries.push([k, v]);
+                      } else {
+                        specificEntries.push([k, v]);
+                      }
+                    });
+
+                    // Sections configuration
+                    const sections = [
+                      { title: 'MODEL', items: modelEntries },
+                      { title: 'OPTIONS', items: optionEntries },
+                      { title: 'SPECIFICS', items: specificEntries },
+                    ].filter((sec) => sec.items.length > 0);
+
                     return (
-                      <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200">
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                          <h4 className="font-bold text-slate-900 text-sm">Product Specs</h4>
-                          <span className="text-[10px] text-slate-400 font-mono">{entries.length} specifications verified</span>
+                      <div className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs max-w-4xl">
+                        <div className="border-b border-slate-100 pb-3">
+                          <h4 className="font-bold text-slate-900 text-base">Product Specs</h4>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs">
-                          {entries.map(([k, v]) => (
-                            <div key={k} className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 flex justify-between gap-3">
-                              <span className="font-semibold text-slate-700">{k}</span>
-                              <span className="font-mono text-slate-900 text-right">{String(v)}</span>
+
+                        <div className="space-y-6">
+                          {sections.map((sec, sIdx) => (
+                            <div key={sIdx} className="space-y-2">
+                              <h5 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+                                {sec.title}
+                              </h5>
+                              <div className="space-y-1">
+                                {sec.items.map(([k, v]) => (
+                                  <div
+                                    key={k}
+                                    className="grid grid-cols-12 py-2.5 border-b border-slate-100/80 text-xs items-center hover:bg-slate-50/50 px-1 rounded transition"
+                                  >
+                                    <div className="col-span-4 sm:col-span-3 text-slate-500 font-medium">
+                                      {k}
+                                    </div>
+                                    <div className="col-span-8 sm:col-span-9 text-slate-900 font-medium">
+                                      {String(v)}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           ))}
                         </div>
