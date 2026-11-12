@@ -138,9 +138,21 @@ class ControllerExtensionModuleSaasConnector extends Controller {
             $imgImporter = new SaasImageImporter($this->registry);
 
             $primaryImgRel = '';
+            $galleryImgRels = [];
             if (!empty($payload['images']) && is_array($payload['images'])) {
-                $firstUrl = $payload['images'][0]['url'] ?? '';
-                $primaryImgRel = $imgImporter->importImage($firstUrl, $sku, true) ?: '';
+                foreach ($payload['images'] as $idx => $imgObj) {
+                    $url = is_string($imgObj) ? $imgObj : ($imgObj['url'] ?? '');
+                    if (!empty($url)) {
+                        $saved = $imgImporter->importImage($url, $sku, $idx === 0);
+                        if (!empty($saved)) {
+                            if (empty($primaryImgRel) && $idx === 0) {
+                                $primaryImgRel = $saved;
+                            } else {
+                                $galleryImgRels[] = $saved;
+                            }
+                        }
+                    }
+                }
             }
 
             if ($existingId > 0) {
@@ -176,28 +188,75 @@ class ControllerExtensionModuleSaasConnector extends Controller {
                 $productId = (int)$this->db->getLastId();
             }
 
+            // Sync Additional Gallery Images into oc_product_image
+            if (!empty($galleryImgRels)) {
+                $this->db->query("DELETE FROM `{$prefix}product_image` WHERE `product_id` = {$productId}");
+                foreach ($galleryImgRels as $sOrder => $gPath) {
+                    $safeGPath = $this->db->escape($gPath);
+                    $this->db->query("INSERT INTO `{$prefix}product_image` SET `product_id` = {$productId}, `image` = '{$safeGPath}', `sort_order` = " . (int)$sOrder);
+                }
+            }
+
             // Assign to default store
             $this->db->query("INSERT IGNORE INTO `{$prefix}product_to_store` SET `product_id` = {$productId}, `store_id` = 0");
 
-            // Descriptions
-            $langs = $this->db->query("SELECT language_id FROM `{$prefix}language`");
+            // Multilingual Descriptions & SEO Data
+            $langs = $this->db->query("SELECT language_id, code FROM `{$prefix}language`");
             if ($langs) {
                 foreach ($langs->rows as $l) {
                     $lid = (int)$l['language_id'];
-                    $safeTitle = $this->db->escape($title);
-                    $safeDesc = $this->db->escape($desc);
+                    $code = strtolower(substr($l['code'], 0, 2));
+
+                    // Title
+                    $safeTitle = $this->db->escape($payload['name'][$code] ?? ($payload['name']['en'] ?? (is_string($payload['name']) ? $payload['name'] : 'Product')));
+                    
+                    // Description
+                    $safeDesc = $this->db->escape($payload['description'][$code] ?? ($payload['description']['en'] ?? (is_string($payload['description']) ? $payload['description'] : '')));
+
+                    // SEO Meta Title
+                    $rawMetaTitle = $payload['seo']['metaTitle'][$code] ?? ($payload['seo']['metaTitle']['en'] ?? ($payload['meta_title'] ?? $safeTitle));
+                    $safeMetaTitle = $this->db->escape($rawMetaTitle);
+
+                    // SEO Meta Description
+                    $rawMetaDesc = $payload['seo']['metaDescription'][$code] ?? ($payload['seo']['metaDescription']['en'] ?? ($payload['meta_description'] ?? ''));
+                    $safeMetaDesc = $this->db->escape($rawMetaDesc);
+
+                    // SEO Meta Keywords / Tag
+                    $rawMetaKw = $payload['seo']['metaKeywords'][$code] ?? ($payload['seo']['metaKeywords']['en'] ?? ($payload['meta_keyword'] ?? ''));
+                    $safeMetaKw = $this->db->escape($rawMetaKw);
 
                     $this->db->query("INSERT INTO `{$prefix}product_description` SET 
                         `product_id` = {$productId}, 
                         `language_id` = {$lid}, 
                         `name` = '{$safeTitle}', 
                         `description` = '{$safeDesc}',
-                        `meta_title` = '{$safeTitle}'
-                        ON DUPLICATE KEY UPDATE `name` = '{$safeTitle}', `description` = '{$safeDesc}', `meta_title` = '{$safeTitle}'");
+                        `meta_title` = '{$safeMetaTitle}',
+                        `meta_description` = '{$safeMetaDesc}',
+                        `meta_keyword` = '{$safeMetaKw}',
+                        `tag` = '{$safeMetaKw}'
+                        ON DUPLICATE KEY UPDATE 
+                        `name` = '{$safeTitle}', 
+                        `description` = '{$safeDesc}', 
+                        `meta_title` = '{$safeMetaTitle}',
+                        `meta_description` = '{$safeMetaDesc}',
+                        `meta_keyword` = '{$safeMetaKw}',
+                        `tag` = '{$safeMetaKw}'");
+
+                    // SEO URL Handle / Slug (oc_seo_url for OpenCart 3.x)
+                    $rawSlug = $payload['seo']['slug'][$code] ?? ($payload['seo']['slug']['en'] ?? ($payload['keyword'] ?? ''));
+                    if (!empty($rawSlug)) {
+                        $safeSlug = $this->db->escape(trim($rawSlug));
+                        $this->db->query("DELETE FROM `{$prefix}seo_url` WHERE `query` = 'product_id={$productId}' AND `language_id` = {$lid}");
+                        $this->db->query("INSERT INTO `{$prefix}seo_url` SET 
+                            `store_id` = 0,
+                            `language_id` = {$lid},
+                            `query` = 'product_id={$productId}',
+                            `keyword` = '{$safeSlug}'");
+                    }
                 }
             }
 
-            // Dedicated SaaS Custom Tabs
+            // Dedicated SaaS Custom Tabs (Multilingual)
             if (!empty($payload['customTabs']) && is_array($payload['customTabs'])) {
                 foreach ($payload['customTabs'] as $tab) {
                     $tabKey = $this->db->escape(trim($tab['key'] ?? 'overview'));
@@ -206,10 +265,15 @@ class ControllerExtensionModuleSaasConnector extends Controller {
                     $templateId = $this->db->escape(trim($tab['templateId'] ?? ''));
                     $contentHash = hash('sha256', $tab['content'] ?? '');
 
-                    $this->db->query("INSERT INTO `{$prefix}saas_product_tabs` 
-                        (`product_id`, `language_id`, `tab_key`, `title`, `content`, `template_id`, `content_hash`, `sort_order`, `status`)
-                        VALUES ({$productId}, 1, '{$tabKey}', '{$tabTitle}', '{$tabContent}', '{$templateId}', '{$contentHash}', 0, 1)
-                        ON DUPLICATE KEY UPDATE `title` = '{$tabTitle}', `content` = '{$tabContent}', `content_hash` = '{$contentHash}'");
+                    if ($langs) {
+                        foreach ($langs->rows as $l) {
+                            $lid = (int)$l['language_id'];
+                            $this->db->query("INSERT INTO `{$prefix}saas_product_tabs` 
+                                (`product_id`, `language_id`, `tab_key`, `title`, `content`, `template_id`, `content_hash`, `sort_order`, `status`)
+                                VALUES ({$productId}, {$lid}, '{$tabKey}', '{$tabTitle}', '{$tabContent}', '{$templateId}', '{$contentHash}', 0, 1)
+                                ON DUPLICATE KEY UPDATE `title` = '{$tabTitle}', `content` = '{$tabContent}', `content_hash` = '{$contentHash}'");
+                        }
+                    }
                 }
             }
 

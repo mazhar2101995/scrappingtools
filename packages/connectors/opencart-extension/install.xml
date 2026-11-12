@@ -51,5 +51,29 @@
         </operation>
     </file>
 
+    <!-- 3. Inject Dedicated Custom Tabs into Journal 3 Theme (if installed) -->
+    <file path="catalog/view/theme/journal3/template/product/product.twig">
+        <operation>
+            <search><![CDATA[<li class="active"><a href="#tab-description" data-toggle="tab">{{ tab_description }}</a></li>]]></search>
+            <add position="after"><![CDATA[
+            {% if saas_custom_tabs %}
+                {% for ctab in saas_custom_tabs %}
+                    <li><a href="#tab-saas-{{ ctab.key }}" data-toggle="tab">{{ ctab.title }}</a></li>
+                {% endfor %}
+            {% endif %}
+            ]]></add>
+        </operation>
+        <operation>
+            <search><![CDATA[<div class="tab-pane active" id="tab-description">{{ description }}</div>]]></search>
+            <add position="after"><![CDATA[
+            {% if saas_custom_tabs %}
+                {% for ctab in saas_custom_tabs %}
+                    <div class="tab-pane" id="tab-saas-{{ ctab.key }}">{{ ctab.content }}</div>
+                {% endfor %}
+            {% endif %}
+            ]]></add>
+        </operation>
+    </file>
+
 </modification>
 
