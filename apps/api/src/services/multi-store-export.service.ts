@@ -250,10 +250,64 @@ export class MultiStoreExportService {
    * 3. Reusable Product Language Versions
    */
   static async getProductLanguageVersions(globalProductId: string) {
-    const versions = await db
+    let versions = await db
       .select()
       .from(productLanguageVersions)
       .where(eq(productLanguageVersions.globalProductId, globalProductId));
+
+    const existingCodes = new Set(versions.map((v) => v.languageCode.toLowerCase()));
+
+    // Check customerProductOverrides for AI processed translations (e.g. Dutch 'nl', French 'fr', etc.)
+    const overrides = await db
+      .select({ customAttributes: customerProductOverrides.customAttributes })
+      .from(customerProductOverrides)
+      .where(eq(customerProductOverrides.globalProductId, globalProductId))
+      .limit(1);
+
+    const translations = (overrides[0]?.customAttributes as any)?.aiProcessedData?.translations;
+
+    if (translations && typeof translations === 'object') {
+      for (const [rawLangCode, tData] of Object.entries(translations)) {
+        const langCode = rawLangCode.trim().toLowerCase();
+        if (!existingCodes.has(langCode) && tData && typeof tData === 'object') {
+          const trans = tData as any;
+          const title = trans.title || trans.name;
+          const description = trans.description || '';
+          if (title) {
+            try {
+              const [newVersion] = await db
+                .insert(productLanguageVersions)
+                .values({
+                  globalProductId,
+                  languageCode: langCode,
+                  title,
+                  description,
+                  status: 'current',
+                  version: 1,
+                  lastVerifiedAt: new Date(),
+                })
+                .onConflictDoUpdate({
+                  target: [productLanguageVersions.globalProductId, productLanguageVersions.languageCode],
+                  set: {
+                    title,
+                    description,
+                    status: 'current',
+                    updatedAt: new Date(),
+                  },
+                })
+                .returning();
+
+              if (newVersion) {
+                versions.push(newVersion);
+                existingCodes.add(langCode);
+              }
+            } catch (err) {
+              console.warn(`[MultiStoreExport] Failed to auto-sync translation for lang ${langCode}:`, err);
+            }
+          }
+        }
+      }
+    }
 
     if (versions.length === 0) {
       // Auto-bootstrap master product canonical version in English
