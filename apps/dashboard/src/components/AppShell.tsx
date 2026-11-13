@@ -34,6 +34,7 @@ import {
   Wand2
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
+import CommandPalette from './CommandPalette';
 
 interface NavSection {
   title: string;
@@ -100,6 +101,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsList, setNotificationsList] = useState<any[]>([]);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [quotaUsage, setQuotaUsage] = useState<{
     planName: string;
     productUsed: number;
@@ -191,6 +193,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     setProfileDropdownOpen(false);
     setNotificationsOpen(false);
   }, [pathname]);
+
+  // Global Keyboard Listener for Cmd+K / Ctrl+K
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   if (!authChecked && !isAuthPage && !isAdminPage) {
     return (
@@ -355,18 +369,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Top Header Navigation (Bklit & MagicUI Inspired) */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200/80 px-6 lg:px-8 flex items-center justify-between shrink-0 z-20 shadow-subtle">
-          {/* Quick Command Search */}
-          <div className="relative w-80 md:w-96">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search products, brands, GTIN/SKU..."
-              className="w-full pl-9 pr-12 py-1.5 bg-slate-50/80 border border-slate-200/90 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition shadow-2xs"
-            />
-            <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 font-mono text-[10px] text-slate-400 bg-white border border-slate-200/80 rounded-md px-1.5 py-0.5 shadow-2xs">
-              ⌘K
-            </kbd>
-          </div>
+          {/* Quick Command Search Trigger */}
+          <button
+            onClick={() => setCommandPaletteOpen(true)}
+            className="relative w-80 md:w-96 text-left group"
+          >
+            <div className="w-full pl-9 pr-12 py-1.5 bg-slate-50/80 hover:bg-slate-100/70 border border-slate-200/90 rounded-xl text-xs text-slate-500 transition shadow-2xs flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Search className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-700 transition" />
+                <span>Quick search commands, items, feeds...</span>
+              </span>
+              <kbd className="font-mono text-[10px] text-slate-500 bg-white border border-slate-200/80 rounded-md px-1.5 py-0.5 shadow-2xs font-semibold">
+                ⌘K
+              </kbd>
+            </div>
+          </button>
 
           {/* Action Tools & User Profile */}
           <div className="flex items-center gap-3">
@@ -599,6 +616,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       )}
+
+      {/* Global Command Center Palette (Cmd+K) */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+      />
     </div>
   );
 }
