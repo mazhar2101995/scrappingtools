@@ -57,3 +57,22 @@ export const garbageCollectionLogs = pgTable('garbage_collection_logs', {
   details: jsonb('details').notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * Product Image Transformations (Background Removal & Watermark Cleaning Studio)
+ */
+export const productImageTransformations = pgTable('product_image_transformations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull(),
+  globalProductId: uuid('global_product_id').notNull(),
+  originalUrl: text('original_url').notNull(),
+  cleanedUrl: text('cleaned_url').notNull(),
+  transformationType: varchar('transformation_type', { length: 50 }).notNull(),
+  parameters: jsonb('parameters').notNull().default(sql`'{}'::jsonb`),
+  status: varchar('status', { length: 50 }).notNull().default('COMPLETED'),
+  errorMessage: text('error_message'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_img_trans_org_prod').on(table.organizationId, table.globalProductId),
+]);

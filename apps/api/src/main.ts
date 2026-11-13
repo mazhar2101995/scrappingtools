@@ -25,6 +25,7 @@ import { pricingRouter } from './routes/pricing.routes';
 import { proxyRouter } from './routes/proxy.routes';
 import { competitorRouter } from './routes/competitor.routes';
 import { supplierSessionRouter } from './routes/supplier-session.routes';
+import { imageStudioRouter } from './routes/image-studio.routes';
 import { ServiceHealth } from '@saas/shared-types';
 
 const app = express();
@@ -84,6 +85,7 @@ app.use('/api/v1/pricing', pricingRouter);
 app.use('/api/v1/proxies', proxyRouter);
 app.use('/api/v1/competitors', competitorRouter);
 app.use('/api/v1/supplier-sessions', supplierSessionRouter);
+app.use('/api/v1/image-studio', imageStudioRouter);
 
 // 4. Start Server & Background Storage Garbage Collection Worker
 if (process.env.NODE_ENV !== 'test') {

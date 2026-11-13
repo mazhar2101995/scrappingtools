@@ -726,6 +726,24 @@ export class DashboardApiClient {
     }, 'client');
   }
 
+  // --- AI Image Studio (Background Remover & Watermark Cleaner) ---
+  async transformProductImage(payload: {
+    globalProductId: string;
+    sourceImageUrl: string;
+    transformationType: 'REMOVE_BG_STUDIO' | 'REMOVE_WATERMARK' | 'AUTO_ENHANCE_ALL';
+    options?: any;
+  }): Promise<any> {
+    return this.fetchJson('/image-studio/transform', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async getImageTransformations(productId: string): Promise<any[]> {
+    const res = await this.fetchJson<any>(`/image-studio/${productId}/history`, {}, 'client');
+    return Array.isArray(res.data) ? res.data : [];
+  }
+
   async getStoreLanguages(): Promise<{ primary: string; supported: string[] }> {
     const res = await this.fetchJson<any>('/organizations/languages', {}, 'client');
     return res.languages || { primary: 'en', supported: ['en'] };

@@ -30,7 +30,8 @@ import {
   Layers,
   DollarSign,
   Crosshair,
-  KeyRound
+  KeyRound,
+  Wand2
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -69,6 +70,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { name: 'Proxy & Anti-Bot', href: '/settings/proxies', icon: ShieldCheck },
       { name: 'Supplier Accounts', href: '/settings/suppliers', icon: KeyRound, badge: 'B2B' },
+      { name: 'Image Studio', href: '/settings/image-studio', icon: Wand2, badge: 'AI' },
       { name: 'Background Jobs', href: '/jobs', icon: Activity },
       { name: 'System Analytics', href: '/health', icon: BarChart3 },
     ],

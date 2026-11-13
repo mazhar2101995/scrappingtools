@@ -13,6 +13,7 @@
     "@saas/database": "workspace:*",
     "@saas/queue": "workspace:*",
     "@saas/shared-types": "workspace:*",
+    "@types/sharp": "^0.32.0",
     "axios": "^1.21.0",
     "basic-ftp": "^6.2.6",
     "bcryptjs": "^2.4.3",
@@ -26,6 +27,7 @@
     "https-proxy-agent": "^9.1.0",
     "jsonwebtoken": "^9.0.2",
     "puppeteer": "^25.16.0",
+    "sharp": "^0.35.5",
     "swagger-ui-express": "^5.0.1",
     "xlsx": "^0.18.5",
     "zod": "^3.24.1"
