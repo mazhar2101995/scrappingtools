@@ -27,7 +27,8 @@ import {
   UploadCloud,
   FileSpreadsheet,
   ShoppingBag,
-  Trash2
+  Trash2,
+  Send
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -86,12 +87,23 @@ export default function ProductsPage() {
   const [batchSuccessMsg, setBatchSuccessMsg] = useState('');
   const [exportingCsv, setExportingCsv] = useState(false);
 
+  // Phase 11: Bulk Multi-Product Controlled Push States
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [connectedStores, setConnectedStores] = useState<any[]>([]);
+  const [showBulkPushModal, setShowBulkPushModal] = useState(false);
+  const [selectedPushStoreId, setSelectedPushStoreId] = useState('');
+  const [selectedPushLanguage, setSelectedPushLanguage] = useState('en');
+  const [bulkPushing, setBulkPushing] = useState(false);
+  const [bulkPushProgress, setBulkPushProgress] = useState<{ current: number; total: number } | null>(null);
+  const [bulkPushResults, setBulkPushResults] = useState<any | null>(null);
+
   async function loadCatalog() {
     try {
       setLoading(true);
-      const [res, brandsRes] = await Promise.allSettled([
+      const [res, brandsRes, storesRes] = await Promise.allSettled([
         apiClient.getProducts({ limit: 50 }),
         apiClient.getBrands(),
+        apiClient.getStores(),
       ]);
 
       if (res.status === 'fulfilled') {
@@ -99,6 +111,14 @@ export default function ProductsPage() {
       }
       if (brandsRes.status === 'fulfilled') {
         setBrandsList(Array.isArray(brandsRes.value) ? brandsRes.value : []);
+      }
+      if (storesRes.status === 'fulfilled') {
+        const val: any = storesRes.value;
+        const sList = Array.isArray(val) ? val : (val?.stores || []);
+        setConnectedStores(sList);
+        if (sList.length > 0 && !selectedPushStoreId) {
+          setSelectedPushStoreId(sList[0].id);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -554,6 +574,53 @@ export default function ProductsPage() {
     }
   }
 
+  // Handle Selection Toggle
+  function handleToggleSelectProduct(id: string) {
+    setSelectedProductIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  }
+
+  function handleSelectAll(filteredItems: any[]) {
+    if (selectedProductIds.length === filteredItems.length && filteredItems.length > 0) {
+      setSelectedProductIds([]);
+    } else {
+      setSelectedProductIds(filteredItems.map((p) => p.id));
+    }
+  }
+
+  // Handle Bulk Controlled Push Dispatch
+  async function handleExecuteBulkPush() {
+    if (selectedProductIds.length === 0) {
+      alert('Please select at least 1 product to push.');
+      return;
+    }
+    if (!selectedPushStoreId) {
+      alert('Please select a target store.');
+      return;
+    }
+
+    try {
+      setBulkPushing(true);
+      setBulkPushResults(null);
+      setBulkPushProgress({ current: 0, total: selectedProductIds.length });
+
+      const res = await apiClient.executeBulkControlledPush({
+        productIds: selectedProductIds,
+        storeId: selectedPushStoreId,
+        targetLanguage: selectedPushLanguage,
+      });
+
+      setBulkPushResults(res.bulkResult);
+      setBulkPushProgress({ current: res.bulkResult?.totalRequested || selectedProductIds.length, total: selectedProductIds.length });
+      loadCatalog();
+    } catch (err: any) {
+      alert(`Bulk push failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setBulkPushing(false);
+    }
+  }
+
   const filtered = products.filter((p) => {
     const matchesSearch =
       p.canonicalTitle?.toLowerCase().includes(search.toLowerCase()) ||
@@ -588,6 +655,26 @@ export default function ProductsPage() {
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
             <span>{exportingCsv ? 'Exporting...' : 'Export Shopify CSV'}</span>
+          </button>
+
+          {/* Bulk Push to Store Button */}
+          <button
+            onClick={() => {
+              if (selectedProductIds.length === 0) {
+                alert('Please select at least 1 product using the table checkboxes first.');
+                return;
+              }
+              setShowBulkPushModal(true);
+            }}
+            disabled={selectedProductIds.length === 0}
+            className={`flex items-center gap-1.5 px-3.5 py-2 font-bold text-xs rounded-xl shadow-sm transition ${
+              selectedProductIds.length > 0
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse'
+                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            }`}
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>Bulk Push to Store ({selectedProductIds.length})</span>
           </button>
 
           {/* Bulk Import Button */}
@@ -653,6 +740,15 @@ export default function ProductsPage() {
         <table className="w-full text-left text-xs text-slate-700">
           <thead className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
             <tr>
+              <th className="py-3.5 px-3 w-10 text-center">
+                <input
+                  type="checkbox"
+                  checked={filtered.length > 0 && selectedProductIds.length === filtered.length}
+                  onChange={() => handleSelectAll(filtered)}
+                  title="Select All Products"
+                  className="w-4 h-4 rounded border-slate-300 text-[#0d2a2c] focus:ring-[#fad982] cursor-pointer"
+                />
+              </th>
               <th className="py-3.5 px-5">Product Details</th>
               <th className="py-3.5 px-4">Brand</th>
               <th className="py-3.5 px-4">Quality Status</th>
@@ -666,13 +762,13 @@ export default function ProductsPage() {
           <tbody className="divide-y divide-slate-100 font-medium">
             {loading ? (
               <tr>
-                <td colSpan={7} className="py-12 text-center text-slate-400">
+                <td colSpan={9} className="py-12 text-center text-slate-400">
                   Loading catalog entries from database...
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-16 text-center">
+                <td colSpan={9} className="py-16 text-center">
                   <div className="max-w-md mx-auto space-y-3">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
                       <Package className="w-6 h-6" />
@@ -692,8 +788,18 @@ export default function ProductsPage() {
                 </td>
               </tr>
             ) : (
-              filtered.map((prod) => (
-                <tr key={prod.id} className="hover:bg-slate-50/80 transition">
+              filtered.map((prod) => {
+                const isSelected = selectedProductIds.includes(prod.id);
+                return (
+                <tr key={prod.id} className={`transition ${isSelected ? 'bg-emerald-50/50' : 'hover:bg-slate-50/80'}`}>
+                  <td className="py-4 px-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => handleToggleSelectProduct(prod.id)}
+                      className="w-4 h-4 rounded border-slate-300 text-[#0d2a2c] focus:ring-[#fad982] cursor-pointer"
+                    />
+                  </td>
                   <td className="py-4 px-5 max-w-sm">
                     <Link
                       href={`/products/${prod.id}`}
@@ -804,7 +910,8 @@ export default function ProductsPage() {
                     </div>
                   </td>
                 </tr>
-              ))
+              );
+              })
             )}
           </tbody>
         </table>
@@ -1510,6 +1617,188 @@ export default function ProductsPage() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Store Push Modal */}
+      {showBulkPushModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-[#0d2a2c] text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#fad982]/20 flex items-center justify-center">
+                  <Send className="w-4 h-4 text-[#fad982]" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm tracking-tight text-white">Bulk Store Export Dispatch</h3>
+                  <p className="text-[11px] text-slate-300">
+                    Pushing <span className="font-bold text-[#fad982]">{selectedProductIds.length}</span> selected items to connected store
+                  </p>
+                </div>
+              </div>
+              {!bulkPushing && (
+                <button
+                  onClick={() => setShowBulkPushModal(false)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-5">
+              {/* If Push Completed */}
+              {bulkPushResults ? (
+                <div className="space-y-4">
+                  <div className={`p-4 rounded-xl border ${
+                    bulkPushResults.failedCount === 0 
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+                      : 'bg-amber-50 border-amber-200 text-amber-800'
+                  }`}>
+                    <div className="flex items-center gap-2 font-bold text-sm">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      <span>Bulk Export Run Complete</span>
+                    </div>
+                    <div className="mt-2 text-xs grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-200/50">
+                      <div className="p-2 bg-white/60 rounded-lg">
+                        <span className="block font-bold text-sm text-slate-900">{bulkPushResults.totalRequested}</span>
+                        <span className="text-[10px] text-slate-500 font-semibold">Total</span>
+                      </div>
+                      <div className="p-2 bg-white/60 rounded-lg">
+                        <span className="block font-bold text-sm text-emerald-600">{bulkPushResults.succeededCount}</span>
+                        <span className="text-[10px] text-emerald-700 font-semibold">Succeeded</span>
+                      </div>
+                      <div className="p-2 bg-white/60 rounded-lg">
+                        <span className="block font-bold text-sm text-rose-600">{bulkPushResults.failedCount}</span>
+                        <span className="text-[10px] text-rose-700 font-semibold">Failed</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Errors display if any */}
+                  {bulkPushResults.failedCount > 0 && bulkPushResults.results.some((r: any) => !r.success) && (
+                    <div className="max-h-40 overflow-y-auto space-y-1.5 p-3 rounded-xl bg-rose-50/50 border border-rose-200 text-xs">
+                      <span className="font-bold text-rose-800 block text-[11px]">Push Failures:</span>
+                      {bulkPushResults.results
+                        .filter((r: any) => !r.success)
+                        .map((r: any, idx: number) => (
+                          <div key={idx} className="text-rose-700 text-[11px] flex items-start gap-1.5">
+                            <span className="text-rose-400 font-bold">•</span>
+                            <span className="font-mono text-[10px] font-semibold">{r.productId.slice(0, 8)}:</span>
+                            <span>{r.error || 'Execution failed'}</span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowBulkPushModal(false);
+                        setSelectedProductIds([]);
+                        setBulkPushResults(null);
+                      }}
+                      className="px-5 py-2 rounded-xl bg-[#0d2a2c] text-[#fad982] hover:bg-[#143d40] font-bold text-xs shadow-sm transition"
+                    >
+                      Done & Close
+                    </button>
+                  </div>
+                </div>
+              ) : bulkPushing ? (
+                /* Progress Display while exporting */
+                <div className="py-6 text-center space-y-4">
+                  <div className="w-12 h-12 mx-auto rounded-full bg-[#fad982]/20 flex items-center justify-center">
+                    <div className="w-6 h-6 border-3 border-[#0d2a2c] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 text-sm">Pushing to Store in Progress...</h4>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Generating change plans, validating schemas & safely syncing {selectedProductIds.length} products.
+                    </p>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="bg-[#0d2a2c] h-full rounded-full animate-pulse w-3/4"></div>
+                  </div>
+                  <span className="text-[11px] font-medium text-slate-400">Please do not close this window</span>
+                </div>
+              ) : (
+                /* Form Options */
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Target Store Destination <span className="text-rose-500">*</span>
+                    </label>
+                    {connectedStores.length === 0 ? (
+                      <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+                        No active stores connected. Please connect an OpenCart or Shopify store in Store Settings first.
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedPushStoreId}
+                        onChange={(e) => setSelectedPushStoreId(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                      >
+                        {connectedStores.map((st) => (
+                          <option key={st.id} value={st.id}>
+                            {st.name} ({st.platform.toUpperCase()} - {st.storeUrl || 'Connected'})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Target Translation Language
+                    </label>
+                    <select
+                      value={selectedPushLanguage}
+                      onChange={(e) => setSelectedPushLanguage(e.target.value)}
+                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                    >
+                      <option value="en">English (Default)</option>
+                      <option value="nl">Dutch (Nederlands)</option>
+                      <option value="de">German (Deutsch)</option>
+                      <option value="fr">French (Français)</option>
+                      <option value="es">Spanish (Español)</option>
+                    </select>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Multilingual AI translations will automatically populate the store's language records.
+                    </p>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 space-y-1">
+                    <span className="font-bold text-slate-700 block">Safety & Integrity Checks:</span>
+                    <div>✓ Automated idempotent schema validation</div>
+                    <div>✓ Audit logs recorded for each pushed product</div>
+                    <div>✓ Images uploaded & Journal 3 tabs synced</div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowBulkPushModal(false)}
+                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleExecuteBulkPush}
+                      disabled={connectedStores.length === 0}
+                      className="px-5 py-2.5 rounded-xl bg-[#0d2a2c] hover:bg-[#143d40] text-[#fad982] font-bold text-xs shadow-sm transition flex items-center gap-2 disabled:opacity-50"
+                    >
+                      <Send className="w-3.5 h-3.5 text-[#fad982]" />
+                      <span>Start Bulk Push ({selectedProductIds.length})</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -449,6 +449,39 @@ storeRouter.post('/controlled-push', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/v1/stores/bulk-controlled-push - Batch Export Multiple Products to a Connected Store
+storeRouter.post('/bulk-controlled-push', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) {
+      return res.status(401).json({ error: 'Tenant context required' });
+    }
+
+    const { productIds, storeId, targetLanguage } = req.body;
+    if (!Array.isArray(productIds) || productIds.length === 0) {
+      return res.status(400).json({ error: 'productIds array is required and must not be empty' });
+    }
+    if (!storeId) {
+      return res.status(400).json({ error: 'storeId is required' });
+    }
+
+    const bulkResult = await StoreExportExecutionService.executeBulkControlledPush(
+      orgId,
+      productIds,
+      storeId,
+      targetLanguage || 'en',
+      (req as any).user?.userId
+    );
+
+    return res.status(200).json({
+      success: true,
+      bulkResult,
+    });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+});
+
 // Phase 9C: Multi-Store & Store Languages Management Endpoints
 // GET /api/v1/stores/:id/languages - List supported languages for a store
 storeRouter.get('/:id/languages', async (req: Request, res: Response) => {

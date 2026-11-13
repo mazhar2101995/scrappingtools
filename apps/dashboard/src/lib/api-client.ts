@@ -1064,6 +1064,34 @@ export class DashboardApiClient {
   async getTenantIntegrationHealth(): Promise<any> {
     return this.fetchJson('/stores/integration-health/summary', {}, 'client');
   }
+
+  // --- Bulk Multi-Product Controlled Push Execution ---
+  async executeBulkControlledPush(payload: {
+    productIds: string[];
+    storeId: string;
+    targetLanguage?: string;
+  }): Promise<{
+    success: boolean;
+    bulkResult: {
+      totalRequested: number;
+      succeededCount: number;
+      failedCount: number;
+      results: Array<{
+        productId: string;
+        productTitle?: string;
+        success: boolean;
+        externalProductId?: string;
+        externalSku?: string;
+        appliedFields?: string[];
+        error?: string;
+      }>;
+    };
+  }> {
+    return this.fetchJson('/stores/bulk-controlled-push', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

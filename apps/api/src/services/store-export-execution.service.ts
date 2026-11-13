@@ -876,4 +876,86 @@ export class StoreExportExecutionService {
       message: `Controlled push verified: ${appliedFields.length} field(s) written safely to ${store.storeName}.`,
     };
   }
+
+  /**
+   * Step 4: Bulk Multi-Product Controlled Push Execution
+   * Generates plans and pushes an array of products to a connected store in batch with progress tracking.
+   */
+  public static async executeBulkControlledPush(
+    organizationId: string,
+    productIds: string[],
+    connectedStoreId: string,
+    targetLanguage = 'en',
+    userId?: string
+  ): Promise<{
+    totalRequested: number;
+    succeededCount: number;
+    failedCount: number;
+    results: Array<{
+      productId: string;
+      productTitle?: string;
+      success: boolean;
+      externalProductId?: string;
+      externalSku?: string;
+      appliedFields?: string[];
+      error?: string;
+    }>;
+  }> {
+    const results: Array<{
+      productId: string;
+      productTitle?: string;
+      success: boolean;
+      externalProductId?: string;
+      externalSku?: string;
+      appliedFields?: string[];
+      error?: string;
+    }> = [];
+
+    let succeededCount = 0;
+    let failedCount = 0;
+
+    for (const pid of productIds) {
+      try {
+        // 1. Generate Change Plan for this product
+        const generated = await this.generateChangePlan(
+          organizationId,
+          pid,
+          connectedStoreId,
+          userId,
+          targetLanguage
+        );
+
+        // 2. Execute push immediately using the generated change plan
+        const pushResult = await this.executeControlledPush(
+          organizationId,
+          generated.planId,
+          userId
+        );
+
+        succeededCount++;
+        results.push({
+          productId: pid,
+          productTitle: generated.productTitle,
+          success: true,
+          externalProductId: pushResult.externalProductId,
+          externalSku: pushResult.externalSku,
+          appliedFields: pushResult.appliedFields,
+        });
+      } catch (itemErr: any) {
+        failedCount++;
+        results.push({
+          productId: pid,
+          success: false,
+          error: itemErr.message || 'Push failed for product',
+        });
+      }
+    }
+
+    return {
+      totalRequested: productIds.length,
+      succeededCount,
+      failedCount,
+      results,
+    };
+  }
 }
