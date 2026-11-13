@@ -1560,6 +1560,38 @@ productsRouter.patch('/:id/manual-fields', async (req: Request, res: Response) =
   }
 });
 
+// 7.5 CRAWLER & SITEMAP AUTO-DISCOVERY ENDPOINT
+productsRouter.post('/crawl-discover', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  if (!orgId) {
+    return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
+  }
+
+  const { entryUrl, maxPages, maxProducts, brandHint } = req.body;
+
+  if (!entryUrl || typeof entryUrl !== 'string' || !entryUrl.startsWith('http')) {
+    return res.status(400).json({ error: 'A valid entryUrl (http/https) is required.' });
+  }
+
+  try {
+    const { CatalogCrawlerService } = await import('../services/catalog-crawler.service');
+    const result = await CatalogCrawlerService.crawlAndDiscover({
+      entryUrl: entryUrl.trim(),
+      maxPages: maxPages ? parseInt(String(maxPages)) : 5,
+      maxProducts: maxProducts ? parseInt(String(maxProducts)) : 250,
+      brandHint,
+    });
+
+    return res.json({
+      success: true,
+      result,
+    });
+  } catch (err: any) {
+    console.error('[CatalogCrawler] Error:', err);
+    return res.status(500).json({ error: 'Catalog crawler discovery failed', details: err.message });
+  }
+});
+
 // 8. BATCH IMPORT & SCRAPE JOB DISPATCHER
 productsRouter.post('/batch-scrape', async (req: Request, res: Response, next) => {
   const check = await quotaMiddleware('product');

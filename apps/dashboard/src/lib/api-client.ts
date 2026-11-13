@@ -1181,6 +1181,29 @@ export class DashboardApiClient {
       body: JSON.stringify(payload),
     }, 'client');
   }
+
+  // --- Automated Catalog Crawler (Sitemap & Category Auto-Discovery) ---
+  async crawlCatalog(payload: {
+    entryUrl: string;
+    maxPages?: number;
+    maxProducts?: number;
+    brandHint?: string;
+  }): Promise<{
+    success: boolean;
+    result: {
+      sourceType: 'SITEMAP' | 'CATEGORY_PAGINATION' | 'DIRECT_PAGE';
+      entryUrl: string;
+      totalFound: number;
+      productUrls: string[];
+      pagesScanned: number;
+      sampleTitles: string[];
+    };
+  }> {
+    return this.fetchJson('/products/crawl-discover', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

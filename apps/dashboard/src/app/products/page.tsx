@@ -87,6 +87,14 @@ export default function ProductsPage() {
   const [batchSuccessMsg, setBatchSuccessMsg] = useState('');
   const [exportingCsv, setExportingCsv] = useState(false);
 
+  // Auto-Crawler & Category/Sitemap States
+  const [crawlMode, setCrawlMode] = useState<'MANUAL_LIST' | 'CRAWLER'>('MANUAL_LIST');
+  const [crawlerEntryUrl, setCrawlerEntryUrl] = useState('');
+  const [crawlerMaxPages, setCrawlerMaxPages] = useState(5);
+  const [crawlerMaxProducts, setCrawlerMaxProducts] = useState(100);
+  const [crawling, setCrawling] = useState(false);
+  const [crawlerSummary, setCrawlerSummary] = useState<any | null>(null);
+
   // Phase 11: Bulk Multi-Product Controlled Push States
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [connectedStores, setConnectedStores] = useState<any[]>([]);
@@ -524,6 +532,9 @@ export default function ProductsPage() {
     setBatchUrlsInput('');
     setBatchSuccessMsg('');
     setExtractionError('');
+    setCrawlMode('MANUAL_LIST');
+    setCrawlerEntryUrl('');
+    setCrawlerSummary(null);
     try {
       setLoadingBrands(true);
       const list = await apiClient.getBrands();
@@ -571,6 +582,38 @@ export default function ProductsPage() {
       setExtractionError(err.message || 'Batch scrape dispatch failed');
     } finally {
       setBatchSubmitting(false);
+    }
+  }
+
+  // Handle Crawler Trigger
+  async function handleExecuteCrawler() {
+    if (!crawlerEntryUrl.trim() || !crawlerEntryUrl.startsWith('http')) {
+      alert('Please enter a valid Category/Collection or Sitemap XML URL starting with http:// or https://');
+      return;
+    }
+
+    try {
+      setCrawling(true);
+      setExtractionError('');
+      setCrawlerSummary(null);
+
+      const res = await apiClient.crawlCatalog({
+        entryUrl: crawlerEntryUrl.trim(),
+        maxPages: crawlerMaxPages,
+        maxProducts: crawlerMaxProducts,
+      });
+
+      if (res.success && res.result) {
+        setCrawlerSummary(res.result);
+        if (res.result.productUrls.length > 0) {
+          // Pre-fill the batch URLs input with discovered URLs
+          setBatchUrlsInput(res.result.productUrls.join('\n'));
+        }
+      }
+    } catch (err: any) {
+      setExtractionError(err.message || 'Crawler failed to scan entry URL');
+    } finally {
+      setCrawling(false);
     }
   }
 
@@ -1528,9 +1571,36 @@ export default function ProductsPage() {
               </div>
             ) : (
               <form onSubmit={handleSubmitBatchScrape} className="space-y-4">
+                {/* Mode Selector Tabs: Manual List vs Full Auto-Crawler */}
+                <div className="flex p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setCrawlMode('MANUAL_LIST')}
+                    className={`flex-1 py-1.5 rounded-xl transition ${
+                      crawlMode === 'MANUAL_LIST'
+                        ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    Manual URLs List
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCrawlMode('CRAWLER')}
+                    className={`flex-1 py-1.5 rounded-xl transition flex items-center justify-center gap-1.5 ${
+                      crawlMode === 'CRAWLER'
+                        ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-[#fad982]" />
+                    <span>Auto-Crawler (Category / Sitemap)</span>
+                  </button>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
-                    Select Target Brand Profile
+                    Select Target Brand Profile <span className="text-rose-500">*</span>
                   </label>
                   {loadingBrands ? (
                     <div className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-400">
@@ -1559,12 +1629,106 @@ export default function ProductsPage() {
                   )}
                 </div>
 
+                {/* If Auto-Crawler Mode */}
+                {crawlMode === 'CRAWLER' ? (
+                  <div className="space-y-3.5 p-4 bg-slate-50 border border-slate-200/80 rounded-2xl">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        Category / Collection URL or Sitemap XML
+                      </label>
+                      <input
+                        type="url"
+                        value={crawlerEntryUrl}
+                        onChange={(e) => setCrawlerEntryUrl(e.target.value)}
+                        placeholder="e.g. https://store.com/collections/chairs or https://store.com/sitemap.xml"
+                        className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c]"
+                      />
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        System will automatically crawl pagination pages or parse XML sitemaps to discover all product links.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Max Pages to Crawl</label>
+                        <select
+                          value={crawlerMaxPages}
+                          onChange={(e) => setCrawlerMaxPages(parseInt(e.target.value))}
+                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs"
+                        >
+                          <option value={1}>1 Page (Single Page)</option>
+                          <option value={3}>Up to 3 Pages</option>
+                          <option value={5}>Up to 5 Pages (Standard)</option>
+                          <option value={10}>Up to 10 Pages (Deep)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Max Products Limit</label>
+                        <select
+                          value={crawlerMaxProducts}
+                          onChange={(e) => setCrawlerMaxProducts(parseInt(e.target.value))}
+                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs"
+                        >
+                          <option value={25}>25 Products</option>
+                          <option value={50}>50 Products</option>
+                          <option value={100}>100 Products</option>
+                          <option value={250}>250 Products (Full Batch)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={handleExecuteCrawler}
+                        disabled={crawling || !crawlerEntryUrl.trim()}
+                        className="w-full py-2.5 px-4 bg-[#0d2a2c] hover:bg-[#143d40] text-[#fad982] font-bold text-xs rounded-xl transition shadow-xs flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {crawling ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-[#fad982] border-t-transparent rounded-full animate-spin"></div>
+                            <span>Scanning &amp; Discovering Links...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 text-[#fad982]" />
+                            <span>Scan Category / Sitemap Now</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Crawler Results Preview */}
+                    {crawlerSummary && (
+                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 space-y-1 animate-in fade-in">
+                        <div className="font-bold flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          <span>Discovered {crawlerSummary.totalFound} Product URLs ({crawlerSummary.sourceType})</span>
+                        </div>
+                        <p className="text-[11px] text-emerald-700">
+                          Scanned {crawlerSummary.pagesScanned} page(s). URLs have been automatically populated below ready for queue dispatch.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
-                    Product URLs (One per line)
+                  <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                    <span>Product URLs Queue ({batchUrlsInput.split('\n').filter(u => u.trim().startsWith('http')).length})</span>
+                    {batchUrlsInput && (
+                      <button
+                        type="button"
+                        onClick={() => setBatchUrlsInput('')}
+                        className="text-[10px] text-rose-600 font-bold hover:underline"
+                      >
+                        Clear List
+                      </button>
+                    )}
                   </label>
                   <p className="text-[11px] text-slate-500 mb-2">
-                    Paste up to 50 product URLs. The background queue will scrape and extract all fields using the selected brand&apos;s field mappings.
+                    {crawlMode === 'CRAWLER' ? 'Review or modify the discovered URLs before queuing for extraction.' : 'Paste individual product URLs, or use the Auto-Crawler tab above to discover an entire category.'}
                   </p>
                   <textarea
                     rows={6}
