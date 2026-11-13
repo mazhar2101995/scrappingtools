@@ -81,6 +81,19 @@ export class AntiBotDefenseService {
       ...(options?.headers || {}),
     };
 
+    // If tenant has authenticated session cookies for this domain, inject them automatically
+    if (options?.organizationId && !headers['Cookie'] && !headers['cookie']) {
+      try {
+        const { SupplierSessionManagerService } = await import('./supplier-session-manager.service');
+        const cookieHeader = await SupplierSessionManagerService.getCookieHeaderForDomain(options.organizationId, url);
+        if (cookieHeader) {
+          headers['Cookie'] = cookieHeader;
+        }
+      } catch (cookieErr) {
+        // Continue without session cookies
+      }
+    }
+
     const config: AxiosRequestConfig = {
       headers,
       timeout: options?.timeoutMs || 15000,

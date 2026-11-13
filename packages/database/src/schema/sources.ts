@@ -213,3 +213,24 @@ export const networkRouteIncidents = pgTable('network_route_incidents', {
   index('idx_nri_route_id').on(table.routeId, table.createdAt),
 ]);
 
+export const customerSupplierCredentials = pgTable('customer_supplier_credentials', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  supplierDomain: varchar('supplier_domain', { length: 255 }).notNull(),
+  supplierName: varchar('supplier_name', { length: 255 }).notNull(),
+  loginUrl: text('login_url').notNull(),
+  username: varchar('username', { length: 255 }).notNull(),
+  encryptedPassword: text('encrypted_password').notNull(),
+  sessionCookies: jsonb('session_cookies').default(sql`'[]'::jsonb`),
+  lastLoginAt: timestamp('last_login_at', { withTimezone: true }),
+  lastStatus: varchar('last_status', { length: 50 }).notNull().default('PENDING'),
+  lastErrorMessage: text('last_error_message'),
+  autoRefreshHours: integer('auto_refresh_hours').notNull().default(12),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_cust_supp_creds_org').on(table.organizationId),
+  index('idx_cust_supp_creds_domain').on(table.organizationId, table.supplierDomain),
+]);
+
+

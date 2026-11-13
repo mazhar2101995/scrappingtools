@@ -29,7 +29,8 @@ import {
   ChevronRight,
   Layers,
   DollarSign,
-  Crosshair
+  Crosshair,
+  KeyRound
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -67,6 +68,7 @@ const NAV_SECTIONS: NavSection[] = [
     title: 'Operations & Telemetry',
     items: [
       { name: 'Proxy & Anti-Bot', href: '/settings/proxies', icon: ShieldCheck },
+      { name: 'Supplier Accounts', href: '/settings/suppliers', icon: KeyRound, badge: 'B2B' },
       { name: 'Background Jobs', href: '/jobs', icon: Activity },
       { name: 'System Analytics', href: '/health', icon: BarChart3 },
     ],

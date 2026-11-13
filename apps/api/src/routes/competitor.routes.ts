@@ -163,3 +163,4 @@ competitorRouter.delete('/:id', requireOrgRole('editor'), async (req: Request, r
     return res.status(500).json({ error: err.message || 'Failed to delete competitor monitor' });
   }
 });
+

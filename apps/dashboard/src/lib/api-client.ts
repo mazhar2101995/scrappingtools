@@ -651,6 +651,38 @@ export class DashboardApiClient {
     }, 'client');
   }
 
+  // --- B2B Supplier Wholesale Sessions & Protected Scraping ---
+  async getSupplierSessions(): Promise<any[]> {
+    const res = await this.fetchJson<any>('/supplier-sessions', {}, 'client');
+    return Array.isArray(res.data) ? res.data : [];
+  }
+
+  async saveSupplierSession(payload: {
+    supplierName: string;
+    supplierDomain: string;
+    loginUrl: string;
+    username: string;
+    password: string;
+    autoRefreshHours?: number;
+  }): Promise<any> {
+    return this.fetchJson('/supplier-sessions', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async loginSupplierNow(id: string): Promise<any> {
+    return this.fetchJson(`/supplier-sessions/${id}/login-now`, {
+      method: 'POST',
+    }, 'client');
+  }
+
+  async deleteSupplierSession(id: string): Promise<any> {
+    return this.fetchJson(`/supplier-sessions/${id}`, {
+      method: 'DELETE',
+    }, 'client');
+  }
+
   async getStoreLanguages(): Promise<{ primary: string; supported: string[] }> {
     const res = await this.fetchJson<any>('/organizations/languages', {}, 'client');
     return res.languages || { primary: 'en', supported: ['en'] };
