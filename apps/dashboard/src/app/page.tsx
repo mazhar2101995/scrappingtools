@@ -30,12 +30,30 @@ export default function ClientDashboardOverview() {
   const [data, setData] = useState<ClientWorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('Catalog Admin');
+  const [brandsCount, setBrandsCount] = useState(0);
+  const [schedulesCount, setSchedulesCount] = useState(0);
+  const [dismissOnboarding, setDismissOnboarding] = useState(false);
 
   async function loadData() {
     try {
       setLoading(true);
-      const res = await apiClient.getClientWorkspace();
-      setData(res);
+      const [res, brandsRes, schedRes] = await Promise.allSettled([
+        apiClient.getClientWorkspace(),
+        apiClient.getBrands(),
+        apiClient.getSyncSchedules(),
+      ]);
+
+      if (res.status === 'fulfilled') {
+        setData(res.value);
+      }
+      if (brandsRes.status === 'fulfilled') {
+        const b = Array.isArray(brandsRes.value) ? brandsRes.value : [];
+        setBrandsCount(b.length);
+      }
+      if (schedRes.status === 'fulfilled') {
+        const s = schedRes.value?.schedules || [];
+        setSchedulesCount(s.length);
+      }
     } catch (e) {
       console.error('Failed to load workspace overview:', e);
     } finally {
@@ -53,6 +71,10 @@ export default function ClientDashboardOverview() {
           if (u.fullName) setUserName(u.fullName);
         } catch (_) {}
       }
+      const dismissed = localStorage.getItem('saas_dismiss_onboarding');
+      if (dismissed === 'true') {
+        setDismissOnboarding(true);
+      }
     }
   }, []);
 
@@ -62,6 +84,45 @@ export default function ClientDashboardOverview() {
   const storesCount = data?.metrics?.connectedStoresCount ?? 0;
   const needsReview = data?.metrics?.pendingReviewCount ?? 0;
   const dataQualityScore = data?.metrics?.dataQualityScore ?? (totalProducts > 0 ? 100 : 0);
+
+  // Compute Onboarding Steps Progress
+  const onboardingSteps = [
+    {
+      id: 'brand',
+      title: 'Configure Brand Profile',
+      desc: 'Set up your first brand domain, target selectors, and extraction rules.',
+      done: brandsCount > 0,
+      link: '/brands',
+      actionText: 'Add Brand Profile',
+    },
+    {
+      id: 'store',
+      title: 'Connect Destination Store',
+      desc: 'Link an OpenCart 3.x/4.x (via official OCMOD bridge) or Shopify store.',
+      done: storesCount > 0,
+      link: '/stores',
+      actionText: 'Connect Store',
+    },
+    {
+      id: 'product',
+      title: 'Scrape / Discover Products',
+      desc: 'Extract structured product attributes, custom fields, and high-res images.',
+      done: totalProducts > 0,
+      link: '/products',
+      actionText: 'Add First Product',
+    },
+    {
+      id: 'schedule',
+      title: 'Setup Automated Sync Schedule',
+      desc: 'Enable autonomous background delta exports to your connected stores.',
+      done: schedulesCount > 0,
+      link: '/sync',
+      actionText: 'Create Schedule',
+    },
+  ];
+
+  const completedStepsCount = onboardingSteps.filter((s) => s.done).length;
+  const isAllComplete = completedStepsCount === onboardingSteps.length;
 
   const qualityDist = data?.metrics?.qualityDistribution || {
     verified: totalProducts > 0 ? totalProducts : 0,
@@ -119,6 +180,105 @@ export default function ClientDashboardOverview() {
           </Link>
         </div>
       </div>
+
+      {/* 1.5 Self-Serve Client Onboarding Checklist Wizard (Collapsible/Dismissible) */}
+      {!dismissOnboarding && (
+        <div className="rounded-2xl border border-teal-800/20 bg-gradient-to-br from-[#0d2a2c] via-[#10373a] to-[#0d2a2c] text-white p-6 shadow-xl relative overflow-hidden animate-in fade-in duration-300">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-[#fad982]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-white/10">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#fad982] text-slate-950">
+                  Getting Started Checklist
+                </span>
+                <span className="text-xs font-mono font-bold text-[#fad982]">
+                  {completedStepsCount} of {onboardingSteps.length} Complete
+                </span>
+              </div>
+              <h2 className="text-base sm:text-lg font-black tracking-tight text-white mt-1.5">
+                {isAllComplete ? '🎉 Workspace Setup Complete!' : 'Complete your SaaS setup in 4 simple steps'}
+              </h2>
+              <p className="text-xs text-slate-300 font-normal mt-0.5 max-w-xl">
+                Configure your extraction profiles, store credentials, and recurring background schedules to activate full automated catalog operations.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Progress bar */}
+              <div className="hidden sm:flex flex-col items-end gap-1.5">
+                <span className="text-[11px] font-bold text-slate-300">
+                  {Math.round((completedStepsCount / onboardingSteps.length) * 100)}% Setup Complete
+                </span>
+                <div className="w-36 h-2 rounded-full bg-white/10 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-emerald-400 to-[#fad982] transition-all duration-500 rounded-full"
+                    style={{ width: `${(completedStepsCount / onboardingSteps.length) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setDismissOnboarding(true);
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('saas_dismiss_onboarding', 'true');
+                  }
+                }}
+                className="text-xs font-bold text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg hover:bg-white/10 transition"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+
+          {/* Interactive Steps Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-5 relative z-10">
+            {onboardingSteps.map((step, idx) => (
+              <div
+                key={step.id}
+                className={`p-4 rounded-xl border transition-all flex flex-col justify-between ${
+                  step.done
+                    ? 'bg-white/5 border-emerald-400/40 text-slate-200'
+                    : 'bg-white/10 border-white/15 text-white hover:border-[#fad982]/60 hover:bg-white/[0.14]'
+                }`}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-slate-400">
+                      STEP 0{idx + 1}
+                    </span>
+                    {step.done ? (
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/40">
+                        <Check className="w-3 h-3" />
+                        Done
+                      </span>
+                    ) : (
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    )}
+                  </div>
+                  <h3 className="text-xs font-bold text-white leading-snug">{step.title}</h3>
+                  <p className="text-[11px] text-slate-300/80 leading-relaxed font-normal">{step.desc}</p>
+                </div>
+
+                <div className="pt-3.5 mt-2 border-t border-white/10">
+                  <Link
+                    href={step.link}
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold transition ${
+                      step.done
+                        ? 'text-slate-300 hover:text-white'
+                        : 'text-[#fad982] hover:underline'
+                    }`}
+                  >
+                    <span>{step.done ? 'View Config' : step.actionText}</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* 2. MagicUI Bento-style Interactive Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
