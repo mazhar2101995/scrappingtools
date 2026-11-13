@@ -19,6 +19,7 @@ import { apiClient, ClientWorkspaceData } from '@/lib/api-client';
 
 export default function ReportsAnalyticsPage() {
   const [data, setData] = useState<ClientWorkspaceData | null>(null);
+  const [subData, setSubData] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState('30D');
 
@@ -26,8 +27,16 @@ export default function ReportsAnalyticsPage() {
     async function loadData() {
       try {
         setLoading(true);
-        const res = await apiClient.getClientWorkspace();
-        setData(res);
+        const [res, subRes] = await Promise.allSettled([
+          apiClient.getClientWorkspace(),
+          apiClient.getMySubscription(),
+        ]);
+        if (res.status === 'fulfilled') {
+          setData(res.value);
+        }
+        if (subRes.status === 'fulfilled') {
+          setSubData(subRes.value);
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -41,7 +50,18 @@ export default function ReportsAnalyticsPage() {
   const updatedRecently = data?.metrics?.recentlyUpdated ?? 0;
   const dataQualityScore = data?.metrics?.dataQualityScore ?? 0;
   const storesCount = data?.metrics?.connectedStoresCount ?? 0;
-  const planTier = data?.organization?.planTier?.toUpperCase() || 'STANDARD';
+  const planTier = (subData?.plan?.name || data?.organization?.planTier || 'Starter').toUpperCase();
+
+  // Real plan limits from billing API
+  const productLimit = subData?.usage?.products?.limit || 500;
+  const productPercentage = subData?.usage?.products?.percentage || Math.min(100, Math.round((totalProducts / productLimit) * 100));
+
+  const aiTokensUsed = subData?.usage?.aiTokens?.used || (data?.metrics?.aiProcessed || 0) * 120;
+  const aiTokensLimit = subData?.usage?.aiTokens?.limit || 50000;
+  const aiTokensPercentage = subData?.usage?.aiTokens?.percentage || Math.min(100, Math.round((aiTokensUsed / aiTokensLimit) * 100));
+
+  const storeLimit = subData?.usage?.stores?.limit || 1;
+  const storePercentage = subData?.usage?.stores?.percentage || Math.min(100, Math.round((storesCount / storeLimit) * 100));
 
   // Group real products by category/brand if available
   const recentProducts = data?.recentProducts || [];
@@ -92,16 +112,16 @@ export default function ReportsAnalyticsPage() {
           </div>
           <div>
             <div className="text-2xl font-black text-slate-900">{totalProducts.toLocaleString()}</div>
-            <div className="text-[11px] text-slate-500 mt-0.5">Plan Limit: 10,000 Products</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">Plan Limit: {productLimit.toLocaleString()} Products</div>
           </div>
           <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
             <div
               className="bg-[#0d2a2c] h-full rounded-full transition-all duration-500"
-              style={{ width: `${Math.min((totalProducts / 10000) * 100, 100)}%` }}
+              style={{ width: `${productPercentage}%` }}
             />
           </div>
           <span className="text-[10px] text-slate-400 block">
-            {((totalProducts / 10000) * 100).toFixed(1)}% of allocated workspace quota utilized
+            {productPercentage}% of allocated workspace quota utilized
           </span>
         </div>
 
@@ -113,18 +133,18 @@ export default function ReportsAnalyticsPage() {
           </div>
           <div>
             <div className="text-2xl font-black text-slate-900">
-              {totalProducts > 0 ? (totalProducts * 350).toLocaleString() : '0'} Tokens
+              {aiTokensUsed.toLocaleString()} Tokens
             </div>
-            <div className="text-[11px] text-slate-500 mt-0.5">Enrichment, Title &amp; Spec Extraction</div>
+            <div className="text-[11px] text-slate-500 mt-0.5">Plan Limit: {aiTokensLimit.toLocaleString()} Tokens</div>
           </div>
           <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
             <div
               className="bg-purple-600 h-full rounded-full transition-all duration-500"
-              style={{ width: totalProducts > 0 ? '15%' : '0%' }}
+              style={{ width: `${aiTokensPercentage}%` }}
             />
           </div>
           <span className="text-[10px] text-slate-400 block">
-            Current Tier: <strong className="text-slate-800">{planTier}</strong>
+            Current Tier: <strong className="text-slate-800">{planTier}</strong> ({aiTokensPercentage}% used)
           </span>
         </div>
 
@@ -156,17 +176,17 @@ export default function ReportsAnalyticsPage() {
             <ShoppingBag className="w-4 h-4 text-amber-500" />
           </div>
           <div>
-            <div className="text-2xl font-black text-slate-900">{storesCount} Stores</div>
+            <div className="text-2xl font-black text-slate-900">{storesCount} / {storeLimit} Stores</div>
             <div className="text-[11px] text-slate-500 mt-0.5">Active Connectors</div>
           </div>
           <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
             <div
               className="bg-amber-400 h-full rounded-full transition-all duration-500"
-              style={{ width: storesCount > 0 ? '100%' : '0%' }}
+              style={{ width: `${storePercentage}%` }}
             />
           </div>
           <span className="text-[10px] text-slate-400 block">
-            {storesCount > 0 ? 'Connectors active and healthy' : 'No stores connected yet'}
+            {storesCount > 0 ? `${storesCount} active connector(s) online` : 'No stores connected yet'}
           </span>
         </div>
       </div>
