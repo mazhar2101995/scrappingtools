@@ -18,7 +18,18 @@ import {
   ArrowDownRight,
   ShoppingBag,
   History,
-  Layers
+  Layers,
+  Sparkles,
+  ArrowRight,
+  Check,
+  ChevronRight,
+  Sliders,
+  TrendingUp,
+  Percent,
+  Clock,
+  ShieldAlert,
+  Search,
+  Filter
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -28,6 +39,7 @@ export default function CompetitorSpyPage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [searchFilter, setSearchFilter] = useState('');
 
   // Scanning all
   const [scanningAll, setScanningAll] = useState(false);
@@ -46,10 +58,10 @@ export default function CompetitorSpyPage() {
   const [floorPrice, setFloorPrice] = useState('25.00');
   const [autoPushToStores, setAutoPushToStores] = useState(true);
 
-  // History Drawer / Modal
-  const [activeHistoryMonitor, setActiveHistoryMonitor] = useState<any | null>(null);
-  const [historyLogs, setHistoryLogs] = useState<any[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState(false);
+  // Slide-over Drawer State for Deep Inspection
+  const [selectedMonitorForDrawer, setSelectedMonitorForDrawer] = useState<any | null>(null);
+  const [drawerHistory, setDrawerHistory] = useState<any[]>([]);
+  const [loadingDrawerHistory, setLoadingDrawerHistory] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -59,17 +71,18 @@ export default function CompetitorSpyPage() {
     try {
       setLoading(true);
       setErrorMsg('');
-      const [monitorsList, prodsRes] = await Promise.all([
-        apiClient.getCompetitorMonitors(),
-        apiClient.getProducts({ limit: 100 }),
-      ]);
-      setMonitors(monitorsList);
-      setProducts(Array.isArray(prodsRes?.data) ? prodsRes.data : []);
-      if (prodsRes?.data && prodsRes.data.length > 0 && !selectedProductId) {
-        setSelectedProductId(prodsRes.data[0].id);
+      const mons = await apiClient.getCompetitorMonitors();
+      setMonitors(mons);
+
+      const prodsRes = await apiClient.getProducts({ limit: 100 });
+      const prodsList = prodsRes?.products || prodsRes?.data || [];
+      setProducts(prodsList);
+
+      if (prodsList.length > 0 && !selectedProductId) {
+        setSelectedProductId(prodsList[0].id);
       }
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to load competitor monitors');
+      setErrorMsg(err.message || 'Failed to load competitor data');
     } finally {
       setLoading(false);
     }
@@ -77,14 +90,10 @@ export default function CompetitorSpyPage() {
 
   async function handleAddMonitor(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedProductId || !competitorUrl.trim() || !floorPrice) {
-      alert('Product, Competitor URL, and Floor Price are required');
-      return;
-    }
+    if (!selectedProductId || !competitorUrl) return;
 
     try {
       setSubmitting(true);
-      setErrorMsg('');
       await apiClient.addCompetitorMonitor({
         globalProductId: selectedProductId,
         competitorName: competitorName.trim() || 'Competitor',
@@ -114,8 +123,11 @@ export default function CompetitorSpyPage() {
       const statusText = r.priceChanged
         ? `Competitor Price: $${r.currentCompetitorPrice} ➔ Our Repriced: $${r.ourCalculatedPrice} (Stores auto-updated: ${r.syncedStoresCount})`
         : `Verified price: $${r.currentCompetitorPrice} (No change)`;
-      alert(`[Price Spy Check Complete]\n${statusText}\nFloor Protected: ${r.floorTriggered ? 'YES' : 'NO'}`);
+      setSuccessMsg(`[Price Spy Verified] ${statusText} • Floor Guard: ${r.floorTriggered ? 'TRIGGERED (PROTECTED)' : 'HEALTHY'}`);
       loadData();
+      if (selectedMonitorForDrawer?.id === id) {
+        openInspectionDrawer({ ...selectedMonitorForDrawer, latestCompetitorPrice: r.currentCompetitorPrice, latestCalculatedPrice: r.ourCalculatedPrice });
+      }
     } catch (err: any) {
       alert(`Check failed: ${err.message}`);
     } finally {
@@ -131,7 +143,7 @@ export default function CompetitorSpyPage() {
     try {
       setScanningAll(true);
       const res = await apiClient.scanAllCompetitors();
-      alert(`[Competitor Audit Complete]\nScanned: ${res.scanned} competitors\nPrice Reprices Detected: ${res.priceChangesCount}\nStore Syncs: ${res.syncedStoresTotal}`);
+      setSuccessMsg(`[Competitor Audit Complete] Scanned: ${res.scanned} competitors | Reprices Detected: ${res.priceChangesCount} | Store Syncs: ${res.syncedStoresTotal}`);
       loadData();
     } catch (err: any) {
       alert(`Full scan error: ${err.message}`);
@@ -140,17 +152,16 @@ export default function CompetitorSpyPage() {
     }
   }
 
-  async function handleOpenHistory(m: any) {
-    setActiveHistoryMonitor(m);
+  async function openInspectionDrawer(m: any) {
+    setSelectedMonitorForDrawer(m);
     try {
-      setLoadingHistory(true);
+      setLoadingDrawerHistory(true);
       const hist = await apiClient.getCompetitorPriceHistory(m.id);
-      setHistoryLogs(hist);
+      setDrawerHistory(hist);
     } catch (err) {
-      console.error(err);
-      setHistoryLogs([]);
+      setDrawerHistory([]);
     } finally {
-      setLoadingHistory(false);
+      setLoadingDrawerHistory(false);
     }
   }
 
@@ -159,23 +170,45 @@ export default function CompetitorSpyPage() {
     try {
       await apiClient.deleteCompetitorMonitor(id);
       setSuccessMsg('Monitor removed');
+      if (selectedMonitorForDrawer?.id === id) {
+        setSelectedMonitorForDrawer(null);
+      }
       loadData();
     } catch (err: any) {
       alert(`Delete error: ${err.message}`);
     }
   }
 
+  // Filtered monitors
+  const filteredMonitors = monitors.filter((m) => {
+    if (!searchFilter.trim()) return true;
+    const q = searchFilter.toLowerCase();
+    return (
+      (m.productTitle || '').toLowerCase().includes(q) ||
+      (m.competitorName || '').toLowerCase().includes(q) ||
+      (m.competitorUrl || '').toLowerCase().includes(q)
+    );
+  });
+
+  // Calculate Quick Stats
+  const activeCount = monitors.filter((m) => m.status === 'ACTIVE').length;
+  const undercuttingWins = monitors.filter((m) => m.latestCompetitorPrice && m.latestCalculatedPrice && parseFloat(m.latestCalculatedPrice) < parseFloat(m.latestCompetitorPrice)).length;
+
   return (
-    <div className="space-y-6 w-full font-sans text-slate-800 pb-12">
-      {/* Header */}
+    <div className="space-y-6 w-full font-sans text-slate-800 pb-12 relative">
+      {/* Executive Command Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-            <Crosshair className="w-6 h-6 text-rose-600" />
-            <span>Competitor Price Spy &amp; Auto-Undercut Engine</span>
+          <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-rose-800 font-bold mb-1">
+            <Crosshair className="w-3.5 h-3.5 text-rose-600" />
+            <span>Autonomous Pricing Radar</span>
+          </div>
+          <h1 className="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2.5">
+            <TrendingDown className="w-6 h-6 text-rose-600" />
+            <span>Competitor Price Spy &amp; Auto-Undercut Cockpit</span>
           </h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
-            Monitor rival e-commerce stores in real time. Automatically beat their prices by $1 or 5% while protecting your minimum profit margin floor.
+          <p className="text-xs text-slate-500 mt-1 font-medium max-w-2xl">
+            Monitor rival e-commerce stores 24/7. Automatically beat competitor prices with dynamic margin offsets while guaranteeing absolute profit floor protection.
           </p>
         </div>
 
@@ -183,7 +216,7 @@ export default function CompetitorSpyPage() {
           <button
             onClick={handleScanAll}
             disabled={scanningAll || monitors.length === 0}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl shadow-2xs transition disabled:opacity-50"
           >
             <Activity className={`w-3.5 h-3.5 text-rose-600 ${scanningAll ? 'animate-spin' : ''}`} />
             <span>{scanningAll ? 'Auditing Rivals...' : 'Audit All Competitors'}</span>
@@ -200,7 +233,7 @@ export default function CompetitorSpyPage() {
       </div>
 
       {errorMsg && (
-        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+        <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
           <span>{errorMsg}</span>
         </div>
@@ -218,117 +251,187 @@ export default function CompetitorSpyPage() {
         </div>
       )}
 
-      {/* Feature Value Banner */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
-          <div className="flex items-center gap-2 font-bold text-xs text-slate-900">
-            <TrendingDown className="w-4 h-4 text-rose-600" />
-            <span>Smart Dynamic Undercutting</span>
+      {/* KPI Visual Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Active Competitor Radars</span>
+            <Crosshair className="w-4 h-4 text-rose-600" />
           </div>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            Choose whether to beat the rival by a fixed dollar amount (e.g. -$1.00) or percentage (-5%) with auto-psychological .99 rounding.
-          </p>
+          <div className="text-2xl font-black text-slate-900 font-mono">{activeCount}</div>
+          <div className="text-[10px] text-slate-400 mt-1 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Real-time scraping active</span>
+          </div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
-          <div className="flex items-center gap-2 font-bold text-xs text-slate-900">
-            <Shield className="w-4 h-4 text-emerald-600" />
-            <span>Guaranteed Profit Floor</span>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Undercut Advantage</span>
+            <TrendingDown className="w-4 h-4 text-emerald-600" />
           </div>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            Never sell at a loss. If the competitor sells unrealistically cheap, the engine stops at your configured minimum Floor Price.
-          </p>
+          <div className="text-2xl font-black text-emerald-700 font-mono">{undercuttingWins} SKUs</div>
+          <div className="text-[10px] text-slate-400 mt-1">Winning the Buy Box against rivals</div>
         </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
-          <div className="flex items-center gap-2 font-bold text-xs text-slate-900">
-            <ShoppingBag className="w-4 h-4 text-blue-600" />
-            <span>Autonomous Store Push</span>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Floor Guard Armor</span>
+            <Shield className="w-4 h-4 text-teal-700" />
           </div>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            As soon as a competitor changes their price, the new undercut price is automatically pushed to your connected OpenCart &amp; Shopify stores.
-          </p>
+          <div className="text-2xl font-black text-teal-800 font-mono">100% Secure</div>
+          <div className="text-[10px] text-slate-400 mt-1">Guaranteed zero loss selling safeguard</div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider">Store Auto-Sync</span>
+            <ShoppingBag className="w-4 h-4 text-amber-500" />
+          </div>
+          <div className="text-2xl font-black text-slate-900 font-mono">Connected</div>
+          <div className="text-[10px] text-slate-400 mt-1">Instant delta push to OpenCart &amp; Shopify</div>
         </div>
       </div>
 
-      {/* Tracked Competitors Table */}
+      {/* Main Tracked Competitors Table with Filter */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="font-bold text-sm text-slate-900">Live Tracked Competitor Products ({monitors.length})</h2>
-          <span className="text-[11px] text-slate-400 font-mono">Real-time Scraping &amp; Auto-Repricing</span>
+        <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+          <div>
+            <h2 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+              <Crosshair className="w-4 h-4 text-rose-600" />
+              <span>Tracked Competitor Targets ({filteredMonitors.length})</span>
+            </h2>
+            <span className="text-[11px] text-slate-400 font-medium">Click on any row to open the Price Radar Inspector Drawer</span>
+          </div>
+
+          <div className="relative w-64">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              placeholder="Filter by product or rival store..."
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-teal-700 shadow-2xs"
+            />
+          </div>
         </div>
 
         <div className="divide-y divide-slate-100">
           {loading ? (
-            <div className="py-12 text-center text-xs text-slate-400">Loading competitor monitors...</div>
-          ) : monitors.length === 0 ? (
-            <div className="py-12 text-center text-xs text-slate-400">
-              No competitors being tracked yet. Click &quot;Track New Competitor&quot; above to spy on rival prices.
+            <div className="py-16 text-center text-xs text-slate-400 space-y-2">
+              <RefreshCw className="w-6 h-6 mx-auto animate-spin text-teal-700" />
+              <p>Scanning competitor radar network...</p>
+            </div>
+          ) : filteredMonitors.length === 0 ? (
+            <div className="py-16 text-center text-xs text-slate-400 space-y-2">
+              <Crosshair className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+              <p className="font-bold text-slate-700 text-sm">No Competitor Targets Found</p>
+              <p className="max-w-md mx-auto text-slate-400">
+                Start tracking rival stores like Amazon, Horizon, or supplier websites to automatically undercut their prices.
+              </p>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="mt-3 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition inline-flex items-center gap-1.5"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Track First Competitor</span>
+              </button>
             </div>
           ) : (
-            monitors.map((m) => {
-              const compPrice = m.latestCompetitorPrice ? `$${m.latestCompetitorPrice}` : 'Pending';
-              const ourPrice = m.latestCalculatedPrice ? `$${m.latestCalculatedPrice}` : 'Pending';
+            filteredMonitors.map((m) => {
+              const compPriceNum = m.latestCompetitorPrice ? parseFloat(m.latestCompetitorPrice) : null;
+              const ourPriceNum = m.latestCalculatedPrice ? parseFloat(m.latestCalculatedPrice) : null;
+              const floorNum = m.floorPrice ? parseFloat(m.floorPrice) : 0;
+              const isFloorTriggered = ourPriceNum !== null && ourPriceNum <= floorNum;
+
+              const isWinning = compPriceNum !== null && ourPriceNum !== null && ourPriceNum < compPriceNum;
 
               return (
-                <div key={m.id} className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition">
-                  <div className="space-y-1 max-w-md">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/products/${m.globalProductId}`}
-                        className="font-bold text-xs text-slate-900 hover:text-emerald-700 hover:underline line-clamp-1"
-                      >
+                <div
+                  key={m.id}
+                  onClick={() => openInspectionDrawer(m)}
+                  className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/80 transition cursor-pointer group"
+                >
+                  <div className="space-y-1.5 max-w-lg min-w-0">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="font-bold text-xs text-slate-900 group-hover:text-teal-800 transition line-clamp-1">
                         {m.productTitle}
-                      </Link>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        m.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                      }`}>
+                      </span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase ${
+                          m.status === 'ACTIVE'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : 'bg-rose-100 text-rose-800 border border-rose-200'
+                        }`}
+                      >
                         {m.status}
                       </span>
+                      {isWinning && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                          <span>Winning Price</span>
+                        </span>
+                      )}
                     </div>
 
                     <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-2">
-                      <span className="font-semibold text-slate-700">{m.competitorName}:</span>
+                      <span className="font-bold text-slate-700">{m.competitorName}:</span>
                       <a
                         href={m.competitorUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-blue-600 hover:underline flex items-center gap-0.5 font-mono text-[10px] max-w-[200px] truncate"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-teal-700 hover:underline flex items-center gap-0.5 font-mono text-[10px] max-w-[220px] truncate"
                       >
                         <span>{m.competitorUrl}</span>
                         <ExternalLink className="w-2.5 h-2.5 shrink-0" />
                       </a>
                       <span>•</span>
-                      <span className="font-mono text-slate-600">
-                        Strategy: {m.strategy === 'UNDERCUT_BY_AMOUNT' ? `-$${m.strategyValue}` : m.strategy === 'UNDERCUT_BY_PERCENT' ? `-${m.strategyValue}%` : 'Match'}
+                      <span className="font-mono text-slate-600 font-medium">
+                        Strategy:{' '}
+                        {m.strategy === 'UNDERCUT_BY_AMOUNT'
+                          ? `-$${m.strategyValue}`
+                          : m.strategy === 'UNDERCUT_BY_PERCENT'
+                          ? `-${m.strategyValue}%`
+                          : 'Match'}
                       </span>
                       <span>•</span>
-                      <span className="text-emerald-700 font-semibold">Floor: ${m.floorPrice}</span>
+                      <span className="text-teal-800 font-semibold flex items-center gap-1">
+                        <Shield className="w-3 h-3 text-teal-700" />
+                        <span>Floor: ${m.floorPrice}</span>
+                      </span>
                     </div>
                   </div>
 
-                  {/* Price Comparison Widget */}
-                  <div className="flex items-center gap-4 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  {/* Visual Price Comparison Card */}
+                  <div className="flex items-center gap-3 bg-slate-50/80 p-2.5 px-4 rounded-xl border border-slate-200 shrink-0">
                     <div className="text-right">
-                      <div className="text-[10px] text-slate-400 font-medium">Competitor Price</div>
-                      <div className="text-sm font-black text-rose-600 font-mono">{compPrice}</div>
+                      <div className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Rival Price</div>
+                      <div className="text-sm font-black text-rose-600 font-mono">
+                        {compPriceNum ? `$${compPriceNum.toFixed(2)}` : 'Pending'}
+                      </div>
                     </div>
 
-                    <ArrowDownRight className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-2xs">
+                      <ArrowDownRight className="w-3.5 h-3.5 text-emerald-600" />
+                    </div>
 
                     <div>
-                      <div className="text-[10px] text-slate-400 font-medium">Our Selling Price</div>
-                      <div className="text-sm font-black text-emerald-700 font-mono">{ourPrice}</div>
+                      <div className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Our Price</div>
+                      <div className="text-sm font-black text-emerald-700 font-mono">
+                        {ourPriceNum ? `$${ourPriceNum.toFixed(2)}` : 'Pending'}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  {/* Actions & Drawer Trigger */}
+                  <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
                       disabled={checkingId === m.id}
                       onClick={() => handleCheckSingle(m.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition disabled:opacity-50"
-                      title="Fetch live competitor price and update store now"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition disabled:opacity-50 shadow-2xs"
+                      title="Fetch live competitor price and auto-reprice now"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 text-rose-600 ${checkingId === m.id ? 'animate-spin' : ''}`} />
                       <span>{checkingId === m.id ? 'Spying...' : 'Spy Now'}</span>
@@ -336,18 +439,18 @@ export default function CompetitorSpyPage() {
 
                     <button
                       type="button"
-                      onClick={() => handleOpenHistory(m)}
-                      className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
-                      title="View Price Tracking History"
+                      onClick={() => openInspectionDrawer(m)}
+                      className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition border border-slate-200 shadow-2xs"
+                      title="Open Radar Drawer"
                     >
-                      <History className="w-4 h-4" />
+                      <ChevronRight className="w-4 h-4 text-slate-600" />
                     </button>
 
                     <button
                       type="button"
                       onClick={() => handleDelete(m.id, m.competitorName)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                      title="Delete monitor"
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition border border-transparent hover:border-rose-200"
+                      title="Delete Monitor"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -359,7 +462,138 @@ export default function CompetitorSpyPage() {
         </div>
       </div>
 
-      {/* Add Competitor Monitor Modal */}
+      {/* SLIDE-OVER DRAWER: PRICE RADAR INSPECTOR */}
+      {selectedMonitorForDrawer && (
+        <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/40 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
+          <div className="w-full max-w-xl bg-white border-l border-slate-200 shadow-2xl h-full flex flex-col animate-in slide-in-from-right duration-250">
+            {/* Drawer Header */}
+            <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/60">
+              <div className="space-y-1 pr-4">
+                <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-rose-700 font-bold">
+                  <Crosshair className="w-3.5 h-3.5 text-rose-600" />
+                  <span>Price Radar Inspector</span>
+                </div>
+                <h3 className="text-base font-black text-slate-900 line-clamp-1">
+                  {selectedMonitorForDrawer.productTitle}
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Rival: <span className="text-slate-800 font-bold">{selectedMonitorForDrawer.competitorName}</span>
+                </p>
+              </div>
+
+              <button
+                onClick={() => setSelectedMonitorForDrawer(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Drawer Body */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              {/* Radar Price Card */}
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+                  <span>Current Price Differential</span>
+                  <span className="text-teal-800 font-mono">Real-time</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 text-center">
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Competitor Price</span>
+                    <div className="text-xl font-black text-rose-600 font-mono mt-0.5">
+                      {selectedMonitorForDrawer.latestCompetitorPrice ? `$${selectedMonitorForDrawer.latestCompetitorPrice}` : 'N/A'}
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                    <span className="text-[10px] uppercase font-bold text-slate-400">Our Auto-Undercut</span>
+                    <div className="text-xl font-black text-emerald-700 font-mono mt-0.5">
+                      {selectedMonitorForDrawer.latestCalculatedPrice ? `$${selectedMonitorForDrawer.latestCalculatedPrice}` : 'N/A'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-white border border-slate-200 text-xs space-y-1.5">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Floor Price Safeguard:</span>
+                    <strong className="text-slate-900 font-mono">${selectedMonitorForDrawer.floorPrice}</strong>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Undercut Strategy:</span>
+                    <strong className="text-slate-900 font-mono">{selectedMonitorForDrawer.strategy} ({selectedMonitorForDrawer.strategyValue})</strong>
+                  </div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Auto-Push to Stores:</span>
+                    <strong className="text-emerald-700 font-bold">{selectedMonitorForDrawer.autoPushToStores ? 'ENABLED' : 'PAUSED'}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Price Change Historical Timeline */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                    <History className="w-3.5 h-3.5 text-teal-700" />
+                    <span>Price Change Audit Trail</span>
+                  </h4>
+                  <span className="text-[10px] font-mono text-slate-400">{drawerHistory.length} logs recorded</span>
+                </div>
+
+                <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white overflow-hidden max-h-72 overflow-y-auto">
+                  {loadingDrawerHistory ? (
+                    <div className="py-8 text-center text-xs text-slate-400">Loading audit logs...</div>
+                  ) : drawerHistory.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-slate-400">No price change recorded yet.</div>
+                  ) : (
+                    drawerHistory.map((h) => (
+                      <div key={h.id} className="p-3.5 flex items-center justify-between text-xs hover:bg-slate-50 transition">
+                        <div>
+                          <div className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
+                            <Clock className="w-3 h-3 text-slate-400" />
+                            <span>{new Date(h.recordedAt).toLocaleString()}</span>
+                          </div>
+                          <div className="text-rose-600 font-bold mt-0.5">Rival: ${h.competitorPrice}</div>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="text-emerald-700 font-black">Our: ${h.ourCalculatedPrice}</div>
+                          <div className="text-[10px] font-bold text-slate-500">
+                            {h.isInStock ? '✓ In Stock' : '✗ Out of Stock'}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+              <Link
+                href={`/products/${selectedMonitorForDrawer.globalProductId}`}
+                className="text-xs font-bold text-teal-800 hover:underline flex items-center gap-1"
+              >
+                <span>Open Product Details</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+
+              <button
+                type="button"
+                disabled={checkingId === selectedMonitorForDrawer.id}
+                onClick={() => handleCheckSingle(selectedMonitorForDrawer.id)}
+                className="px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition flex items-center gap-1.5"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${checkingId === selectedMonitorForDrawer.id ? 'animate-spin' : ''}`} />
+                <span>Re-Check Rival Now</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD COMPETITOR MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
@@ -456,7 +690,7 @@ export default function CompetitorSpyPage() {
                   className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
-                  Protection guarantee: Even if the competitor sets $10, our price will never go below this floor price.
+                  Protection guarantee: Even if the competitor sells for $5, our price will never go below this floor.
                 </p>
               </div>
 
@@ -466,7 +700,7 @@ export default function CompetitorSpyPage() {
                     type="checkbox"
                     checked={autoPushToStores}
                     onChange={(e) => setAutoPushToStores(e.target.checked)}
-                    className="rounded text-[#0d2a2c] accent-[#0d2a2c]"
+                    className="rounded text-teal-700 accent-teal-700"
                   />
                   <span>Auto-Push Updated Price to Connected Stores (OpenCart/Shopify)</span>
                 </label>
@@ -483,7 +717,7 @@ export default function CompetitorSpyPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2.5 rounded-xl bg-[#0d2a2c] hover:bg-[#143d40] text-[#fad982] font-bold text-xs shadow-sm transition flex items-center gap-2 disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs shadow-sm transition flex items-center gap-2 disabled:opacity-50"
                 >
                   {submitting ? 'Setting up Spy...' : 'Start Tracking'}
                 </button>
@@ -492,58 +726,6 @@ export default function CompetitorSpyPage() {
           </div>
         </div>
       )}
-
-      {/* History Modal */}
-      {activeHistoryMonitor && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <History className="w-5 h-5 text-rose-600" />
-                <h3 className="font-bold text-sm text-slate-900">Price Spy History</h3>
-              </div>
-              <button
-                onClick={() => setActiveHistoryMonitor(null)}
-                className="text-slate-400 hover:text-slate-600 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {loadingHistory ? (
-                <div className="p-6 text-center text-xs text-slate-400">Loading history...</div>
-              ) : historyLogs.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-400">No price history recorded yet.</div>
-              ) : (
-                historyLogs.map((h) => (
-                  <div key={h.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono flex items-center justify-between">
-                    <div>
-                      <div className="text-slate-500 text-[10px]">{new Date(h.recordedAt).toLocaleString()}</div>
-                      <div className="text-rose-600 font-bold">Rival: ${h.competitorPrice}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-emerald-700 font-black">Our Price: ${h.ourCalculatedPrice}</div>
-                      <div className="text-[10px] text-slate-400">{h.isInStock ? 'In Stock' : 'Out of Stock'}</div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="flex justify-end pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setActiveHistoryMonitor(null)}
-                className="px-4 py-2 bg-slate-100 text-slate-800 text-xs font-bold rounded-xl hover:bg-slate-200"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
-
