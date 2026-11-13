@@ -95,13 +95,13 @@ export default function AdminObservabilityCenter() {
   if (loading) {
     return (
       <div className="space-y-6 w-full animate-pulse font-sans">
-        <div className="h-20 bg-white rounded-3xl border border-[#ebdcb9]"></div>
+        <div className="h-20 bg-white rounded-xl border border-[#ebdcb9]"></div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 bg-white rounded-3xl border border-[#ebdcb9]"></div>
+            <div key={i} className="h-32 bg-white rounded-xl border border-[#ebdcb9]"></div>
           ))}
         </div>
-        <div className="h-96 bg-white rounded-3xl border border-[#ebdcb9]"></div>
+        <div className="h-96 bg-white rounded-xl border border-[#ebdcb9]"></div>
       </div>
     );
   }
@@ -115,9 +115,9 @@ export default function AdminObservabilityCenter() {
   return (
     <div className="space-y-8 font-sans pb-16">
       {/* 1. Header & Live Controller */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-white/90 backdrop-blur-md rounded-3xl border border-[#ebdcb9] shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 bg-white/90 backdrop-blur-md rounded-xl border border-[#ebdcb9] shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#00473e]/10 border border-[#00473e]/20 flex items-center justify-center text-[#00473e]">
+          <div className="w-12 h-12 rounded-xl bg-[#00473e]/10 border border-[#00473e]/20 flex items-center justify-center text-[#00473e]">
             <Server className="w-6 h-6" />
           </div>
           <div>
@@ -137,7 +137,7 @@ export default function AdminObservabilityCenter() {
           <button
             onClick={loadAllObservabilityData}
             disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-[#f2f7f5] hover:bg-[#ebdcb9]/40 border border-[#ebdcb9] text-[#00473e] rounded-2xl text-xs font-bold transition disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[#f2f7f5] hover:bg-[#ebdcb9]/40 border border-[#ebdcb9] text-[#00473e] rounded-xl text-xs font-bold transition disabled:opacity-50"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh Telemetry
@@ -148,7 +148,7 @@ export default function AdminObservabilityCenter() {
       {/* 2. Top-Level Platform Vital Signs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Monitored Domains Health */}
-        <div className="p-5 bg-white rounded-3xl border border-[#ebdcb9] shadow-sm">
+        <div className="p-5 bg-white rounded-xl border border-[#ebdcb9] shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-neutral-600 uppercase tracking-wider">Source Websites</span>
             <Globe className="w-4 h-4 text-[#00473e]" />
@@ -171,7 +171,7 @@ export default function AdminObservabilityCenter() {
         </div>
 
         {/* Headless Browser Worker Load */}
-        <div className="p-5 bg-white rounded-3xl border border-[#ebdcb9] shadow-sm">
+        <div className="p-5 bg-white rounded-xl border border-[#ebdcb9] shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-neutral-600 uppercase tracking-wider">Browser Workload</span>
             <Cpu className="w-4 h-4 text-[#00473e]" />
@@ -188,7 +188,7 @@ export default function AdminObservabilityCenter() {
         </div>
 
         {/* Network Routes Health */}
-        <div className="p-5 bg-white rounded-3xl border border-[#ebdcb9] shadow-sm">
+        <div className="p-5 bg-white rounded-xl border border-[#ebdcb9] shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-neutral-600 uppercase tracking-wider">Network Routes</span>
             <Radio className="w-4 h-4 text-[#00473e]" />
@@ -205,7 +205,7 @@ export default function AdminObservabilityCenter() {
         </div>
 
         {/* Client Reports & Feedback */}
-        <div className="p-5 bg-white rounded-3xl border border-[#ebdcb9] shadow-sm">
+        <div className="p-5 bg-white rounded-xl border border-[#ebdcb9] shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-neutral-600 uppercase tracking-wider">Client Issues & Reports</span>
             <MessageSquare className="w-4 h-4 text-[#00473e]" />
@@ -226,7 +226,7 @@ export default function AdminObservabilityCenter() {
       <div className="flex items-center gap-2 border-b border-[#ebdcb9] pb-3 overflow-x-auto">
         <button
           onClick={() => setActiveTab('overview')}
-          className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
             activeTab === 'overview'
               ? 'bg-[#00473e] text-white shadow-sm'
               : 'text-[#00473e] hover:bg-[#ebdcb9]/30'
@@ -236,7 +236,7 @@ export default function AdminObservabilityCenter() {
         </button>
         <button
           onClick={() => setActiveTab('sources')}
-          className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
             activeTab === 'sources'
               ? 'bg-[#00473e] text-white shadow-sm'
               : 'text-[#00473e] hover:bg-[#ebdcb9]/30'
@@ -251,7 +251,7 @@ export default function AdminObservabilityCenter() {
         </button>
         <button
           onClick={() => setActiveTab('browser')}
-          className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
             activeTab === 'browser'
               ? 'bg-[#00473e] text-white shadow-sm'
               : 'text-[#00473e] hover:bg-[#ebdcb9]/30'
@@ -261,7 +261,7 @@ export default function AdminObservabilityCenter() {
         </button>
         <button
           onClick={() => setActiveTab('routes')}
-          className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
             activeTab === 'routes'
               ? 'bg-[#00473e] text-white shadow-sm'
               : 'text-[#00473e] hover:bg-[#ebdcb9]/30'
@@ -271,7 +271,7 @@ export default function AdminObservabilityCenter() {
         </button>
         <button
           onClick={() => setActiveTab('feedback')}
-          className={`px-4 py-2 rounded-2xl text-xs font-bold transition flex items-center gap-2 ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
             activeTab === 'feedback'
               ? 'bg-[#00473e] text-white shadow-sm'
               : 'text-[#00473e] hover:bg-[#ebdcb9]/30'
@@ -290,7 +290,7 @@ export default function AdminObservabilityCenter() {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Real Incident Center */}
-          <div className="p-6 bg-white rounded-3xl border border-[#ebdcb9] shadow-sm">
+          <div className="p-6 bg-white rounded-xl border border-[#ebdcb9] shadow-sm">
             <div className="flex items-center justify-between pb-4 border-b border-[#ebdcb9]">
               <div>
                 <h3 className="font-bold text-sm text-[#00473e]">Real Incident & Operational Alerts</h3>
@@ -308,7 +308,7 @@ export default function AdminObservabilityCenter() {
                 adminOverview.criticalIncidents.map((inc: any, idx: number) => (
                   <div
                     key={inc.id || idx}
-                    className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 flex items-start justify-between gap-4"
+                    className="p-4 rounded-xl bg-amber-50/70 border border-amber-200/80 flex items-start justify-between gap-4"
                   >
                     <div className="flex items-start gap-3">
                       <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
@@ -343,31 +343,31 @@ export default function AdminObservabilityCenter() {
 
           {/* Subsystem Health Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 bg-white rounded-3xl border border-[#ebdcb9] shadow-sm">
+            <div className="p-6 bg-white rounded-xl border border-[#ebdcb9] shadow-sm">
               <h3 className="font-bold text-sm text-[#00473e] mb-4">Core Infrastructure Status</h3>
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-[#f2f7f5]/50 border border-[#ebdcb9]/60">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-[#f2f7f5]/50 border border-[#ebdcb9]/60">
                   <span className="text-xs font-semibold text-neutral-700">REST API Gateway</span>
                   <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
                     Healthy (HTTP 200)
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-[#f2f7f5]/50 border border-[#ebdcb9]/60">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-[#f2f7f5]/50 border border-[#ebdcb9]/60">
                   <span className="text-xs font-semibold text-neutral-700">PostgreSQL Primary Cluster</span>
                   <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
                     Connected & Verified
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-[#f2f7f5]/50 border border-[#ebdcb9]/60">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-[#f2f7f5]/50 border border-[#ebdcb9]/60">
                   <span className="text-xs font-semibold text-neutral-700">Redis BullMQ Broker</span>
                   <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
                     Responsive
                   </span>
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-[#f2f7f5]/50 border border-[#ebdcb9]/60">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-[#f2f7f5]/50 border border-[#ebdcb9]/60">
                   <span className="text-xs font-semibold text-neutral-700">Python Fast Cascade Engine</span>
                   <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
@@ -377,7 +377,7 @@ export default function AdminObservabilityCenter() {
               </div>
             </div>
 
-            <div className="p-6 bg-white rounded-3xl border border-[#ebdcb9] shadow-sm">
+            <div className="p-6 bg-white rounded-xl border border-[#ebdcb9] shadow-sm">
               <h3 className="font-bold text-sm text-[#00473e] mb-4">Real Server Resource Usage</h3>
               <div className="space-y-4">
                 <div>
@@ -415,7 +415,7 @@ export default function AdminObservabilityCenter() {
 
       {/* TAB 2: SOURCE HEALTH & COOLDOWNS */}
       {activeTab === 'sources' && (
-        <div className="p-6 bg-white rounded-3xl border border-[#ebdcb9] shadow-sm space-y-4">
+        <div className="p-6 bg-white rounded-xl border border-[#ebdcb9] shadow-sm space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[#ebdcb9]">
             <div>
               <h3 className="font-bold text-sm text-[#00473e]">Monitored Source Domains</h3>
@@ -483,7 +483,7 @@ export default function AdminObservabilityCenter() {
 
           {/* Detailed Domain Modal/Drawer */}
           {selectedDomain && domainDetail && (
-            <div className="mt-6 p-6 rounded-3xl bg-[#f2f7f5] border border-[#ebdcb9] space-y-4">
+            <div className="mt-6 p-6 rounded-xl bg-[#f2f7f5] border border-[#ebdcb9] space-y-4">
               <div className="flex items-center justify-between border-b border-[#ebdcb9] pb-3">
                 <div>
                   <h4 className="font-bold text-sm text-[#00473e]">Diagnostic Detail: {selectedDomain}</h4>
@@ -498,19 +498,19 @@ export default function AdminObservabilityCenter() {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                <div className="p-3 bg-white rounded-2xl border border-[#ebdcb9]/60">
+                <div className="p-3 bg-white rounded-xl border border-[#ebdcb9]/60">
                   <span className="text-neutral-600 block text-[10px] uppercase font-bold">Consecutive Failures</span>
                   <span className="font-bold text-neutral-800 text-sm">{domainDetail.consecutiveFailures}</span>
                 </div>
-                <div className="p-3 bg-white rounded-2xl border border-[#ebdcb9]/60">
+                <div className="p-3 bg-white rounded-xl border border-[#ebdcb9]/60">
                   <span className="text-neutral-600 block text-[10px] uppercase font-bold">Last Status Code</span>
                   <span className="font-bold text-neutral-800 text-sm">{domainDetail.lastStatusCode || 'N/A'}</span>
                 </div>
-                <div className="p-3 bg-white rounded-2xl border border-[#ebdcb9]/60">
+                <div className="p-3 bg-white rounded-xl border border-[#ebdcb9]/60">
                   <span className="text-neutral-600 block text-[10px] uppercase font-bold">Last Error Category</span>
                   <span className="font-bold text-neutral-800 text-sm">{domainDetail.lastErrorCategory || 'None'}</span>
                 </div>
-                <div className="p-3 bg-white rounded-2xl border border-[#ebdcb9]/60">
+                <div className="p-3 bg-white rounded-xl border border-[#ebdcb9]/60">
                   <span className="text-neutral-600 block text-[10px] uppercase font-bold">Last Successful Hit</span>
                   <span className="font-bold text-neutral-800 text-sm">
                     {domainDetail.lastSuccessAt ? new Date(domainDetail.lastSuccessAt).toLocaleTimeString() : 'N/A'}
@@ -524,7 +524,7 @@ export default function AdminObservabilityCenter() {
 
       {/* TAB 3: BROWSER ISOLATION & QUEUES */}
       {activeTab === 'browser' && (
-        <div className="p-6 bg-white rounded-3xl border border-[#ebdcb9] shadow-sm space-y-6">
+        <div className="p-6 bg-white rounded-xl border border-[#ebdcb9] shadow-sm space-y-6">
           <div>
             <h3 className="font-bold text-sm text-[#00473e]">Headless Chromium Resource Protection</h3>
             <p className="text-xs text-neutral-600 mt-0.5">
@@ -533,19 +533,19 @@ export default function AdminObservabilityCenter() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-2xl bg-[#f2f7f5]/60 border border-[#ebdcb9]">
+            <div className="p-4 rounded-xl bg-[#f2f7f5]/60 border border-[#ebdcb9]">
               <span className="text-xs text-neutral-600 font-bold uppercase tracking-wider block">Server Max Concurrency</span>
               <span className="text-2xl font-bold text-[#00473e] mt-1 block">{browserData?.config?.maxConcurrentBrowsers || 3} Browsers</span>
               <span className="text-[11px] text-neutral-600 mt-1 block">Active Right Now: {activeBrowserJobs}</span>
             </div>
-            <div className="p-4 rounded-2xl bg-[#f2f7f5]/60 border border-[#ebdcb9]">
+            <div className="p-4 rounded-xl bg-[#f2f7f5]/60 border border-[#ebdcb9]">
               <span className="text-xs text-neutral-600 font-bold uppercase tracking-wider block">Job Timeout Ceiling</span>
               <span className="text-2xl font-bold text-[#00473e] mt-1 block">
                 {(browserData?.config?.totalJobTimeoutMs || 30000) / 1000}s Total
               </span>
               <span className="text-[11px] text-neutral-600 mt-1 block">Nav Timeout: {(browserData?.config?.navigationTimeoutMs || 20000) / 1000}s</span>
             </div>
-            <div className="p-4 rounded-2xl bg-[#f2f7f5]/60 border border-[#ebdcb9]">
+            <div className="p-4 rounded-xl bg-[#f2f7f5]/60 border border-[#ebdcb9]">
               <span className="text-xs text-neutral-600 font-bold uppercase tracking-wider block">Fairness Tenant Limit</span>
               <span className="text-2xl font-bold text-[#00473e] mt-1 block">{browserData?.config?.maxPerTenantConcurrent || 1} Concurrent</span>
               <span className="text-[11px] text-neutral-600 mt-1 block">Prevents single-tenant queue monopolization</span>
@@ -553,7 +553,7 @@ export default function AdminObservabilityCenter() {
           </div>
 
           {/* Queue Depths */}
-          <div className="border border-[#ebdcb9] rounded-2xl p-4">
+          <div className="border border-[#ebdcb9] rounded-xl p-4">
             <h4 className="font-bold text-xs text-[#00473e] mb-3">BullMQ Queue Telemetry</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               <div className="p-3 bg-white rounded-xl border border-[#ebdcb9]/60">
@@ -579,7 +579,7 @@ export default function AdminObservabilityCenter() {
 
       {/* TAB 4: NETWORK ROUTES */}
       {activeTab === 'routes' && (
-        <div className="p-6 bg-white rounded-3xl border border-[#ebdcb9] shadow-sm space-y-4">
+        <div className="p-6 bg-white rounded-xl border border-[#ebdcb9] shadow-sm space-y-4">
           <div>
             <h3 className="font-bold text-sm text-[#00473e]">Network Route Manager & Proxy Telemetry</h3>
             <p className="text-xs text-neutral-600 mt-0.5">
@@ -588,7 +588,7 @@ export default function AdminObservabilityCenter() {
           </div>
 
           <div className="space-y-3">
-            <div className="p-4 rounded-2xl bg-[#f2f7f5]/60 border border-[#ebdcb9] flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-[#f2f7f5]/60 border border-[#ebdcb9] flex items-center justify-between">
               <div>
                 <span className="font-bold text-xs text-[#00473e]">Direct Core Connection (Default)</span>
                 <p className="text-[11px] text-neutral-600 mt-0.5">Direct server connection for all standard and healthy store sources</p>
@@ -599,7 +599,7 @@ export default function AdminObservabilityCenter() {
             </div>
 
             {routes.map((r) => (
-              <div key={r.routeId} className="p-4 rounded-2xl bg-white border border-[#ebdcb9] flex items-center justify-between">
+              <div key={r.routeId} className="p-4 rounded-xl bg-white border border-[#ebdcb9] flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-xs text-[#00473e]">{r.routeId}</span>
@@ -633,7 +633,7 @@ export default function AdminObservabilityCenter() {
 
       {/* TAB 5: CLIENT PROBLEM & FEEDBACK CENTER */}
       {activeTab === 'feedback' && (
-        <div className="p-6 bg-white rounded-3xl border border-[#ebdcb9] shadow-sm space-y-4">
+        <div className="p-6 bg-white rounded-xl border border-[#ebdcb9] shadow-sm space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[#ebdcb9]">
             <div>
               <h3 className="font-bold text-sm text-[#00473e]">Client Problem & Feedback Center</h3>
@@ -646,7 +646,7 @@ export default function AdminObservabilityCenter() {
           <div className="space-y-3">
             {feedbackList.length > 0 ? (
               feedbackList.map((f) => (
-                <div key={f.id} className="p-4 rounded-2xl bg-[#f2f7f5]/40 border border-[#ebdcb9] space-y-2 text-xs">
+                <div key={f.id} className="p-4 rounded-xl bg-[#f2f7f5]/40 border border-[#ebdcb9] space-y-2 text-xs">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-neutral-900">{f.title}</span>

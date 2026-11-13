@@ -126,7 +126,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-64 flex flex-col bg-white text-slate-800 shrink-0 border-r border-[#e8dfc8]/60 shadow-[4px_0_24px_rgba(218,165,32,0.06)]">
         {/* Admin Header with Gold Emblem */}
         <div className="h-20 flex items-center px-5 gap-3 border-b border-[#f1ebd9] bg-gradient-to-b from-[#fdfbf7] to-white">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#d4af37] via-[#f3e5ab] to-[#fad982] text-slate-950 flex items-center justify-center font-black text-sm shadow-md shadow-[#d4af37]/20 border border-[#b89728]/30">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#d4af37] via-[#f3e5ab] to-[#fad982] text-slate-950 flex items-center justify-center font-black text-sm shadow-md shadow-[#d4af37]/20 border border-[#b89728]/30">
             <span className="tracking-tighter font-serif">PA</span>
           </div>
           <div className="flex flex-col">
@@ -276,7 +276,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition text-left group"
+                className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-[#dbdade] transition text-left group"
               >
                 <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#fad982] to-[#e6bd53] text-slate-950 font-black text-xs flex items-center justify-center shadow-xs border border-[#cfab47]">
                   {initials}
@@ -289,7 +289,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </button>
 
               {profileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-[#ebdcb9] py-2 z-50 divide-y divide-slate-100 animate-fadeIn">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-[#ebdcb9] py-2 z-50 divide-y divide-slate-100 animate-fadeIn">
                   <div className="px-4 py-3 bg-[#fdfbf7]">
                     <p className="text-xs font-bold text-slate-900">{adminName}</p>
                     <p className="text-[11px] text-slate-500 truncate mt-0.5">{adminEmail}</p>

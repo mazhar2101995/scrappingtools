@@ -35,7 +35,7 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen bg-[#0d2a2c] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans text-slate-100 selection:bg-amber-400 selection:text-slate-900">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-400 via-amber-300 to-amber-200 text-slate-950 items-center justify-center font-black text-2xl shadow-xl shadow-black/40 mb-4 border border-amber-300/40">
+        <div className="inline-flex w-14 h-14 rounded-xl bg-gradient-to-tr from-amber-400 via-amber-300 to-amber-200 text-slate-950 items-center justify-center font-black text-2xl shadow-xl shadow-black/40 mb-4 border border-amber-300/40">
           <ShieldAlert className="w-8 h-8 text-slate-950" />
         </div>
         <h2 className="text-2xl font-black tracking-tight text-white">Platform Admin Control Center</h2>
@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-[#143d40] py-8 px-6 shadow-2xl border border-teal-800/80 rounded-2xl sm:px-10 space-y-6">
+        <div className="bg-[#143d40] py-8 px-6 shadow-2xl border border-teal-800/80 rounded-xl sm:px-10 space-y-6">
           {error && (
             <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />

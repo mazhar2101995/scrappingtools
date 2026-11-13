@@ -280,7 +280,7 @@ export default function SupplierSessionsAndFeedsPage() {
   return (
     <div className="space-y-6 w-full font-sans text-slate-800 pb-12">
       {/* Header matching App Theme */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-teal-800 font-bold mb-1">
             <Server className="w-3.5 h-3.5 text-teal-700" />
@@ -342,7 +342,7 @@ export default function SupplierSessionsAndFeedsPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-4 border-b border-slate-200">
+      <div className="flex items-center gap-4 border-b border-[#dbdade]">
         <button
           onClick={() => setActiveTab('feeds')}
           className={`pb-3 px-1 text-xs font-bold flex items-center gap-2 border-b-2 transition ${
@@ -353,7 +353,7 @@ export default function SupplierSessionsAndFeedsPage() {
         >
           <FileSpreadsheet className="w-4 h-4 text-teal-700" />
           <span>Automated Feeds (FTP / Google Sheets / CSV)</span>
-          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-mono text-slate-700 font-semibold border border-slate-200">
+          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-mono text-slate-700 font-semibold border border-[#dbdade]">
             {feeds.length}
           </span>
         </button>
@@ -368,7 +368,7 @@ export default function SupplierSessionsAndFeedsPage() {
         >
           <KeyRound className="w-4 h-4 text-teal-700" />
           <span>B2B Portal Logins &amp; Session Cookies</span>
-          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-mono text-slate-700 font-semibold border border-slate-200">
+          <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-mono text-slate-700 font-semibold border border-[#dbdade]">
             {sessions.length}
           </span>
         </button>
@@ -379,7 +379,7 @@ export default function SupplierSessionsAndFeedsPage() {
         <div className="space-y-6">
           {/* Feature Highlights with crisp card styling */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
+            <div className="p-4 rounded-xl bg-white border border-[#dbdade] shadow-2xs space-y-1">
               <div className="flex items-center gap-2 font-bold text-xs text-slate-900">
                 <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                 <span>Live Google Sheets Sync</span>
@@ -389,7 +389,7 @@ export default function SupplierSessionsAndFeedsPage() {
               </p>
             </div>
 
-            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
+            <div className="p-4 rounded-xl bg-white border border-[#dbdade] shadow-2xs space-y-1">
               <div className="flex items-center gap-2 font-bold text-xs text-slate-900">
                 <Server className="w-4 h-4 text-amber-600" />
                 <span>FTP / SFTP Automated Ingestion</span>
@@ -399,7 +399,7 @@ export default function SupplierSessionsAndFeedsPage() {
               </p>
             </div>
 
-            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
+            <div className="p-4 rounded-xl bg-white border border-[#dbdade] shadow-2xs space-y-1">
               <div className="flex items-center gap-2 font-bold text-xs text-slate-900">
                 <Sparkles className="w-4 h-4 text-teal-600" />
                 <span>Smart Auto-Column Mapping</span>
@@ -411,7 +411,7 @@ export default function SupplierSessionsAndFeedsPage() {
           </div>
 
           {/* List of Configured Feeds */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -426,7 +426,7 @@ export default function SupplierSessionsAndFeedsPage() {
               <button
                 onClick={loadFeeds}
                 disabled={loadingFeeds}
-                className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 transition"
+                className="p-2 rounded-xl bg-[#f8f7fa] hover:bg-slate-100 border border-[#dbdade] text-slate-600 transition"
                 title="Refresh Feeds"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${loadingFeeds ? 'animate-spin text-teal-600' : ''}`} />
@@ -458,12 +458,12 @@ export default function SupplierSessionsAndFeedsPage() {
                   return (
                     <div
                       key={feed.id}
-                      className="p-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition"
+                      className="p-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#f8f7fa]/50 transition"
                     >
                       <div className="space-y-1 min-w-0">
                         <div className="flex items-center gap-2.5 flex-wrap">
                           <span className="font-bold text-xs text-slate-900">{feed.feedName}</span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-semibold">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-[#dbdade] font-semibold">
                             {feed.feedType}
                           </span>
                           <span
@@ -508,7 +508,7 @@ export default function SupplierSessionsAndFeedsPage() {
                         <button
                           onClick={() => handleSyncFeedNow(feed)}
                           disabled={isSyncing}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 transition disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f8f7fa] hover:bg-slate-100 text-slate-700 text-xs font-bold border border-[#dbdade] transition disabled:opacity-50"
                         >
                           <Play className={`w-3 h-3 text-teal-700 ${isSyncing ? 'animate-spin' : ''}`} />
                           <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
@@ -533,7 +533,7 @@ export default function SupplierSessionsAndFeedsPage() {
 
       {/* TAB 2: SESSIONS (PORTAL LOGINS) */}
       {activeTab === 'sessions' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
             <div>
               <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -548,7 +548,7 @@ export default function SupplierSessionsAndFeedsPage() {
             <button
               onClick={loadSessions}
               disabled={loadingSessions}
-              className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 transition"
+              className="p-2 rounded-xl bg-[#f8f7fa] hover:bg-slate-100 border border-[#dbdade] text-slate-600 transition"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loadingSessions ? 'animate-spin text-teal-600' : ''}`} />
             </button>
@@ -576,12 +576,12 @@ export default function SupplierSessionsAndFeedsPage() {
                 return (
                   <div
                     key={item.id}
-                    className="p-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition"
+                    className="p-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-[#f8f7fa]/50 transition"
                   >
                     <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2.5 flex-wrap">
                         <span className="font-bold text-xs text-slate-900">{item.supplierName}</span>
-                        <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 font-semibold">
+                        <span className="flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-[#dbdade] font-semibold">
                           <Globe className="w-3 h-3 text-teal-700" />
                           {item.supplierDomain}
                         </span>
@@ -625,7 +625,7 @@ export default function SupplierSessionsAndFeedsPage() {
                       <button
                         onClick={() => handleLoginSessionNow(item)}
                         disabled={isLoggingIn}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200 transition disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f8f7fa] hover:bg-slate-100 text-slate-700 text-xs font-bold border border-[#dbdade] transition disabled:opacity-50"
                       >
                         <RefreshCw className={`w-3 h-3 text-teal-700 ${isLoggingIn ? 'animate-spin' : ''}`} />
                         <span>{isLoggingIn ? 'Logging in...' : 'Test Login'}</span>
@@ -635,7 +635,7 @@ export default function SupplierSessionsAndFeedsPage() {
                         href={item.loginUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-700 border border-slate-200 transition"
+                        className="p-2 rounded-xl bg-[#f8f7fa] hover:bg-slate-100 text-slate-500 hover:text-slate-700 border border-[#dbdade] transition"
                         title="Open Login URL"
                       >
                         <ExternalLink className="w-3.5 h-3.5" />
@@ -659,7 +659,7 @@ export default function SupplierSessionsAndFeedsPage() {
       {/* MODAL: ADD SUPPLIER LOGIN */}
       {sessionModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-5 animate-scale-in text-slate-800">
+          <div className="bg-white border border-[#dbdade] rounded-xl w-full max-w-lg p-6 shadow-2xl space-y-5 animate-scale-in text-slate-800">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold">
@@ -681,7 +681,7 @@ export default function SupplierSessionsAndFeedsPage() {
                   placeholder="e.g. Tech Data, Synnex, Ingram Micro"
                   value={sessionFormData.supplierName}
                   onChange={(e) => setSessionFormData({ ...sessionFormData, supplierName: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                  className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                 />
               </div>
 
@@ -693,7 +693,7 @@ export default function SupplierSessionsAndFeedsPage() {
                   placeholder="e.g. dealer.supplier.com"
                   value={sessionFormData.supplierDomain}
                   onChange={(e) => setSessionFormData({ ...sessionFormData, supplierDomain: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                  className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                 />
               </div>
 
@@ -705,7 +705,7 @@ export default function SupplierSessionsAndFeedsPage() {
                   placeholder="https://dealer.supplier.com/login"
                   value={sessionFormData.loginUrl}
                   onChange={(e) => setSessionFormData({ ...sessionFormData, loginUrl: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                  className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                 />
               </div>
 
@@ -718,7 +718,7 @@ export default function SupplierSessionsAndFeedsPage() {
                     placeholder="account_910"
                     value={sessionFormData.username}
                     onChange={(e) => setSessionFormData({ ...sessionFormData, username: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                    className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                   />
                 </div>
 
@@ -730,7 +730,7 @@ export default function SupplierSessionsAndFeedsPage() {
                     placeholder="••••••••••••"
                     value={sessionFormData.password}
                     onChange={(e) => setSessionFormData({ ...sessionFormData, password: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                    className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                   />
                 </div>
               </div>
@@ -758,7 +758,7 @@ export default function SupplierSessionsAndFeedsPage() {
       {/* MODAL: FEED WIZARD (FTP / GOOGLE SHEETS / CSV) */}
       {feedModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl p-6 shadow-2xl space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto text-slate-800">
+          <div className="bg-white border border-[#dbdade] rounded-xl w-full max-w-2xl p-6 shadow-2xl space-y-5 animate-scale-in max-h-[90vh] overflow-y-auto text-slate-800">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center font-bold">
@@ -797,7 +797,7 @@ export default function SupplierSessionsAndFeedsPage() {
                           className={`p-3 rounded-xl border text-left flex flex-col items-center justify-center text-center gap-1.5 transition ${
                             active
                               ? 'bg-amber-50/60 border-amber-400 text-slate-900 shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                              : 'bg-[#f8f7fa] border-[#dbdade] text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           <Icon className={`w-4 h-4 ${active ? 'text-amber-600' : 'text-slate-400'}`} />
@@ -816,7 +816,7 @@ export default function SupplierSessionsAndFeedsPage() {
                     placeholder="e.g. Westcoast Daily Inventory Sheet"
                     value={feedName}
                     onChange={(e) => setFeedName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                    className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                   />
                 </div>
 
@@ -830,7 +830,7 @@ export default function SupplierSessionsAndFeedsPage() {
                       placeholder="https://docs.google.com/spreadsheets/d/1BxiMVs0XR.../edit#gid=0"
                       value={feedConfig.url}
                       onChange={(e) => setFeedConfig({ ...feedConfig, url: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                      className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                     />
                     <span className="text-[11px] text-slate-500 mt-1 block font-medium">
                       Ensure the sheet permission is &quot;Anyone with the link can view&quot;. The engine streams live CSV directly.
@@ -847,7 +847,7 @@ export default function SupplierSessionsAndFeedsPage() {
                       placeholder="https://supplier.com/exports/pricing.csv"
                       value={feedConfig.url}
                       onChange={(e) => setFeedConfig({ ...feedConfig, url: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                      className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                     />
                   </div>
                 )}
@@ -863,7 +863,7 @@ export default function SupplierSessionsAndFeedsPage() {
                           placeholder="ftp.supplier.com"
                           value={feedConfig.host}
                           onChange={(e) => setFeedConfig({ ...feedConfig, host: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                          className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                         />
                       </div>
                       <div>
@@ -872,7 +872,7 @@ export default function SupplierSessionsAndFeedsPage() {
                           type="number"
                           value={feedConfig.port}
                           onChange={(e) => setFeedConfig({ ...feedConfig, port: parseInt(e.target.value, 10) })}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                          className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                         />
                       </div>
                     </div>
@@ -886,7 +886,7 @@ export default function SupplierSessionsAndFeedsPage() {
                           placeholder="ftp_user"
                           value={feedConfig.username}
                           onChange={(e) => setFeedConfig({ ...feedConfig, username: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                          className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                         />
                       </div>
                       <div>
@@ -897,7 +897,7 @@ export default function SupplierSessionsAndFeedsPage() {
                           placeholder="••••••••••••"
                           value={feedConfig.password}
                           onChange={(e) => setFeedConfig({ ...feedConfig, password: e.target.value })}
-                          className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                          className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                         />
                       </div>
                     </div>
@@ -910,7 +910,7 @@ export default function SupplierSessionsAndFeedsPage() {
                         placeholder="/feeds/inventory.csv or /pricing/stock.xlsx"
                         value={feedConfig.remotePath}
                         onChange={(e) => setFeedConfig({ ...feedConfig, remotePath: e.target.value })}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                        className="w-full px-3 py-2 rounded-xl bg-[#f8f7fa] border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                       />
                     </div>
                   </div>
@@ -958,7 +958,7 @@ export default function SupplierSessionsAndFeedsPage() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-[#f8f7fa] p-4 rounded-xl border border-[#dbdade]">
                   <div>
                     <label className="block text-[11px] font-bold uppercase text-slate-700 mb-1">
                       SKU / Model # <span className="text-rose-600">*</span>
@@ -966,7 +966,7 @@ export default function SupplierSessionsAndFeedsPage() {
                     <select
                       value={columnMapping.sku}
                       onChange={(e) => setColumnMapping({ ...columnMapping, sku: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                     >
                       <option value="">Select Column</option>
                       {previewData?.availableColumns.map((col) => (
@@ -984,7 +984,7 @@ export default function SupplierSessionsAndFeedsPage() {
                     <select
                       value={columnMapping.price}
                       onChange={(e) => setColumnMapping({ ...columnMapping, price: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                     >
                       <option value="">Select Column</option>
                       {previewData?.availableColumns.map((col) => (
@@ -1000,7 +1000,7 @@ export default function SupplierSessionsAndFeedsPage() {
                     <select
                       value={columnMapping.stock}
                       onChange={(e) => setColumnMapping({ ...columnMapping, stock: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                     >
                       <option value="">(Optional - None)</option>
                       {previewData?.availableColumns.map((col) => (
@@ -1016,7 +1016,7 @@ export default function SupplierSessionsAndFeedsPage() {
                     <select
                       value={columnMapping.title}
                       onChange={(e) => setColumnMapping({ ...columnMapping, title: e.target.value })}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-[#dbdade] text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                     >
                       <option value="">(Optional - None)</option>
                       {previewData?.availableColumns.map((col) => (
@@ -1031,12 +1031,12 @@ export default function SupplierSessionsAndFeedsPage() {
                 {/* Sample Rows Table */}
                 <div>
                   <h4 className="text-xs font-bold text-slate-800 mb-2">Sample Feed Rows Preview (First 5 Rows):</h4>
-                  <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white max-h-48 shadow-2xs">
+                  <div className="overflow-x-auto rounded-xl border border-[#dbdade] bg-white max-h-48 shadow-2xs">
                     <table className="w-full text-[11px] text-left">
-                      <thead className="bg-slate-50 text-slate-600 uppercase font-mono text-[9px] border-b border-slate-200">
+                      <thead className="bg-[#f8f7fa] text-slate-600 uppercase font-mono text-[9px] border-b border-[#dbdade]">
                         <tr>
                           {previewData?.availableColumns.slice(0, 6).map((c) => (
-                            <th key={c} className="p-2 border-r border-slate-200">
+                            <th key={c} className="p-2 border-r border-[#dbdade]">
                               {c}
                             </th>
                           ))}
@@ -1044,7 +1044,7 @@ export default function SupplierSessionsAndFeedsPage() {
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {previewData?.sampleRows.map((row, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/60">
+                          <tr key={idx} className="hover:bg-[#f8f7fa]/60">
                             {previewData.availableColumns.slice(0, 6).map((c) => (
                               <td key={c} className="p-2 truncate max-w-[150px] font-mono text-slate-700 border-r border-slate-100">
                                 {String(row[c] || '')}

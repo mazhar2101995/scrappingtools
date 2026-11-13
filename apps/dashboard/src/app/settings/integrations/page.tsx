@@ -117,7 +117,7 @@ export default function IntegrationsSettingsPage() {
   return (
     <div className="space-y-8 w-full font-sans pb-16">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black tracking-tight text-slate-900">Integration Platform &amp; API Keys</h1>
@@ -170,7 +170,7 @@ export default function IntegrationsSettingsPage() {
       )}
 
       {/* API Keys Section */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-6">
+      <div className="bg-white border border-[#dbdade] rounded-xl shadow-sm p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-2">
@@ -192,7 +192,7 @@ export default function IntegrationsSettingsPage() {
 
         {/* Generate Key Form */}
         {isGenerating && (
-          <form onSubmit={handleGenerateKey} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+          <form onSubmit={handleGenerateKey} className="p-4 bg-slate-50 rounded-xl border border-[#dbdade] space-y-4">
             <span className="text-xs font-bold text-slate-800 block">Create Integration Credential</span>
             <div>
               <label className="text-[11px] font-semibold text-slate-600 block mb-1">Key Description / Client Name</label>
@@ -221,7 +221,7 @@ export default function IntegrationsSettingsPage() {
                     className={`px-2.5 py-1.5 rounded-lg text-left text-[11px] font-medium border transition flex items-center justify-between ${
                       selectedScopes.includes(s.id)
                         ? 'bg-[#fad982]/30 border-[#fad982] text-slate-900 font-bold'
-                        : 'bg-white border-slate-200 text-slate-500'
+                        : 'bg-white border-[#dbdade] text-slate-500'
                     }`}
                   >
                     <span>{s.label}</span>
@@ -273,7 +273,7 @@ export default function IntegrationsSettingsPage() {
                         {scopes.map((s: string) => (
                           <span
                             key={s}
-                            className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-slate-100 border border-slate-200 text-slate-600"
+                            className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-slate-100 border border-[#dbdade] text-slate-600"
                           >
                             {s}
                           </span>
@@ -311,7 +311,7 @@ export default function IntegrationsSettingsPage() {
       </div>
 
       {/* Webhook Foundation Section */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-6">
+      <div className="bg-white border border-[#dbdade] rounded-xl shadow-sm p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-2">
@@ -332,7 +332,7 @@ export default function IntegrationsSettingsPage() {
         </div>
 
         {isRegisteringWebhook && (
-          <form onSubmit={handleCreateWebhook} className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+          <form onSubmit={handleCreateWebhook} className="p-4 bg-slate-50 rounded-xl border border-[#dbdade] space-y-3">
             <span className="text-xs font-bold text-slate-800 block">Register Target Webhook URL</span>
             <div className="flex gap-2">
               <input
@@ -377,7 +377,7 @@ export default function IntegrationsSettingsPage() {
       </div>
 
       {/* Integration Code Snippet Quick Start */}
-      <div className="bg-slate-900 text-slate-100 rounded-2xl p-6 space-y-4">
+      <div className="bg-slate-900 text-slate-100 rounded-xl p-6 space-y-4">
         <div className="flex items-center gap-2">
           <Code2 className="w-4 h-4 text-amber-400" />
           <h3 className="text-xs font-bold tracking-wide uppercase text-slate-300">Quick Start: Real-Time Product Lookup</h3>

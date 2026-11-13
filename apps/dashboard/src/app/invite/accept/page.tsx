@@ -62,8 +62,8 @@ function AcceptInviteContent() {
   if (success) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
-        <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-slate-200 shadow-xl text-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+        <div className="bg-white max-w-md w-full p-8 rounded-xl border border-[#dbdade] shadow-xl text-center space-y-4">
+          <div className="w-14 h-14 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-8 h-8" />
           </div>
           <h2 className="text-xl font-black text-slate-900">Welcome to {orgName}!</h2>
@@ -78,7 +78,7 @@ function AcceptInviteContent() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-sans">
-      <div className="bg-white max-w-md w-full p-8 rounded-2xl border border-slate-200 shadow-xl space-y-6">
+      <div className="bg-white max-w-md w-full p-8 rounded-xl border border-[#dbdade] shadow-xl space-y-6">
         <div className="text-center space-y-2">
           <div className="w-12 h-12 rounded-xl bg-[#0d2a2c] text-[#fad982] flex items-center justify-center mx-auto font-bold">
             <Building2 className="w-6 h-6" />
@@ -111,7 +111,7 @@ function AcceptInviteContent() {
                   placeholder="John Doe"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                 />
                 <User className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               </div>
@@ -126,7 +126,7 @@ function AcceptInviteContent() {
                   placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                 />
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               </div>
@@ -141,7 +141,7 @@ function AcceptInviteContent() {
                   placeholder="••••••••••••"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                 />
                 <Shield className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
               </div>

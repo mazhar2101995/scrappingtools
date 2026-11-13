@@ -57,13 +57,13 @@ export default function PlatformAdminControlCenter() {
   if (loading) {
     return (
       <div className="space-y-8 w-full animate-pulse font-sans">
-        <div className="h-24 bg-white/80 rounded-3xl border border-[#ebdcb9]"></div>
+        <div className="h-24 bg-white/80 rounded-xl border border-[#ebdcb9]"></div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 bg-white rounded-3xl border border-[#ebdcb9]"></div>
+            <div key={i} className="h-32 bg-white rounded-xl border border-[#ebdcb9]"></div>
           ))}
         </div>
-        <div className="h-64 bg-white rounded-3xl border border-[#ebdcb9]"></div>
+        <div className="h-64 bg-white rounded-xl border border-[#ebdcb9]"></div>
       </div>
     );
   }
@@ -71,7 +71,7 @@ export default function PlatformAdminControlCenter() {
   if (error || !data) {
     return (
       <div className="w-full space-y-4 font-sans">
-        <div className="p-6 rounded-3xl bg-rose-50 border border-rose-200 text-rose-700 shadow-sm">
+        <div className="p-6 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 shadow-sm">
           <div className="flex items-center gap-3">
             <AlertCircle className="w-5 h-5 shrink-0" />
             <div>
@@ -101,7 +101,7 @@ export default function PlatformAdminControlCenter() {
   return (
     <div className="space-y-8 w-full font-sans pb-16">
       {/* Platform Banner */}
-      <div className="p-7 rounded-3xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-7 rounded-xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#fad982]/50 text-[#7a5e12] border border-[#ebd085] uppercase tracking-wider font-mono">
@@ -137,7 +137,7 @@ export default function PlatformAdminControlCenter() {
 
       {/* Cluster Health Pill Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
-        <div className="px-4 py-3 rounded-2xl bg-white border border-[#ebdcb9] shadow-xs flex items-center justify-between">
+        <div className="px-4 py-3 rounded-xl bg-white border border-[#ebdcb9] shadow-xs flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
               <Server className="w-3.5 h-3.5" />
@@ -149,7 +149,7 @@ export default function PlatformAdminControlCenter() {
           </span>
         </div>
 
-        <div className="px-4 py-3 rounded-2xl bg-white border border-[#ebdcb9] shadow-xs flex items-center justify-between">
+        <div className="px-4 py-3 rounded-xl bg-white border border-[#ebdcb9] shadow-xs flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
               <Database className="w-3.5 h-3.5" />
@@ -161,7 +161,7 @@ export default function PlatformAdminControlCenter() {
           </span>
         </div>
 
-        <div className="px-4 py-3 rounded-2xl bg-white border border-[#ebdcb9] shadow-xs flex items-center justify-between">
+        <div className="px-4 py-3 rounded-xl bg-white border border-[#ebdcb9] shadow-xs flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
               <Radio className="w-3.5 h-3.5" />
@@ -173,7 +173,7 @@ export default function PlatformAdminControlCenter() {
           </span>
         </div>
 
-        <div className="px-4 py-3 rounded-2xl bg-white border border-[#ebdcb9] shadow-xs flex items-center justify-between">
+        <div className="px-4 py-3 rounded-xl bg-white border border-[#ebdcb9] shadow-xs flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
               <Activity className="w-3.5 h-3.5" />
@@ -191,9 +191,9 @@ export default function PlatformAdminControlCenter() {
       </div>
 
       {/* Phase 1 & 2: Smart Data Reuse & Deduplication Telemetry Banner */}
-      <div className="p-5 rounded-3xl bg-gradient-to-r from-emerald-50 via-amber-50 to-white border border-[#ebdcb9] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-5 rounded-xl bg-gradient-to-r from-emerald-50 via-amber-50 to-white border border-[#ebdcb9] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold shadow-sm">
             <Sparkles className="w-5 h-5 text-[#fad982]" />
           </div>
           <div>
@@ -224,7 +224,7 @@ export default function PlatformAdminControlCenter() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Metric 1: Tenants */}
         <Link href="/admin/organizations" className="block group">
-          <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] hover:border-[#d4af37] transition shadow-xs">
+          <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] hover:border-[#d4af37] transition shadow-xs">
             <div className="flex items-center justify-between text-slate-500 mb-2 font-medium">
               <span className="text-xs uppercase tracking-wider font-bold">Total Tenants</span>
               <div className="w-8 h-8 rounded-xl bg-[#faf4e1] border border-[#ecdba8] flex items-center justify-center text-[#9c7f23]">
@@ -243,7 +243,7 @@ export default function PlatformAdminControlCenter() {
 
         {/* Metric 2: Global Master Products */}
         <Link href="/admin/products" className="block group">
-          <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] hover:border-[#d4af37] transition shadow-xs">
+          <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] hover:border-[#d4af37] transition shadow-xs">
             <div className="flex items-center justify-between text-slate-500 mb-2 font-medium">
               <span className="text-xs uppercase tracking-wider font-bold">Global Master Catalog</span>
               <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
@@ -262,7 +262,7 @@ export default function PlatformAdminControlCenter() {
 
         {/* Metric 3: AI Inference Engine */}
         <Link href="/admin/ai" className="block group">
-          <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] hover:border-[#d4af37] transition shadow-xs">
+          <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] hover:border-[#d4af37] transition shadow-xs">
             <div className="flex items-center justify-between text-slate-500 mb-2 font-medium">
               <span className="text-xs uppercase tracking-wider font-bold">Tokens Inferred</span>
               <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
@@ -281,7 +281,7 @@ export default function PlatformAdminControlCenter() {
 
         {/* Metric 4: Human Review Center (Phase 6) */}
         <Link href="/admin/review" className="block group">
-          <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] hover:border-[#d4af37] transition shadow-xs">
+          <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] hover:border-[#d4af37] transition shadow-xs">
             <div className="flex items-center justify-between text-slate-500 mb-2 font-medium">
               <span className="text-xs uppercase tracking-wider font-bold">Review Center Queue</span>
               <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
@@ -301,7 +301,7 @@ export default function PlatformAdminControlCenter() {
 
       {/* Integration Gateway Quick Stats (Phase 7) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link href="/admin/integrations" className="p-4 bg-white border border-[#ebdcb9] rounded-2xl shadow-xs flex items-center justify-between hover:border-amber-400 transition">
+        <Link href="/admin/integrations" className="p-4 bg-white border border-[#ebdcb9] rounded-xl shadow-xs flex items-center justify-between hover:border-amber-400 transition">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
               <KeyRound className="w-4 h-4" />
@@ -314,7 +314,7 @@ export default function PlatformAdminControlCenter() {
           <ArrowUpRight className="w-4 h-4 text-slate-400" />
         </Link>
 
-        <Link href="/admin/integrations" className="p-4 bg-white border border-[#ebdcb9] rounded-2xl shadow-xs flex items-center justify-between hover:border-amber-400 transition">
+        <Link href="/admin/integrations" className="p-4 bg-white border border-[#ebdcb9] rounded-xl shadow-xs flex items-center justify-between hover:border-amber-400 transition">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-center text-teal-700">
               <Webhook className="w-4 h-4" />
@@ -331,7 +331,7 @@ export default function PlatformAdminControlCenter() {
           href="http://localhost:4000/api/docs"
           target="_blank"
           rel="noreferrer"
-          className="p-4 bg-slate-900 text-white rounded-2xl shadow-xs flex items-center justify-between hover:bg-slate-800 transition"
+          className="p-4 bg-slate-900 text-white rounded-xl shadow-xs flex items-center justify-between hover:bg-slate-800 transition"
         >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold">
@@ -358,7 +358,7 @@ export default function PlatformAdminControlCenter() {
             <span className="text-xs text-slate-400 font-mono">Live Redis Queue Stream</span>
           </div>
 
-          <div className="rounded-3xl border border-[#ebdcb9] bg-white overflow-hidden shadow-xs">
+          <div className="rounded-xl border border-[#ebdcb9] bg-white overflow-hidden shadow-xs">
             <table className="w-full text-left text-xs text-slate-700">
               <thead className="bg-[#fcfaf5] border-b border-[#ebdcb9] text-[11px] uppercase tracking-wider text-slate-500 font-mono">
                 <tr>
@@ -413,7 +413,7 @@ export default function PlatformAdminControlCenter() {
             <span>Master Governance</span>
           </h3>
 
-          <div className="p-5 rounded-3xl border border-[#ebdcb9] bg-white space-y-3.5 shadow-xs">
+          <div className="p-5 rounded-xl border border-[#ebdcb9] bg-white space-y-3.5 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-900">Human Review Center</span>
               <span className="text-xs font-mono font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
@@ -432,7 +432,7 @@ export default function PlatformAdminControlCenter() {
             </Link>
           </div>
 
-          <div className="p-5 rounded-3xl border border-[#ebdcb9] bg-white space-y-3.5 shadow-xs">
+          <div className="p-5 rounded-xl border border-[#ebdcb9] bg-white space-y-3.5 shadow-xs">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-900">Integration Traffic Gateway</span>
               <span className="text-xs font-mono font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">

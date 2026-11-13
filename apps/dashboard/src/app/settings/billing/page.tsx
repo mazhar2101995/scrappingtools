@@ -60,10 +60,10 @@ export default function ClientBillingPage() {
   if (loading) {
     return (
       <div className="space-y-6 max-w-6xl mx-auto animate-pulse font-sans">
-        <div className="h-32 bg-white rounded-3xl border border-slate-200"></div>
+        <div className="h-32 bg-white rounded-xl border border-[#dbdade]"></div>
         <div className="grid grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-96 bg-white rounded-3xl border border-slate-200"></div>
+            <div key={i} className="h-96 bg-white rounded-xl border border-[#dbdade]"></div>
           ))}
         </div>
       </div>
@@ -77,7 +77,7 @@ export default function ClientBillingPage() {
   return (
     <div className="space-y-8 w-full font-sans pb-16">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#0d2a2c] text-[#fad982] uppercase tracking-wider">
@@ -94,7 +94,7 @@ export default function ClientBillingPage() {
         </div>
 
         {/* Monthly / Annual Billing Toggle */}
-        <div className="flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200">
+        <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-[#dbdade]">
           <button
             onClick={() => setBillingCycle('monthly')}
             className={`px-4 py-1.5 rounded-xl text-xs font-bold transition ${
@@ -120,14 +120,14 @@ export default function ClientBillingPage() {
       </div>
 
       {message && (
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{message}</span>
         </div>
       )}
 
       {/* Real-time Usage Progress Card */}
-      <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-5">
+      <div className="p-6 rounded-xl bg-white border border-[#dbdade] shadow-xs space-y-5">
         <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
           <Zap className="w-4 h-4 text-amber-500" />
           <span>Current Billing Cycle Usage ({usage?.currentPeriod})</span>
@@ -196,12 +196,12 @@ export default function ClientBillingPage() {
           return (
             <div
               key={plan.id}
-              className={`p-7 rounded-3xl bg-white border transition relative flex flex-col justify-between ${
+              className={`p-7 rounded-xl bg-white border transition relative flex flex-col justify-between ${
                 isCurrent
                   ? 'border-[#0d2a2c] ring-2 ring-[#0d2a2c]/20 shadow-lg'
                   : plan.popular
                   ? 'border-amber-300 shadow-md ring-1 ring-amber-300'
-                  : 'border-slate-200 hover:border-slate-300 shadow-xs'
+                  : 'border-[#dbdade] hover:border-slate-300 shadow-xs'
               }`}
             >
               {plan.popular && !isCurrent && (

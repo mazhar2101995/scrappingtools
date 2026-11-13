@@ -103,7 +103,7 @@ export default function RegisterPage() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-lg">
-        <div className="bg-white py-8 px-6 shadow-md border border-slate-200 rounded-2xl sm:px-10 space-y-6">
+        <div className="bg-white py-8 px-6 shadow-md border border-[#dbdade] rounded-xl sm:px-10 space-y-6">
           {error && (
             <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -124,7 +124,7 @@ export default function RegisterPage() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="John Doe"
-                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
                 />
               </div>
             </div>
@@ -141,7 +141,7 @@ export default function RegisterPage() {
                   value={organizationName}
                   onChange={(e) => setOrganizationName(e.target.value)}
                   placeholder="Acme Global Retail"
-                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
                 />
               </div>
             </div>
@@ -158,7 +158,7 @@ export default function RegisterPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
-                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
                 />
               </div>
             </div>
@@ -175,7 +175,7 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
                 />
               </div>
             </div>
@@ -206,7 +206,7 @@ export default function RegisterPage() {
                       setSelectedLanguages([newPrimary, ...selectedLanguages]);
                     }
                   }}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 font-medium focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-900 font-medium focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
                 >
                   {allLanguages.map((lang) => (
                     <option key={lang.code} value={lang.code}>
@@ -233,7 +233,7 @@ export default function RegisterPage() {
                         className={`flex items-center justify-between p-2 rounded-lg border text-left text-[11px] font-semibold transition ${
                           isSelected
                             ? 'bg-emerald-50/80 border-emerald-400 text-emerald-950 shadow-2xs'
-                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                            : 'bg-white border-[#dbdade] text-slate-600 hover:bg-slate-50'
                         }`}
                       >
                         <div className="truncate pr-1">
@@ -256,7 +256,7 @@ export default function RegisterPage() {
                     onChange={(e) => setCustomLanguageInput(e.target.value)}
                     onKeyDown={handleAddCustomLanguage}
                     placeholder="Add other language (e.g. sv, pl, tr, el)"
-                    className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                    className="flex-1 px-3 py-1.5 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
                   />
                   <button
                     type="button"

@@ -124,7 +124,7 @@ export default function WorkspaceSettingsPage() {
 
   return (
     <div className="space-y-6 w-full font-sans text-slate-800 pb-16">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Workspace Settings</h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -142,7 +142,7 @@ export default function WorkspaceSettingsPage() {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* General Details */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="bg-white p-6 rounded-xl border border-[#dbdade] shadow-sm space-y-4">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <Building2 className="w-4 h-4 text-[#0d2a2c]" />
             <span>Organization Profile</span>
@@ -156,7 +156,7 @@ export default function WorkspaceSettingsPage() {
                 required
                 value={orgName}
                 onChange={(e) => setOrgName(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                className="w-full px-3 py-2 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
               />
             </div>
 
@@ -165,7 +165,7 @@ export default function WorkspaceSettingsPage() {
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                className="w-full px-3 py-2 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
               >
                 <option value="USD">USD ($) United States Dollar</option>
                 <option value="EUR">EUR (€) Euro</option>
@@ -177,7 +177,7 @@ export default function WorkspaceSettingsPage() {
         </div>
 
         {/* Store Languages Configuration */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="bg-white p-6 rounded-xl border border-[#dbdade] shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
               <Globe className="w-4 h-4 text-emerald-700" />
@@ -207,7 +207,7 @@ export default function WorkspaceSettingsPage() {
                     setSupportedLanguages([val, ...supportedLanguages]);
                   }
                 }}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 font-medium focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                className="w-full px-3 py-2 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-900 font-medium focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
               >
                 {availableLanguages.map((lang) => (
                   <option key={lang.code} value={lang.code}>
@@ -241,7 +241,7 @@ export default function WorkspaceSettingsPage() {
                       className={`flex items-center justify-between p-2 rounded-xl border text-left text-xs font-semibold transition ${
                         isSelected
                           ? 'bg-emerald-50/80 border-emerald-400 text-emerald-950 shadow-2xs'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          : 'bg-white border-[#dbdade] text-slate-600 hover:bg-slate-50'
                       }`}
                     >
                       <div className="truncate pr-1">
@@ -264,7 +264,7 @@ export default function WorkspaceSettingsPage() {
                   onChange={(e) => setCustomLangInput(e.target.value)}
                   onKeyDown={handleAddCustomLang}
                   placeholder="Add custom language code (e.g. sv, pl, tr, el, ja)..."
-                  className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                  className="flex-1 px-3 py-1.5 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
                 />
                 <button
                   type="button"
@@ -279,7 +279,7 @@ export default function WorkspaceSettingsPage() {
         </div>
 
         {/* SaaS Subscription & Usage Quota Management */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+        <div className="bg-white p-6 rounded-xl border border-[#dbdade] shadow-sm space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -297,7 +297,7 @@ export default function WorkspaceSettingsPage() {
 
           {/* Usage Meter Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <div className="p-4 rounded-xl bg-slate-50 border border-[#dbdade] space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-bold text-slate-700">Monthly Product Scrapes</span>
                 <span className="font-mono font-bold text-slate-900">42 / 2,500</span>
@@ -308,7 +308,7 @@ export default function WorkspaceSettingsPage() {
               <p className="text-[10px] text-slate-500">Resets on the 1st of every month</p>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <div className="p-4 rounded-xl bg-slate-50 border border-[#dbdade] space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-bold text-slate-700">AI Prompt Enrichments</span>
                 <span className="font-mono font-bold text-slate-900">18 / 1,000</span>
@@ -319,7 +319,7 @@ export default function WorkspaceSettingsPage() {
               <p className="text-[10px] text-slate-500">Gemini 1.5 Pro &amp; Claude 3.5 Sonnet</p>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+            <div className="p-4 rounded-xl bg-slate-50 border border-[#dbdade] space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-bold text-slate-700">Connected E-Com Stores</span>
                 <span className="font-mono font-bold text-slate-900">1 / 5 Stores</span>
@@ -346,7 +346,7 @@ export default function WorkspaceSettingsPage() {
                   className={`p-3.5 rounded-xl border cursor-pointer transition ${
                     planTier === tier.id
                       ? 'border-[#0d2a2c] bg-[#0d2a2c]/5 ring-1 ring-[#0d2a2c]'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
+                      : 'border-[#dbdade] bg-white hover:border-slate-300'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1">
@@ -361,7 +361,7 @@ export default function WorkspaceSettingsPage() {
         </div>
 
         {/* Notifications */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="bg-white p-6 rounded-xl border border-[#dbdade] shadow-sm space-y-4">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <Bell className="w-4 h-4 text-amber-500" />
             <span>Operational Alerts &amp; Notifications</span>

@@ -213,7 +213,7 @@ export default function SettingsSecurityPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Organization Overview & Store Languages */}
         <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="bg-white border border-[#dbdade] rounded-xl p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#0d2a2c] text-[#fad982] flex items-center justify-center font-bold">
                 <Building2 className="w-5 h-5" />
@@ -241,7 +241,7 @@ export default function SettingsSecurityPage() {
           </div>
 
           {/* Store & Catalog Languages Card */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+          <div className="bg-white border border-[#dbdade] rounded-xl p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-emerald-700" />
@@ -283,7 +283,7 @@ export default function SettingsSecurityPage() {
                     setSupportedLanguages([val, ...supportedLanguages]);
                   }
                 }}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 font-medium focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                className="w-full px-3 py-2 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-900 font-medium focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
               >
                 {availableLanguages.map((lang) => (
                   <option key={lang.code} value={lang.code}>
@@ -314,7 +314,7 @@ export default function SettingsSecurityPage() {
                       className={`flex items-center justify-between p-2 rounded-lg border text-left text-xs font-semibold transition ${
                         isSelected
                           ? 'bg-emerald-50/80 border-emerald-400 text-emerald-950'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          : 'bg-white border-[#dbdade] text-slate-600 hover:bg-slate-50'
                       }`}
                     >
                       <div className="truncate pr-1">
@@ -337,7 +337,7 @@ export default function SettingsSecurityPage() {
                   onChange={(e) => setCustomLangInput(e.target.value)}
                   onKeyDown={handleAddCustomLang}
                   placeholder="Custom code (e.g. sv, pl, tr)"
-                  className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                  className="flex-1 px-3 py-1.5 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
                 />
                 <button
                   type="button"
@@ -352,7 +352,7 @@ export default function SettingsSecurityPage() {
         </div>
 
         {/* Right: API Keys Management in Clean White Brand Theme */}
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+        <div className="lg:col-span-2 bg-white border border-[#dbdade] rounded-xl p-6 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div>
               <h3 className="font-bold text-slate-900 text-sm">Active Secret API Keys</h3>
@@ -370,7 +370,7 @@ export default function SettingsSecurityPage() {
           </div>
 
           {isGenerating && (
-            <form onSubmit={handleGenerateKey} className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+            <form onSubmit={handleGenerateKey} className="p-3.5 bg-slate-50 rounded-xl border border-[#dbdade] space-y-3">
               <span className="text-xs font-bold text-slate-800 block">Create New API Key</span>
               <div className="flex gap-2">
                 <input
@@ -378,7 +378,7 @@ export default function SettingsSecurityPage() {
                   placeholder="Key name (e.g. My OpenCart Sync)"
                   value={newKeyName}
                   onChange={(e) => setNewKeyName(e.target.value)}
-                  className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 focus:outline-none focus:border-[#0d2a2c]"
+                  className="flex-1 px-3 py-1.5 bg-white border border-[#dbdade] rounded-lg text-xs text-slate-800 focus:outline-none focus:border-[#0d2a2c]"
                 />
                 <button
                   type="submit"
@@ -403,7 +403,7 @@ export default function SettingsSecurityPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-xs text-slate-900">{key.name}</span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 border border-slate-200 text-slate-600">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-slate-100 border border-[#dbdade] text-slate-600">
                         read:write
                       </span>
                     </div>

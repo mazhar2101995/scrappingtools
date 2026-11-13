@@ -37,7 +37,7 @@ export default function AdminAiPromptsPage() {
 
   return (
     <div className="space-y-8 w-full font-sans">
-      <div className="p-7 rounded-3xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-7 rounded-xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#fad982]/50 text-[#7a5e12] border border-[#ebd085] uppercase tracking-wider font-mono">
@@ -55,14 +55,14 @@ export default function AdminAiPromptsPage() {
       </div>
 
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
           <strong>API Error:</strong> {error}
         </div>
       )}
 
       {/* Real Token & Cost Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+        <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-2">
             <span className="text-xs font-bold uppercase tracking-wider">Total Tokens Consumed</span>
             <Cpu className="w-4 h-4 text-purple-600" />
@@ -75,7 +75,7 @@ export default function AdminAiPromptsPage() {
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+        <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-2">
             <span className="text-xs font-bold uppercase tracking-wider">Estimated Expenditure</span>
             <DollarSign className="w-4 h-4 text-emerald-600" />
@@ -88,7 +88,7 @@ export default function AdminAiPromptsPage() {
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+        <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-2">
             <span className="text-xs font-bold uppercase tracking-wider">Inference Executions</span>
             <Activity className="w-4 h-4 text-sky-600" />
@@ -109,7 +109,7 @@ export default function AdminAiPromptsPage() {
           <span>Active Prompt Templates</span>
         </h3>
 
-        <div className="rounded-3xl border border-[#ebdcb9] bg-white overflow-hidden shadow-xs">
+        <div className="rounded-xl border border-[#ebdcb9] bg-white overflow-hidden shadow-xs">
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-[#fcfaf5] border-b border-[#ebdcb9] text-[11px] uppercase tracking-wider text-slate-500 font-mono">
               <tr>

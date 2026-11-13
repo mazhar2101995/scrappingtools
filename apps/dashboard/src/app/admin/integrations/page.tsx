@@ -46,7 +46,7 @@ export default function AdminIntegrationsPage() {
   return (
     <div className="space-y-8 w-full font-sans pb-16">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black tracking-tight text-slate-900">Integration API &amp; Traffic Gateway</h1>
@@ -80,7 +80,7 @@ export default function AdminIntegrationsPage() {
 
       {/* Global Integration KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm space-y-1">
+        <div className="p-4 bg-white border border-[#dbdade] rounded-xl shadow-sm space-y-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-[11px] font-bold uppercase tracking-wider">Issued API Keys</span>
             <KeyRound className="w-4 h-4 text-amber-500" />
@@ -89,7 +89,7 @@ export default function AdminIntegrationsPage() {
           <div className="text-[10px] text-slate-400">Tenant integration credentials</div>
         </div>
 
-        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm space-y-1">
+        <div className="p-4 bg-white border border-[#dbdade] rounded-xl shadow-sm space-y-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-[11px] font-bold uppercase tracking-wider">Active Keys (7d)</span>
             <Activity className="w-4 h-4 text-emerald-500" />
@@ -98,7 +98,7 @@ export default function AdminIntegrationsPage() {
           <div className="text-[10px] text-slate-400">Currently executing traffic</div>
         </div>
 
-        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm space-y-1">
+        <div className="p-4 bg-white border border-[#dbdade] rounded-xl shadow-sm space-y-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-[11px] font-bold uppercase tracking-wider">Webhook Subs</span>
             <Webhook className="w-4 h-4 text-teal-500" />
@@ -107,7 +107,7 @@ export default function AdminIntegrationsPage() {
           <div className="text-[10px] text-slate-400">Registered target endpoints</div>
         </div>
 
-        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm space-y-1">
+        <div className="p-4 bg-white border border-[#dbdade] rounded-xl shadow-sm space-y-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-[11px] font-bold uppercase tracking-wider">Delivered Events</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -116,7 +116,7 @@ export default function AdminIntegrationsPage() {
           <div className="text-[10px] text-emerald-600 font-medium">Signed HMAC dispatched</div>
         </div>
 
-        <div className="p-4 bg-white border border-slate-200 rounded-xl shadow-sm space-y-1">
+        <div className="p-4 bg-white border border-[#dbdade] rounded-xl shadow-sm space-y-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-[11px] font-bold uppercase tracking-wider">Delivery Failures</span>
             <XCircle className="w-4 h-4 text-rose-500" />
@@ -129,7 +129,7 @@ export default function AdminIntegrationsPage() {
       {/* Grid: Recent Keys & Webhook Telemetry */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Integration Keys */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
+        <div className="bg-white border border-[#dbdade] rounded-xl shadow-sm p-5 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-amber-500" />
@@ -165,7 +165,7 @@ export default function AdminIntegrationsPage() {
         </div>
 
         {/* Webhook Dispatch Activity */}
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
+        <div className="bg-white border border-[#dbdade] rounded-xl shadow-sm p-5 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div className="flex items-center gap-2">
               <Webhook className="w-4 h-4 text-teal-600" />

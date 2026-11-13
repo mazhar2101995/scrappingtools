@@ -167,7 +167,7 @@ export default function PricingRulesPage() {
   return (
     <div className="space-y-6 w-full font-sans text-slate-800 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Automated Pricing &amp; Markup Rules</h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -204,7 +204,7 @@ export default function PricingRulesPage() {
       )}
 
       {/* Interactive Margin Calculator / Simulator Widget */}
-      <div className="bg-gradient-to-br from-[#0d2a2c] to-[#164144] p-5 rounded-2xl text-white shadow-md border border-[#1d4c50]">
+      <div className="bg-gradient-to-br from-[#0d2a2c] to-[#164144] p-5 rounded-xl text-white shadow-md border border-[#1d4c50]">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-xs font-bold text-[#fad982]">
@@ -281,7 +281,7 @@ export default function PricingRulesPage() {
       </div>
 
       {/* Rules Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sliders className="w-4 h-4 text-[#0d2a2c]" />
@@ -356,7 +356,7 @@ export default function PricingRulesPage() {
       {/* Create / Edit Rule Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-[#dbdade] max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <DollarSign className="w-5 h-5 text-emerald-600" />
@@ -381,7 +381,7 @@ export default function PricingRulesPage() {
                   placeholder="e.g. Standard 30% Margin + Shipping"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                  className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                 />
               </div>
 
@@ -391,7 +391,7 @@ export default function PricingRulesPage() {
                   <select
                     value={markupType}
                     onChange={(e) => setMarkupType(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                    className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   >
                     <option value="PERCENTAGE">Percentage (+30%)</option>
                     <option value="FIXED">Fixed Amount (+$15.00)</option>
@@ -407,7 +407,7 @@ export default function PricingRulesPage() {
                     required
                     value={markupValue}
                     onChange={(e) => setMarkupValue(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                    className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   />
                 </div>
               </div>
@@ -420,7 +420,7 @@ export default function PricingRulesPage() {
                     step="0.01"
                     value={fixedShippingFee}
                     onChange={(e) => setFixedShippingFee(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                    className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   />
                 </div>
 
@@ -432,7 +432,7 @@ export default function PricingRulesPage() {
                     placeholder="Optional (e.g. 8.00)"
                     value={minMarginAmount}
                     onChange={(e) => setMinMarginAmount(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                    className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   />
                 </div>
               </div>
@@ -442,7 +442,7 @@ export default function PricingRulesPage() {
                 <select
                   value={roundingMode}
                   onChange={(e) => setRoundingMode(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                  className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                 >
                   <option value="PSYCHOLOGICAL_99">End in .99 (e.g. $49.99)</option>
                   <option value="PSYCHOLOGICAL_95">End in .95 (e.g. $49.95)</option>
@@ -456,7 +456,7 @@ export default function PricingRulesPage() {
                 <select
                   value={brandId}
                   onChange={(e) => setBrandId(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                  className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                 >
                   <option value="">Apply to Entire Organization Catalog</option>
                   {brands.map((b) => (
@@ -481,7 +481,7 @@ export default function PricingRulesPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                  className="px-4 py-2 rounded-xl border border-[#dbdade] text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
                 >
                   Cancel
                 </button>

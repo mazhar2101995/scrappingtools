@@ -721,18 +721,18 @@ export default function ProductsPage() {
   });
 
   return (
-    <div className="space-y-6 w-full font-sans">
+    <div className="space-y-6 w-full font-sans text-[#4b465c]">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[#dbdade]">
         <div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900">Product Catalog</h1>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#4b465c]">Product Catalog</h1>
+          <p className="text-xs text-[#82808b] mt-1 font-medium">
             Browse normalized catalog entries, verified EAN/GTINs, provenance audits, and tenant overrides.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-sm">
+          <span className="px-3 py-1.5 rounded-xl bg-white border border-[#dbdade] text-xs font-semibold text-[#4b465c] shadow-2xs">
             Total Entities: {filtered.length}
           </span>
 
@@ -742,9 +742,9 @@ export default function ProductsPage() {
             onClick={handleScanAllPrices}
             disabled={scanningPrices || products.length === 0}
             title="Scan live supplier websites to verify prices & stock availability"
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-[#f8f7fa] border border-[#dbdade] text-[#4b465c] font-semibold text-xs rounded-xl shadow-2xs transition disabled:opacity-50"
           >
-            <Activity className={`w-3.5 h-3.5 text-emerald-600 ${scanningPrices ? 'animate-spin' : ''}`} />
+            <Activity className={`w-3.5 h-3.5 text-teal-700 ${scanningPrices ? 'animate-spin' : ''}`} />
             <span>{scanningPrices ? 'Auditing Prices...' : 'Audit Live Prices'}</span>
           </button>
 
@@ -752,9 +752,9 @@ export default function ProductsPage() {
             onClick={() => handleExportCsv('shopify')}
             disabled={exportingCsv || products.length === 0}
             title="Download full catalog as Shopify-compatible CSV"
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-[#f8f7fa] border border-[#dbdade] text-[#4b465c] font-semibold text-xs rounded-xl shadow-2xs transition disabled:opacity-50"
           >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <Download className="w-3.5 h-3.5 text-[#82808b]" />
             <span>{exportingCsv ? 'Exporting...' : 'Export Shopify CSV'}</span>
           </button>
 
@@ -768,9 +768,9 @@ export default function ProductsPage() {
               setShowBulkPushModal(true);
             }}
             disabled={selectedProductIds.length === 0}
-            className={`flex items-center gap-1.5 px-3.5 py-2 font-bold text-xs rounded-xl shadow-sm transition ${selectedProductIds.length > 0
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse'
-                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            className={`flex items-center gap-1.5 px-3.5 py-2 font-semibold text-xs rounded-xl transition ${selectedProductIds.length > 0
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                : 'bg-slate-100 text-[#82808b] border border-[#dbdade] cursor-not-allowed'
               }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
@@ -780,32 +780,32 @@ export default function ProductsPage() {
           {/* Bulk Import Button */}
           <button
             onClick={handleOpenBatchModal}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0d2a2c]/10 hover:bg-[#0d2a2c]/20 text-[#0d2a2c] font-bold text-xs rounded-xl transition"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-teal-50 hover:bg-teal-100/80 text-teal-900 border border-teal-200/80 font-semibold text-xs rounded-xl transition"
           >
-            <UploadCloud className="w-3.5 h-3.5 text-[#0d2a2c]" />
+            <UploadCloud className="w-3.5 h-3.5 text-teal-700" />
             <span>Batch Scrape (Multi-URL)</span>
           </button>
 
           <button
             onClick={handleOpenAddModal}
-            className="flex items-center gap-1.5 px-4 py-2 bg-[#fad982] hover:bg-[#f6cd64] text-slate-950 font-bold text-xs rounded-xl shadow-sm transition"
+            className="flex items-center gap-1.5 px-4 py-2 bg-[#0d2a2c] hover:bg-[#143d40] text-white font-semibold text-xs rounded-xl shadow-xs transition"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-[#fad982]" />
             <span>Add Product</span>
           </button>
         </div>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-white p-4 rounded-xl border border-[#dbdade] shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
         <div className="relative flex-1 w-full sm:max-w-md">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#82808b]" />
           <input
             type="text"
             placeholder="Search by Title, GTIN/EAN, or MPN..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+            className="w-full pl-9 pr-4 py-2 bg-[#f8f7fa] border border-[#dbdade] rounded-xl text-xs text-[#4b465c] placeholder-[#82808b] focus:outline-none focus:border-teal-700 focus:bg-white transition"
           />
         </div>
 
@@ -813,7 +813,7 @@ export default function ProductsPage() {
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
             onClick={() => setBrandFilter('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${brandFilter === 'ALL' ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${brandFilter === 'ALL' ? 'bg-[#0d2a2c] text-white shadow-2xs' : 'bg-[#f8f7fa] text-[#82808b] border border-[#dbdade] hover:bg-slate-100'
               }`}
           >
             ALL
@@ -822,9 +822,9 @@ export default function ProductsPage() {
             <button
               key={b.id}
               onClick={() => setBrandFilter(b.name)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition uppercase ${brandFilter.toLowerCase() === b.name?.toLowerCase()
-                  ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition uppercase ${brandFilter.toLowerCase() === b.name?.toLowerCase()
+                  ? 'bg-[#0d2a2c] text-white shadow-2xs'
+                  : 'bg-[#f8f7fa] text-[#82808b] border border-[#dbdade] hover:bg-slate-100'
                 }`}
             >
               {b.name}
@@ -834,33 +834,33 @@ export default function ProductsPage() {
       </div>
 
       {/* Products Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <table className="w-full text-left text-xs text-slate-700">
-          <thead className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+      <div className="bg-white rounded-xl border border-[#dbdade] shadow-2xs overflow-hidden">
+        <table className="w-full text-left text-xs text-[#4b465c]">
+          <thead className="bg-[#f8f7fa] border-b border-[#dbdade] text-[11px] uppercase tracking-wider text-[#82808b] font-semibold">
             <tr>
-              <th className="py-3.5 px-3 w-10 text-center">
+              <th className="py-3 px-3 w-10 text-center">
                 <input
                   type="checkbox"
                   checked={filtered.length > 0 && selectedProductIds.length === filtered.length}
                   onChange={() => handleSelectAll(filtered)}
                   title="Select All Products"
-                  className="w-4 h-4 rounded border-slate-300 text-[#0d2a2c] focus:ring-[#fad982] cursor-pointer"
+                  className="w-4 h-4 rounded border-[#dbdade] text-[#0d2a2c] focus:ring-teal-700 cursor-pointer"
                 />
               </th>
-              <th className="py-3.5 px-5">Product Details</th>
-              <th className="py-3.5 px-4">Brand</th>
-              <th className="py-3.5 px-4">Quality Status</th>
-              <th className="py-3.5 px-4">Identifiers</th>
-              <th className="py-3.5 px-4">Sources / Variants</th>
-              <th className="py-3.5 px-4">Store Sync</th>
-              <th className="py-3.5 px-4">Price Est.</th>
-              <th className="py-3.5 px-5 text-right">Actions</th>
+              <th className="py-3 px-5">Product Details</th>
+              <th className="py-3 px-4">Brand</th>
+              <th className="py-3 px-4">Quality Status</th>
+              <th className="py-3 px-4">Identifiers</th>
+              <th className="py-3 px-4">Sources / Variants</th>
+              <th className="py-3 px-4">Store Sync</th>
+              <th className="py-3 px-4">Price Est.</th>
+              <th className="py-3 px-5 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 font-medium">
+          <tbody className="divide-y divide-[#dbdade] font-medium">
             {loading ? (
               <tr>
-                <td colSpan={9} className="py-12 text-center text-slate-400">
+                <td colSpan={9} className="py-12 text-center text-[#82808b]">
                   Loading catalog entries from database...
                 </td>
               </tr>
@@ -868,18 +868,18 @@ export default function ProductsPage() {
               <tr>
                 <td colSpan={9} className="py-16 text-center">
                   <div className="max-w-md mx-auto space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                    <div className="w-12 h-12 rounded-xl bg-[#f8f7fa] border border-[#dbdade] flex items-center justify-center mx-auto text-[#82808b]">
                       <Package className="w-6 h-6" />
                     </div>
-                    <h3 className="text-sm font-bold text-slate-900">No products in your catalog yet</h3>
-                    <p className="text-xs text-slate-500 leading-relaxed">
+                    <h3 className="text-sm font-bold text-[#4b465c]">No products in your catalog yet</h3>
+                    <p className="text-xs text-[#82808b] leading-relaxed">
                       You haven&apos;t added or scraped any products for this organization yet. Click below to add your first product using your configured Brand Profiles.
                     </p>
                     <button
                       onClick={handleOpenAddModal}
-                      className="px-4 py-2 bg-[#0d2a2c] text-[#fad982] text-xs font-bold rounded-xl hover:bg-[#143d40] transition shadow-xs inline-flex items-center gap-1.5"
+                      className="px-4 py-2 bg-[#0d2a2c] text-white text-xs font-semibold rounded-xl hover:bg-[#143d40] transition shadow-xs inline-flex items-center gap-1.5"
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus className="w-4 h-4 text-[#fad982]" />
                       <span>+ Add Product</span>
                     </button>
                   </div>
@@ -889,38 +889,38 @@ export default function ProductsPage() {
               filtered.map((prod) => {
                 const isSelected = selectedProductIds.includes(prod.id);
                 return (
-                  <tr key={prod.id} className={`transition ${isSelected ? 'bg-emerald-50/50' : 'hover:bg-slate-50/80'}`}>
+                  <tr key={prod.id} className={`transition ${isSelected ? 'bg-teal-50/40' : 'hover:bg-[#f8f7fa]/60'}`}>
                     <td className="py-4 px-3 text-center">
                       <input
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => handleToggleSelectProduct(prod.id)}
-                        className="w-4 h-4 rounded border-slate-300 text-[#0d2a2c] focus:ring-[#fad982] cursor-pointer"
+                        className="w-4 h-4 rounded border-[#dbdade] text-[#0d2a2c] focus:ring-teal-700 cursor-pointer"
                       />
                     </td>
                     <td className="py-4 px-5 max-w-sm">
                       <Link
                         href={`/products/${prod.id}`}
-                        className="font-bold text-slate-900 hover:text-[#0d2a2c] hover:underline block leading-snug"
+                        className="font-bold text-[#4b465c] hover:text-teal-700 block leading-snug"
                       >
                         {prod.canonicalTitle}
                       </Link>
-                      <span className="text-[11px] text-slate-400 block mt-0.5">
+                      <span className="text-[11px] text-[#82808b] block mt-0.5">
                         {prod.categoryPath ? prod.categoryPath.split('>')[0].trim() : 'General'}
                       </span>
                     </td>
 
                     <td className="py-4 px-4">
-                      <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#0d2a2c]/5 text-[#0d2a2c] border border-[#0d2a2c]/10">
+                      <span className="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-[#f8f7fa] text-[#4b465c] border border-[#dbdade]">
                         {prod.brand || '—'}
                       </span>
                     </td>
 
-                    <td className="py-4 px-4 font-mono text-[11px] text-slate-600 space-y-0.5">
+                    <td className="py-4 px-4 font-mono text-[11px] text-[#4b465c] space-y-0.5">
                       {/* Phase 6 Quality Status Badge */}
                       <div className="mb-1">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono border ${prod.verificationStatus === 'verified'
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase font-mono border ${prod.verificationStatus === 'verified'
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                               : prod.verificationStatus === 'conflict'
                                 ? 'bg-rose-50 text-rose-800 border-rose-200'
@@ -932,16 +932,16 @@ export default function ProductsPage() {
                         </span>
                       </div>
                       <div>
-                        EAN: <span className="text-slate-900 font-bold">{prod.gtinEan || '—'}</span>
+                        EAN: <span className="text-[#4b465c] font-bold">{prod.gtinEan || '—'}</span>
                       </div>
                       <div>
-                        MPN: <span className="text-slate-500">{prod.modelNumber || '—'}</span>
+                        MPN: <span className="text-[#82808b]">{prod.modelNumber || '—'}</span>
                       </div>
                     </td>
 
-                    <td className="py-4 px-4 text-[11px] text-slate-600">
+                    <td className="py-4 px-4 text-[11px] text-[#4b465c]">
                       <div>{prod.sourcesCount || 1} domains</div>
-                      <div className="text-slate-400 font-medium">{prod.variantsCount || 1} variants</div>
+                      <div className="text-[#82808b] font-medium">{prod.variantsCount || 1} variants</div>
                     </td>
 
                     {/* Store Sync Status Badge (Single consolidated badge on listing) */}
@@ -954,7 +954,7 @@ export default function ProductsPage() {
                             <div className="flex items-center gap-1.5">
                               <span
                                 title={`Synced with ${prod.syncedStores.map((st: any) => st.storeName).join(', ')}`}
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs whitespace-nowrap"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs whitespace-nowrap"
                               >
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                 <ShoppingBag className="w-3 h-3 text-emerald-600" />
@@ -978,7 +978,7 @@ export default function ProductsPage() {
                           );
                         })()
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-[#dbdade]">
                           Not Pushed
                         </span>
                       )}
@@ -1034,7 +1034,7 @@ export default function ProductsPage() {
       {/* ========================================================================= */}
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8 animate-scaleUp">
+          <div className="bg-white rounded-xl max-w-2xl w-full shadow-2xl border border-[#dbdade] overflow-hidden my-8 animate-scaleUp">
             {/* Modal Header */}
             <div className="px-6 py-4 bg-[#0d2a2c] text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -1063,7 +1063,7 @@ export default function ProductsPage() {
                 </div>
               ) : brandsList.length === 0 ? (
                 <div className="text-center py-8 space-y-4">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+                  <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
                     <ShieldCheck className="w-6 h-6" />
                   </div>
                   <div>
@@ -1112,7 +1112,7 @@ export default function ProductsPage() {
                   {inputMode === 'IDENTIFIER' ? (
                     /* PHASE 5: ADVANCED PRODUCT DISCOVERY BY IDENTIFIER */
                     <form onSubmit={handleDiscoverByIdentifier} className="space-y-4">
-                      <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-teal-500/10 to-transparent border border-amber-200/60 space-y-1">
+                      <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-teal-500/10 to-transparent border border-amber-200/60 space-y-1">
                         <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                           <Sparkles className="w-4 h-4 text-amber-600" />
                           <span>Phase 5 Multi-Source Discovery Engine</span>
@@ -1137,7 +1137,7 @@ export default function ProductsPage() {
                       </div>
 
                       {discoveryResult && (
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                        <div className="p-4 rounded-xl bg-slate-50 border border-[#dbdade] space-y-2">
                           <div className="flex items-center justify-between text-xs font-bold">
                             <span className="text-slate-700">Discovery Status:</span>
                             <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-100 text-emerald-800 font-bold">
@@ -1158,7 +1158,7 @@ export default function ProductsPage() {
                         <button
                           type="button"
                           onClick={() => setShowAddModal(false)}
-                          className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                          className="px-4 py-2 rounded-xl border border-[#dbdade] text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
                         >
                           Cancel
                         </button>
@@ -1193,7 +1193,7 @@ export default function ProductsPage() {
                           value={selectedBrandId}
                           onChange={(e) => handleSelectBrand(e.target.value)}
                           required
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
                         >
                           <option value="">-- Choose Brand Profile --</option>
                           {brandsList.map((b) => (
@@ -1206,7 +1206,7 @@ export default function ProductsPage() {
 
                         {/* Brand Status / Guidance Pill */}
                         {selectedBrand && (
-                          <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
+                          <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-[#dbdade] text-xs flex items-center justify-between">
                             <div className="space-y-0.5">
                               <span className="font-bold text-slate-900 block">{selectedBrand.name}</span>
                               <span className="text-[11px] text-slate-500 font-mono">
@@ -1251,7 +1251,7 @@ export default function ProductsPage() {
                           <select
                             value={selectedSourceUrl}
                             onChange={(e) => setSelectedSourceUrl(e.target.value)}
-                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none"
                           >
                             {selectedBrand.officialWebsite && (
                               <option value={selectedBrand.officialWebsite}>
@@ -1290,7 +1290,7 @@ export default function ProductsPage() {
                               ? 'border-rose-300 bg-rose-50/50 text-rose-900 focus:border-rose-500'
                               : urlValidSuccess
                                 ? 'border-emerald-300 bg-emerald-50/40 text-emerald-950 focus:border-emerald-500'
-                                : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-[#0d2a2c] focus:bg-white'
+                                : 'border-[#dbdade] bg-slate-50 text-slate-900 focus:border-[#0d2a2c] focus:bg-white'
                             }`}
                         />
 
@@ -1320,7 +1320,7 @@ export default function ProductsPage() {
                         <button
                           type="button"
                           onClick={() => setShowAddModal(false)}
-                          className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                          className="px-4 py-2 rounded-xl border border-[#dbdade] text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
                         >
                           Cancel
                         </button>
@@ -1374,7 +1374,7 @@ export default function ProductsPage() {
 
                   {/* Phase 1: Smart Data Reuse Notification Banner */}
                   {intelligenceMatch && (
-                    <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-transparent border border-emerald-200 flex items-start gap-3">
+                    <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-transparent border border-emerald-200 flex items-start gap-3">
                       <Sparkles className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -1409,7 +1409,7 @@ export default function ProductsPage() {
                   )}
 
                   {/* AI ENRICHMENT ACTION BANNER */}
-                  <div className="p-3.5 rounded-2xl bg-gradient-to-r from-[#0d2a2c]/5 via-amber-500/5 to-transparent border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#0d2a2c]/5 via-amber-500/5 to-transparent border border-[#dbdade] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-start gap-2.5">
                       <Sparkles className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                       <div>
@@ -1432,7 +1432,7 @@ export default function ProductsPage() {
                         <button
                           type="button"
                           onClick={handleRevertToRaw}
-                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-[11px] font-semibold text-slate-600 transition"
+                          className="px-2.5 py-1.5 rounded-lg border border-[#dbdade] hover:bg-slate-100 text-[11px] font-semibold text-slate-600 transition"
                         >
                           Revert to Raw
                         </button>
@@ -1469,7 +1469,7 @@ export default function ProductsPage() {
                         required
                         value={reviewTitle}
                         onChange={(e) => setReviewTitle(e.target.value)}
-                        className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:bg-white"
+                        className="w-full px-3.5 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:bg-white"
                       />
                     </div>
 
@@ -1482,7 +1482,7 @@ export default function ProductsPage() {
                           type="text"
                           value={reviewModel}
                           onChange={(e) => setReviewModel(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white"
+                          className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white"
                         />
                       </div>
 
@@ -1494,7 +1494,7 @@ export default function ProductsPage() {
                           type="text"
                           value={reviewSku}
                           onChange={(e) => setReviewSku(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white"
+                          className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white"
                         />
                       </div>
 
@@ -1505,7 +1505,7 @@ export default function ProductsPage() {
                           value={reviewPrice}
                           placeholder="Price not available from this source"
                           onChange={(e) => setReviewPrice(e.target.value)}
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:bg-white placeholder:text-amber-600 placeholder:italic"
+                          className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:bg-white placeholder:text-amber-600 placeholder:italic"
                         />
                         {!reviewPrice && (
                           <span className="text-[10px] text-amber-700 italic block mt-0.5">
@@ -1527,7 +1527,7 @@ export default function ProductsPage() {
                               key={idx}
                               src={img}
                               alt="thumbnail"
-                              className="w-12 h-12 object-contain rounded-lg border border-slate-200 bg-white shadow-2xs"
+                              className="w-12 h-12 object-contain rounded-lg border border-[#dbdade] bg-white shadow-2xs"
                             />
                           ))}
                         </div>
@@ -1544,7 +1544,7 @@ export default function ProductsPage() {
                           rows={4}
                           value={reviewDescription}
                           onChange={(e) => setReviewDescription(e.target.value)}
-                          className="w-full px-3.5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-800 focus:outline-none focus:bg-white"
+                          className="w-full px-3.5 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs text-slate-800 focus:outline-none focus:bg-white"
                         />
                       </div>
                     )}
@@ -1555,7 +1555,7 @@ export default function ProductsPage() {
                         <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
                           Specifications ({Object.keys(reviewAttributes).length} properties)
                         </label>
-                        <div className="bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-100 max-h-36 overflow-y-auto text-xs">
+                        <div className="bg-slate-50 rounded-xl border border-[#dbdade] divide-y divide-slate-100 max-h-36 overflow-y-auto text-xs">
                           {Object.entries(reviewAttributes).map(([k, v]: [string, any]) => (
                             <div key={k} className="px-3 py-1.5 flex justify-between gap-3">
                               <span className="font-semibold text-slate-700">{k}:</span>
@@ -1572,11 +1572,11 @@ export default function ProductsPage() {
                         <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
                           Custom Attributes ({Object.keys(reviewCustomFields).length})
                         </label>
-                        <div className="bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-100 max-h-36 overflow-y-auto text-xs">
+                        <div className="bg-slate-50 rounded-xl border border-[#dbdade] divide-y divide-slate-100 max-h-36 overflow-y-auto text-xs">
                           {Object.entries(reviewCustomFields).map(([k, v]: [string, any]) => (
                             <div key={k} className="px-3 py-2 flex flex-col gap-1">
                               <span className="font-semibold text-slate-700">{k}:</span>
-                              <div className="text-slate-900 font-mono text-[11px] whitespace-pre-line max-h-24 overflow-y-auto bg-white p-2 rounded border border-slate-200">
+                              <div className="text-slate-900 font-mono text-[11px] whitespace-pre-line max-h-24 overflow-y-auto bg-white p-2 rounded border border-[#dbdade]">
                                 {typeof v === 'object' ? JSON.stringify(v) : String(v)}
                               </div>
                             </div>
@@ -1591,7 +1591,7 @@ export default function ProductsPage() {
                     <button
                       type="button"
                       onClick={() => setExtractedData(null)}
-                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                      className="px-4 py-2 rounded-xl border border-[#dbdade] text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
                     >
                       Back
                     </button>
@@ -1623,7 +1623,7 @@ export default function ProductsPage() {
       {/* BATCH / BULK URL SCRAPE MODAL */}
       {showBatchModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl border border-[#dbdade] shadow-2xl max-w-xl w-full p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <UploadCloud className="w-5 h-5 text-[#0d2a2c]" />
@@ -1645,7 +1645,7 @@ export default function ProductsPage() {
             ) : (
               <form onSubmit={handleSubmitBatchScrape} className="space-y-4">
                 {/* Mode Selector Tabs: Manual List vs Full Auto-Crawler */}
-                <div className="flex p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs font-bold">
+                <div className="flex p-1 bg-slate-100 rounded-xl border border-[#dbdade] text-xs font-bold">
                   <button
                     type="button"
                     onClick={() => setCrawlMode('MANUAL_LIST')}
@@ -1676,7 +1676,7 @@ export default function ProductsPage() {
                     Select Target Brand Profile <span className="text-rose-500">*</span>
                   </label>
                   {loadingBrands ? (
-                    <div className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-400">
+                    <div className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs text-slate-400">
                       Loading configured brand profiles...
                     </div>
                   ) : brandsList.length === 0 ? (
@@ -1691,7 +1691,7 @@ export default function ProductsPage() {
                       required
                       value={batchBrandId}
                       onChange={(e) => setBatchBrandId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
                     >
                       {brandsList.map((b) => (
                         <option key={b.id} value={b.id}>
@@ -1704,7 +1704,7 @@ export default function ProductsPage() {
 
                 {/* If Auto-Crawler Mode */}
                 {crawlMode === 'CRAWLER' ? (
-                  <div className="space-y-3.5 p-4 bg-slate-50 border border-slate-200/80 rounded-2xl">
+                  <div className="space-y-3.5 p-4 bg-slate-50 border border-[#dbdade]/80 rounded-xl">
                     <div>
                       <label className="block text-xs font-bold text-slate-800 mb-1">
                         Category / Collection URL or Sitemap XML
@@ -1714,7 +1714,7 @@ export default function ProductsPage() {
                         value={crawlerEntryUrl}
                         onChange={(e) => setCrawlerEntryUrl(e.target.value)}
                         placeholder="e.g. https://store.com/collections/chairs or https://store.com/sitemap.xml"
-                        className="w-full px-3.5 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c]"
+                        className="w-full px-3.5 py-2 bg-white border border-[#dbdade] rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c]"
                       />
                       <p className="text-[11px] text-slate-500 mt-1">
                         System will automatically crawl pagination pages or parse XML sitemaps to discover all product links.
@@ -1727,7 +1727,7 @@ export default function ProductsPage() {
                         <select
                           value={crawlerMaxPages}
                           onChange={(e) => setCrawlerMaxPages(parseInt(e.target.value))}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs"
+                          className="w-full px-3 py-1.5 bg-white border border-[#dbdade] rounded-xl text-xs"
                         >
                           <option value={1}>1 Page (Single Page)</option>
                           <option value={3}>Up to 3 Pages</option>
@@ -1741,7 +1741,7 @@ export default function ProductsPage() {
                         <select
                           value={crawlerMaxProducts}
                           onChange={(e) => setCrawlerMaxProducts(parseInt(e.target.value))}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs"
+                          className="w-full px-3 py-1.5 bg-white border border-[#dbdade] rounded-xl text-xs"
                         >
                           <option value={25}>25 Products</option>
                           <option value={50}>50 Products</option>
@@ -1809,7 +1809,7 @@ export default function ProductsPage() {
                     value={batchUrlsInput}
                     onChange={(e) => setBatchUrlsInput(e.target.value)}
                     placeholder={`https://traxxas.com/products/models/electric/slash-4x4-ultimate\nhttps://traxxas.com/products/models/electric/x-maxx\nhttps://traxxas.com/products/models/electric/rustler-4x4-vxl`}
-                    className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition leading-relaxed"
+                    className="w-full p-3.5 bg-slate-50 border border-[#dbdade] rounded-xl text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition leading-relaxed"
                   />
                 </div>
 
@@ -1823,7 +1823,7 @@ export default function ProductsPage() {
                   <button
                     type="button"
                     onClick={() => setShowBatchModal(false)}
-                    className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                    className="px-4 py-2 rounded-xl border border-[#dbdade] text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
                   >
                     Cancel
                   </button>
@@ -1854,7 +1854,7 @@ export default function ProductsPage() {
       {/* Bulk Store Push Modal */}
       {showBulkPushModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#dbdade] w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="px-6 py-4 bg-[#0d2a2c] text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -1891,7 +1891,7 @@ export default function ProductsPage() {
                       <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                       <span>Bulk Export Run Complete</span>
                     </div>
-                    <div className="mt-2 text-xs grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-200/50">
+                    <div className="mt-2 text-xs grid grid-cols-3 gap-2 text-center pt-2 border-t border-[#dbdade]/50">
                       <div className="p-2 bg-white/60 rounded-lg">
                         <span className="block font-bold text-sm text-slate-900">{bulkPushResults.totalRequested}</span>
                         <span className="text-[10px] text-slate-500 font-semibold">Total</span>
@@ -1969,7 +1969,7 @@ export default function ProductsPage() {
                       <select
                         value={selectedPushStoreId}
                         onChange={(e) => setSelectedPushStoreId(e.target.value)}
-                        className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                        className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                       >
                         {connectedStores.map((st) => {
                           const platformStr = String(st.platformType || st.platform || 'STORE').toUpperCase();
@@ -1991,7 +1991,7 @@ export default function ProductsPage() {
                     <select
                       value={selectedPushLanguage}
                       onChange={(e) => setSelectedPushLanguage(e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                      className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                     >
                       <option value="en">English (Default)</option>
                       <option value="nl">Dutch (Nederlands)</option>
@@ -2004,7 +2004,7 @@ export default function ProductsPage() {
                     </p>
                   </div>
 
-                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 space-y-1">
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-[#dbdade]/80 text-[11px] text-slate-600 space-y-1">
                     <span className="font-bold text-slate-700 block">Safety & Integrity Checks:</span>
                     <div>✓ Automated idempotent schema validation</div>
                     <div>✓ Audit logs recorded for each pushed product</div>
@@ -2015,7 +2015,7 @@ export default function ProductsPage() {
                     <button
                       type="button"
                       onClick={() => setShowBulkPushModal(false)}
-                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                      className="px-4 py-2 rounded-xl border border-[#dbdade] text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
                     >
                       Cancel
                     </button>

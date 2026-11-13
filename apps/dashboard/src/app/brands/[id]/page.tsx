@@ -1105,7 +1105,7 @@ export default function BrandProfileDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto p-12 text-center bg-white rounded-2xl border border-slate-200">
+      <div className="max-w-5xl mx-auto p-12 text-center bg-white rounded-xl border border-[#dbdade]">
         <div className="inline-block w-6 h-6 border-2 border-slate-300 border-t-[#0d2a2c] rounded-full animate-spin mb-3"></div>
         <p className="text-xs font-semibold text-slate-500">Loading brand profile configuration...</p>
       </div>
@@ -1114,7 +1114,7 @@ export default function BrandProfileDetailPage() {
 
   if (errorMsg && !brand) {
     return (
-      <div className="max-w-3xl mx-auto p-8 bg-white rounded-2xl border border-rose-200 text-center space-y-4">
+      <div className="max-w-3xl mx-auto p-8 bg-white rounded-xl border border-rose-200 text-center space-y-4">
         <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
         <h2 className="text-base font-bold text-slate-900">{errorMsg}</h2>
         <Link
@@ -1133,7 +1133,7 @@ export default function BrandProfileDetailPage() {
   return (
     <div className="space-y-6 w-full font-sans text-slate-800 pb-16">
       {/* Top Breadcrumb & Action Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <Link
             href="/brands"
@@ -1178,7 +1178,7 @@ export default function BrandProfileDetailPage() {
       {/* Two Column Layout: Left Vertical Vertical Tab Navigation + Right Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Vertical Tab Menu (Khada Sidebar Style) */}
-        <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-2.5 shadow-sm space-y-1 sticky top-6">
+        <div className="lg:col-span-3 bg-white rounded-xl border border-[#dbdade] p-2.5 shadow-sm space-y-1 sticky top-6">
           <div className="px-3 py-2 border-b border-slate-100 mb-1">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
               Scraping & Mapping
@@ -1330,7 +1330,7 @@ export default function BrandProfileDetailPage() {
       {activeTab === 'visual' && (
         <div className="space-y-6">
           {/* Step 1: Enter Product URL */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+          <div className="bg-white rounded-xl border border-[#dbdade] p-5 shadow-sm space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -1350,7 +1350,7 @@ export default function BrandProfileDetailPage() {
                 placeholder="https://traxxas.com/products/models/electric/slash-4x4-vxl"
                 value={visualProductUrl}
                 onChange={(e) => setVisualProductUrl(e.target.value)}
-                className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                className="flex-1 px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
               />
               <button
                 type="submit"
@@ -1376,11 +1376,11 @@ export default function BrandProfileDetailPage() {
               <div
                 className={
                   isVisualFullscreen
-                    ? 'flex-1 bg-white border border-slate-700/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden mb-3'
-                    : 'lg:col-span-8 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden'
+                    ? 'flex-1 bg-white border border-slate-700/50 rounded-xl shadow-2xl flex flex-col overflow-hidden mb-3'
+                    : 'lg:col-span-8 bg-white border border-[#dbdade] rounded-xl shadow-sm flex flex-col overflow-hidden'
                 }
               >
-                <div className="px-4 py-2.5 bg-slate-100 border-b border-slate-200 flex items-center justify-between text-xs text-slate-600">
+                <div className="px-4 py-2.5 bg-slate-100 border-b border-[#dbdade] flex items-center justify-between text-xs text-slate-600">
                   <div className="flex items-center gap-2 truncate">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
                     <span className="font-semibold text-slate-800 shrink-0">Visual Sandbox Preview:</span>
@@ -1421,12 +1421,12 @@ export default function BrandProfileDetailPage() {
               <div
                 className={
                   isVisualFullscreen
-                    ? 'h-auto max-h-[300px] sm:max-h-[320px] overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/95 backdrop-blur border border-slate-200 rounded-2xl p-4 shadow-xl'
+                    ? 'h-auto max-h-[300px] sm:max-h-[320px] overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4 bg-white/95 backdrop-blur border border-[#dbdade] rounded-xl p-4 shadow-xl'
                     : 'lg:col-span-4 space-y-4'
                 }
               >
                 {/* Active Selection Confirmation Card */}
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+                <div className="bg-white border border-[#dbdade] rounded-xl p-5 shadow-sm space-y-4">
                   <div className="border-b border-slate-100 pb-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Step 2 & 3</span>
                     <h4 className="text-sm font-bold text-slate-900">Map Clicked Element</h4>
@@ -1439,7 +1439,7 @@ export default function BrandProfileDetailPage() {
                     <select
                       value={selectedTargetField}
                       onChange={(e) => setSelectedTargetField(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                      className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
                     >
                       <optgroup label="Standard Fields">
                         {STANDARD_TARGET_FIELDS.map((f) => (
@@ -1461,10 +1461,10 @@ export default function BrandProfileDetailPage() {
                   </div>
 
                   {visualSelection ? (
-                    <div className="space-y-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 animate-fadeIn">
+                    <div className="space-y-3 p-3.5 bg-slate-50 rounded-xl border border-[#dbdade] animate-fadeIn">
                       <div>
                         <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Selected Value</span>
-                        <div className="text-xs font-bold text-slate-900 bg-white p-2.5 rounded-lg border border-slate-200 break-words max-h-24 overflow-y-auto">
+                        <div className="text-xs font-bold text-slate-900 bg-white p-2.5 rounded-lg border border-[#dbdade] break-words max-h-24 overflow-y-auto">
                           {visualSelection.isImage ? (
                             <div className="space-y-1">
                               <span className="text-[10px] text-amber-700 font-bold block">[Product Image Detected]</span>
@@ -1523,7 +1523,7 @@ export default function BrandProfileDetailPage() {
                             )}
                           </div>
                         ) : (
-                          <div className="text-xs font-mono font-bold text-[#0d2a2c] bg-white px-2.5 py-2 rounded-lg border border-slate-200 truncate">
+                          <div className="text-xs font-mono font-bold text-[#0d2a2c] bg-white px-2.5 py-2 rounded-lg border border-[#dbdade] truncate">
                             {visualSelection.selector}
                           </div>
                         )}
@@ -1546,7 +1546,7 @@ export default function BrandProfileDetailPage() {
                                   className={`w-full text-left p-1.5 rounded-lg text-[11px] border transition flex items-center justify-between gap-1.5 ${
                                     isSelected
                                       ? 'bg-amber-50 border-amber-300 text-slate-950 font-bold'
-                                      : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
+                                      : 'bg-white border-[#dbdade] hover:bg-slate-100 text-slate-700'
                                   }`}
                                 >
                                   <div className="truncate flex-1">
@@ -1620,7 +1620,7 @@ export default function BrandProfileDetailPage() {
                         <button
                           type="button"
                           onClick={() => setVisualSelection(null)}
-                          className="p-2 border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-100 transition"
+                          className="p-2 border border-[#dbdade] rounded-xl text-slate-500 hover:bg-slate-100 transition"
                           title="Cancel selection"
                         >
                           <X className="w-4 h-4" />
@@ -1628,7 +1628,7 @@ export default function BrandProfileDetailPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="p-6 text-center border-2 border-dashed border-slate-200 rounded-xl text-xs text-slate-400 space-y-2">
+                    <div className="p-6 text-center border-2 border-dashed border-[#dbdade] rounded-xl text-xs text-slate-400 space-y-2">
                       <MousePointerClick className="w-6 h-6 text-slate-300 mx-auto" />
                       <p>Move your mouse over the page preview on the left and click the data you want to assign to <strong>{selectedTargetField}</strong>.</p>
                     </div>
@@ -1636,7 +1636,7 @@ export default function BrandProfileDetailPage() {
                 </div>
 
                 {/* Configured Fields Checklist */}
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3">
+                <div className="bg-white border border-[#dbdade] rounded-xl p-5 shadow-sm space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                     <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                       Workspace Fields ({fieldMappings.length})
@@ -1669,7 +1669,7 @@ export default function BrandProfileDetailPage() {
                             <span className="truncate">{f.label}</span>
                           </div>
                           {isMapped && (
-                            <span className="font-mono text-[9px] text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200 truncate max-w-[90px]">
+                            <span className="font-mono text-[9px] text-slate-400 bg-white px-1.5 py-0.5 rounded border border-[#dbdade] truncate max-w-[90px]">
                               {mapping.sourceValue}
                             </span>
                           )}
@@ -1681,8 +1681,8 @@ export default function BrandProfileDetailPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3 max-w-xl mx-auto shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+            <div className="bg-white rounded-xl border border-[#dbdade] p-12 text-center space-y-3 max-w-xl mx-auto shadow-sm">
+              <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
                 <MousePointerClick className="w-6 h-6" />
               </div>
               <h4 className="text-sm font-bold text-slate-900">Enter a URL to Start Visual Auto Mapping</h4>
@@ -1715,7 +1715,7 @@ export default function BrandProfileDetailPage() {
           </div>
 
           {fieldMappings.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
+            <div className="bg-white rounded-xl border border-[#dbdade] p-12 text-center space-y-3">
               <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-700 mx-auto flex items-center justify-center">
                 <SlidersHorizontal className="w-6 h-6 text-amber-600" />
               </div>
@@ -1733,9 +1733,9 @@ export default function BrandProfileDetailPage() {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden">
               <table className="w-full text-left text-xs text-slate-700">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                <thead className="bg-slate-50 border-b border-[#dbdade] text-slate-500 font-bold uppercase tracking-wider text-[10px]">
                   <tr>
                     <th className="px-5 py-3.5">Target Field</th>
                     <th className="px-4 py-3.5">Source Type</th>
@@ -1776,7 +1776,7 @@ export default function BrandProfileDetailPage() {
                               setFieldMappings(updated);
                               handleSaveChanges(updated);
                             }}
-                            className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white font-semibold text-xs text-slate-800 focus:outline-none focus:border-[#0d2a2c]"
+                            className="px-2.5 py-1 rounded-lg border border-[#dbdade] bg-white font-semibold text-xs text-slate-800 focus:outline-none focus:border-[#0d2a2c]"
                           >
                             <option value="main">Main Product View</option>
                             <option value="tab">Group Tab</option>
@@ -1794,7 +1794,7 @@ export default function BrandProfileDetailPage() {
                               setFieldMappings(updated);
                               handleSaveChanges(updated);
                             }}
-                            className="px-2.5 py-1 rounded-lg border border-slate-200 bg-white font-semibold text-xs text-slate-800 focus:outline-none focus:border-[#0d2a2c] max-w-[150px] truncate"
+                            className="px-2.5 py-1 rounded-lg border border-[#dbdade] bg-white font-semibold text-xs text-slate-800 focus:outline-none focus:border-[#0d2a2c] max-w-[150px] truncate"
                           >
                             <option value="">(None / Default)</option>
                             {contentTemplates.map((tpl) => (
@@ -1821,7 +1821,7 @@ export default function BrandProfileDetailPage() {
                             className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase transition ${
                               m.enabled !== false
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                : 'bg-slate-100 text-slate-400 border border-slate-200'
+                                : 'bg-slate-100 text-slate-400 border border-[#dbdade]'
                             }`}
                           >
                             {m.enabled !== false ? 'Active' : 'Disabled'}
@@ -1858,7 +1858,7 @@ export default function BrandProfileDetailPage() {
       {/* TAB: FIELD GROUPS */}
       {activeTab === 'groups' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+          <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">
@@ -1890,7 +1890,7 @@ export default function BrandProfileDetailPage() {
                     placeholder="e.g. Media & Image Assets"
                     value={newGroupName}
                     onChange={(e) => setNewGroupName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
                   />
                 </div>
 
@@ -1903,7 +1903,7 @@ export default function BrandProfileDetailPage() {
                     placeholder="e.g. High resolution photos, thumbnails and action banners"
                     value={newGroupDesc}
                     onChange={(e) => setNewGroupDesc(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
                   />
                 </div>
               </div>
@@ -1913,7 +1913,7 @@ export default function BrandProfileDetailPage() {
                   Select Mappings To Include In This Group ({newGroupFields.length} selected)
                 </label>
                 {fieldMappings.length === 0 ? (
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-400 italic">
+                  <div className="p-4 rounded-xl bg-slate-50 border border-[#dbdade] text-xs text-slate-400 italic">
                     No field mappings configured yet. Add field mappings first to assign them to groups.
                   </div>
                 ) : (
@@ -1930,7 +1930,7 @@ export default function BrandProfileDetailPage() {
                           className={`p-2.5 rounded-xl border text-xs cursor-pointer flex items-center justify-between transition ${
                             isSelected
                               ? 'bg-[#fad982]/20 border-amber-300 font-bold text-slate-900 shadow-xs'
-                              : 'bg-slate-50/70 border-slate-200 text-slate-600 hover:bg-slate-100'
+                              : 'bg-slate-50/70 border-[#dbdade] text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           <div className="truncate pr-2">
@@ -1962,7 +1962,7 @@ export default function BrandProfileDetailPage() {
             </form>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h4 className="text-xs font-bold text-slate-900">Configured Field Groups ({fieldGroups.length})</h4>
             </div>
@@ -2021,7 +2021,7 @@ export default function BrandProfileDetailPage() {
                           return (
                             <span
                               key={fieldKey}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-800 shadow-2xs"
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-white border border-[#dbdade] text-slate-800 shadow-2xs"
                             >
                               <span>{label}</span>
                               {mapping && (
@@ -2047,7 +2047,7 @@ export default function BrandProfileDetailPage() {
       {/* TAB 3: PRODUCT SOURCES (PART 1: MULTI-SOURCE ARCHITECTURE) */}
       {activeTab === 'sources' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+          <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-4">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Add Approved Product Source</h3>
               <p className="text-xs text-slate-500 mt-0.5">
@@ -2064,7 +2064,7 @@ export default function BrandProfileDetailPage() {
                   placeholder="e.g. Official US Store"
                   value={newSourceName}
                   onChange={(e) => setNewSourceName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                  className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
                 />
               </div>
 
@@ -2076,7 +2076,7 @@ export default function BrandProfileDetailPage() {
                   placeholder="https://traxxas.com"
                   value={newSourceUrl}
                   onChange={(e) => setNewSourceUrl(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white font-mono"
+                  className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white font-mono"
                 />
               </div>
 
@@ -2085,7 +2085,7 @@ export default function BrandProfileDetailPage() {
                 <select
                   value={newSourceTypeConfig}
                   onChange={(e) => setNewSourceTypeConfig(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none"
                 >
                   <option value="official_website">Official Website</option>
                   <option value="authorized_distributor">Authorized Distributor</option>
@@ -2102,7 +2102,7 @@ export default function BrandProfileDetailPage() {
                   max="10"
                   value={newSourcePriority}
                   onChange={(e) => setNewSourcePriority(parseInt(e.target.value) || 1)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none text-center font-bold"
+                  className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs text-slate-900 focus:outline-none text-center font-bold"
                 />
               </div>
 
@@ -2117,7 +2117,7 @@ export default function BrandProfileDetailPage() {
             </form>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h4 className="text-xs font-bold text-slate-900">Approved Dynamic Sources ({sourceConfigs.length})</h4>
@@ -2160,7 +2160,7 @@ export default function BrandProfileDetailPage() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleToggleSourceStatus(idx)}
-                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-200 hover:bg-slate-100 transition"
+                        className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-[#dbdade] hover:bg-slate-100 transition"
                       >
                         {src.isActive !== false ? 'Disable' : 'Enable'}
                       </button>
@@ -2183,7 +2183,7 @@ export default function BrandProfileDetailPage() {
       {/* TAB 4: CUSTOM CLIENT FIELDS */}
       {activeTab === 'custom' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+          <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">
@@ -2217,7 +2217,7 @@ export default function BrandProfileDetailPage() {
                       setNewFieldKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'));
                     }
                   }}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs text-slate-900 focus:outline-none"
                 />
               </div>
 
@@ -2229,7 +2229,7 @@ export default function BrandProfileDetailPage() {
                   placeholder="e.g. compatible_rc_model"
                   value={newFieldKey}
                   onChange={(e) => setNewFieldKey(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none"
                 />
               </div>
 
@@ -2238,7 +2238,7 @@ export default function BrandProfileDetailPage() {
                 <select
                   value={newFieldType}
                   onChange={(e) => setNewFieldType(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none"
                 >
                   <option value="string">Text / String</option>
                   <option value="number">Number</option>
@@ -2258,7 +2258,7 @@ export default function BrandProfileDetailPage() {
             </form>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h4 className="text-xs font-bold text-slate-900">Registered Custom Fields ({customFields.length})</h4>
             </div>
@@ -2301,7 +2301,7 @@ export default function BrandProfileDetailPage() {
       {/* TAB 5: TEST & PREVIEW EXTRACTION */}
       {activeTab === 'test' && (
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+          <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-4">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Dry-Run Field Mapping Test</h3>
@@ -2323,7 +2323,7 @@ export default function BrandProfileDetailPage() {
                 placeholder="https://traxxas.com/10911-blue-funco-pro-scale-replica-blue-body"
                 value={testUrl}
                 onChange={(e) => setTestUrl(e.target.value)}
-                className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white font-mono"
+                className="flex-1 px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white font-mono"
               />
               <button
                 type="submit"
@@ -2337,7 +2337,7 @@ export default function BrandProfileDetailPage() {
           </div>
 
           {testResults && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
+            <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-5">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -2362,7 +2362,7 @@ export default function BrandProfileDetailPage() {
                   return (
                     <div
                       key={key}
-                      className="p-4 rounded-xl bg-slate-50/70 border border-slate-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-white hover:shadow-sm transition"
+                      className="p-4 rounded-xl bg-slate-50/70 border border-[#dbdade] text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:bg-white hover:shadow-sm transition"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -2409,7 +2409,7 @@ export default function BrandProfileDetailPage() {
                                       <img
                                         src={item}
                                         alt={`img-${i}`}
-                                        className="w-10 h-10 object-contain rounded-lg border border-slate-200 bg-white hover:border-[#0d2a2c] hover:scale-105 transition shadow-xs"
+                                        className="w-10 h-10 object-contain rounded-lg border border-[#dbdade] bg-white hover:border-[#0d2a2c] hover:scale-105 transition shadow-xs"
                                       />
                                     </a>
                                   );
@@ -2419,7 +2419,7 @@ export default function BrandProfileDetailPage() {
                                   return (
                                     <div
                                       key={i}
-                                      className="p-2 rounded-lg text-[10px] font-mono bg-white text-slate-800 border border-slate-200 shadow-2xs space-y-1 text-left max-w-xs"
+                                      className="p-2 rounded-lg text-[10px] font-mono bg-white text-slate-800 border border-[#dbdade] shadow-2xs space-y-1 text-left max-w-xs"
                                     >
                                       <div className="font-bold text-[#0d2a2c]">{item.name || item.title || item.identifier || `Item ${i + 1}`}</div>
                                       {Array.isArray(item.values) && (
@@ -2434,7 +2434,7 @@ export default function BrandProfileDetailPage() {
                                 return (
                                   <span
                                     key={i}
-                                    className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 border border-slate-200"
+                                    className="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-100 text-slate-700 border border-[#dbdade]"
                                   >
                                     {String(item)}
                                   </span>
@@ -2447,7 +2447,7 @@ export default function BrandProfileDetailPage() {
                             <span className="text-[10px] font-bold text-slate-500 block text-right">
                               {Object.keys(val.extractedValue).length} Key-Value Specifications
                             </span>
-                            <div className="bg-white border border-slate-200 rounded-xl max-h-48 overflow-y-auto divide-y divide-slate-100 text-[11px] text-left shadow-xs">
+                            <div className="bg-white border border-[#dbdade] rounded-xl max-h-48 overflow-y-auto divide-y divide-slate-100 text-[11px] text-left shadow-xs">
                               {Object.entries(val.extractedValue).map(([specKey, specVal]: [string, any]) => (
                                 <div key={specKey} className="px-3 py-1.5 flex justify-between gap-3">
                                   <span className="font-semibold text-slate-700">{specKey}:</span>
@@ -2461,7 +2461,7 @@ export default function BrandProfileDetailPage() {
                             <img
                               src={val.extractedValue}
                               alt="preview"
-                              className="w-10 h-10 object-contain rounded border border-slate-200 bg-white"
+                              className="w-10 h-10 object-contain rounded border border-[#dbdade] bg-white"
                             />
                             <a
                               href={val.extractedValue}
@@ -2477,7 +2477,7 @@ export default function BrandProfileDetailPage() {
                             className={`inline-block font-mono font-bold px-3 py-1.5 rounded-lg border text-xs break-all ${
                               isSuccess
                                 ? 'text-emerald-800 bg-emerald-50/80 border-emerald-200'
-                                : 'text-slate-500 bg-slate-100 border-slate-200'
+                                : 'text-slate-500 bg-slate-100 border-[#dbdade]'
                             }`}
                           >
                             {typeof val.extractedValue === 'object' ? JSON.stringify(val.extractedValue) : (val.extractedValue || '(Empty)')}
@@ -2495,7 +2495,7 @@ export default function BrandProfileDetailPage() {
 
       {/* TAB: BRAND AI PROMPT RULES */}
       {activeTab === 'ai_prompts' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -2524,7 +2524,7 @@ export default function BrandProfileDetailPage() {
 
           {/* Language Switcher Tabs for Brand Rules */}
           {storeLanguages?.supported && storeLanguages.supported.length > 0 && (
-            <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+            <div className="flex items-center justify-between p-2.5 bg-slate-50 border border-[#dbdade] rounded-xl">
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-emerald-700" />
                 <span className="text-xs font-bold text-slate-800">
@@ -2543,7 +2543,7 @@ export default function BrandProfileDetailPage() {
                       className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
                         isActive
                           ? 'bg-[#0d2a2c] text-[#fad982] shadow-xs'
-                          : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                          : 'bg-white border border-[#dbdade] text-slate-600 hover:bg-slate-100'
                       }`}
                     >
                       <span className="uppercase">{code}</span>
@@ -2560,7 +2560,7 @@ export default function BrandProfileDetailPage() {
           )}
 
           {/* Inheritance explanation card */}
-          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-3">
+          <div className="p-4 rounded-xl bg-slate-50 border border-[#dbdade] flex items-start gap-3">
             <Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div className="text-xs space-y-1 text-slate-600">
               <span className="font-bold text-slate-900">Rule Hierarchy in Execution:</span>
@@ -2594,7 +2594,7 @@ export default function BrandProfileDetailPage() {
 - Never use generic superlatives like 'best in the world'; use verified technical specs.
 - Call out modular chassis design and battery compatibility (2S/3S LiPo).
 - Always include the official part number in titles and key specification bullet points.` : `Add custom rules for ${brandName} in ${activeBrandPromptLang.toUpperCase()} (e.g. terminology, tone, or specific phrases)...`}
-                className="w-full p-4 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white leading-relaxed"
+                className="w-full p-4 rounded-xl border border-[#dbdade] bg-slate-50 font-mono text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white leading-relaxed"
               />
             </div>
 
@@ -2613,7 +2613,7 @@ export default function BrandProfileDetailPage() {
 
       {/* TAB: MODEL PATTERN NORMALIZATION RULES */}
       {activeTab === 'model_rules' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -2642,7 +2642,7 @@ export default function BrandProfileDetailPage() {
 
           <div className="space-y-6">
             {/* Enable switch */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-[#dbdade]">
               <div className="space-y-0.5">
                 <span className="text-xs font-bold text-slate-900">Enable Model Pattern Formatting</span>
                 <p className="text-[11px] text-slate-500">
@@ -2671,7 +2671,7 @@ export default function BrandProfileDetailPage() {
                   value={modelPrefix}
                   onChange={(e) => setModelPrefix(e.target.value)}
                   placeholder="Trx-"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 font-mono text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
                 />
               </div>
 
@@ -2684,7 +2684,7 @@ export default function BrandProfileDetailPage() {
                   value={modelSuffix}
                   onChange={(e) => setModelSuffix(e.target.value)}
                   placeholder="-OEM"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 font-mono text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
                 />
               </div>
 
@@ -2695,7 +2695,7 @@ export default function BrandProfileDetailPage() {
                 <select
                   value={modelTransform}
                   onChange={(e) => setModelTransform(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 font-mono text-xs text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
                 >
                   <option value="NONE">Preserve Original Case</option>
                   <option value="UPPERCASE">ALL UPPERCASE (e.g. TRX-77097-4)</option>
@@ -2706,7 +2706,7 @@ export default function BrandProfileDetailPage() {
             </div>
 
             {/* Live Interactive Pattern Tester */}
-            <div className="p-5 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-3">
+            <div className="p-5 rounded-xl bg-amber-50/60 border border-amber-200 space-y-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-amber-600" />
                 <h4 className="text-xs font-bold text-amber-950 uppercase tracking-wider">
@@ -2754,7 +2754,7 @@ export default function BrandProfileDetailPage() {
       {/* PHASE 9D TAB: SOURCE CONTENT IMAGE EXTRACTION RULES                       */}
       {/* ========================================================================= */}
       {activeTab === 'image_rules' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -2782,11 +2782,11 @@ export default function BrandProfileDetailPage() {
           </div>
 
           <div className="space-y-4">
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+            <div className="p-4 rounded-xl border border-[#dbdade] bg-slate-50/70 space-y-3">
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Image Types to Collect</h4>
               
               <div className="space-y-3">
-                <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 transition">
+                <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-[#dbdade] cursor-pointer hover:border-slate-300 transition">
                   <input
                     type="checkbox"
                     checked={imageExtractionRules.galleryImages}
@@ -2799,7 +2799,7 @@ export default function BrandProfileDetailPage() {
                   </div>
                 </label>
 
-                <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 transition">
+                <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-[#dbdade] cursor-pointer hover:border-slate-300 transition">
                   <input
                     type="checkbox"
                     checked={imageExtractionRules.contentImages}
@@ -2812,7 +2812,7 @@ export default function BrandProfileDetailPage() {
                   </div>
                 </label>
 
-                <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 transition">
+                <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-[#dbdade] cursor-pointer hover:border-slate-300 transition">
                   <input
                     type="checkbox"
                     checked={imageExtractionRules.decorativeImages}
@@ -2825,7 +2825,7 @@ export default function BrandProfileDetailPage() {
                   </div>
                 </label>
 
-                <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-slate-200 cursor-pointer hover:border-slate-300 transition">
+                <label className="flex items-start gap-3 p-3 bg-white rounded-xl border border-[#dbdade] cursor-pointer hover:border-slate-300 transition">
                   <input
                     type="checkbox"
                     checked={imageExtractionRules.logosAndIcons}
@@ -2856,7 +2856,7 @@ export default function BrandProfileDetailPage() {
       {/* PHASE 9D TAB: FIELD CONFIGURATION & VISIBILITY ENGINE                     */}
       {/* ========================================================================= */}
       {activeTab === 'field_configs' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -2903,7 +2903,7 @@ export default function BrandProfileDetailPage() {
                           updated[fIdx].dataSource = e.target.value;
                           setFieldConfigs(updated);
                         }}
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-800"
                       >
                         <option value="scraped">Scraped Source</option>
                         <option value="ai">AI Processed</option>
@@ -2922,7 +2922,7 @@ export default function BrandProfileDetailPage() {
                           updated[fIdx].displayLocation = e.target.value;
                           setFieldConfigs(updated);
                         }}
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-800"
                       >
                         <option value="main">Main Product View</option>
                         <option value="tab">Group Tab</option>
@@ -2941,7 +2941,7 @@ export default function BrandProfileDetailPage() {
                           updated[fIdx].groupId = e.target.value || null;
                           setFieldConfigs(updated);
                         }}
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-800"
                       >
                         <option value="">(None / Ungrouped)</option>
                         {groupOptions.map((gName: string) => (
@@ -2977,7 +2977,7 @@ export default function BrandProfileDetailPage() {
       {/* PHASE 9D TAB: CONTENT TEMPLATES & CLIENT TEMPLATE BUILDER                 */}
       {/* ========================================================================= */}
       {activeTab === 'templates' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -3035,7 +3035,7 @@ export default function BrandProfileDetailPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {contentTemplates.map((tpl) => (
-              <div key={tpl.id} className="p-5 rounded-2xl border border-slate-200 bg-white hover:border-[#0d2a2c] transition shadow-xs flex flex-col justify-between space-y-3">
+              <div key={tpl.id} className="p-5 rounded-xl border border-[#dbdade] bg-white hover:border-[#0d2a2c] transition shadow-xs flex flex-col justify-between space-y-3">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-600 font-mono">
@@ -3090,7 +3090,7 @@ export default function BrandProfileDetailPage() {
           {/* Template Preview Drawer / Modal */}
           {previewTemplate && (
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+              <div className="bg-white rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-[#dbdade]">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div>
                     <h3 className="text-sm font-bold text-slate-900">{previewTemplate.name}</h3>
@@ -3101,7 +3101,7 @@ export default function BrandProfileDetailPage() {
                   </button>
                 </div>
 
-                <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 space-y-4">
+                <div className="p-5 rounded-xl bg-slate-50 border border-[#dbdade] text-xs text-slate-800 space-y-4">
                   {(previewTemplate.id === 'tpl_description' || previewTemplate.id === 'tpl_classic_desc' || previewTemplate.name?.toLowerCase().includes('description')) && (
                     <div className="space-y-3">
                       <p className="leading-relaxed text-sm text-slate-800">
@@ -3111,7 +3111,7 @@ export default function BrandProfileDetailPage() {
                   )}
 
                   {(previewTemplate.id === 'tpl_overview' || previewTemplate.name?.toLowerCase().includes('overview')) && (
-                    <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                    <div className="space-y-3 bg-white p-4 rounded-xl border border-[#dbdade]">
                       <h4 className="font-bold text-slate-900 text-sm">Details</h4>
                       <ul className="space-y-2 list-disc list-inside text-slate-700 leading-relaxed text-xs">
                         <li>Available in different sizes</li>
@@ -3138,7 +3138,7 @@ export default function BrandProfileDetailPage() {
                   )}
 
                   {(previewTemplate.id === 'tpl_specifications' || previewTemplate.id === 'tpl_technical_layout' || previewTemplate.name?.toLowerCase().includes('spec')) && (
-                    <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200">
+                    <div className="space-y-4 bg-white p-4 rounded-xl border border-[#dbdade]">
                       <h4 className="font-bold text-slate-900 text-sm">Product Specs</h4>
                       
                       <div className="space-y-1.5">
@@ -3188,56 +3188,56 @@ export default function BrandProfileDetailPage() {
                   )}
 
                   {(previewTemplate.id === 'tpl_part_list' || previewTemplate.name?.toLowerCase().includes('part') || previewTemplate.id === 'tpl_feature_focused') && (
-                    <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                    <div className="space-y-3 bg-white p-4 rounded-xl border border-[#dbdade]">
                       <div>
                         <h4 className="font-bold text-slate-900 text-sm">Parts List</h4>
                         <p className="text-[11px] text-slate-500 mt-0.5">
                           Please note that for items with multiple size options, the parts list may be slightly modified to meet the dimensions requested.
                         </p>
                       </div>
-                      <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                      <div className="overflow-x-auto border border-[#dbdade] rounded-lg">
                         <table className="w-full text-left text-[11px] border-collapse">
                           <thead>
-                            <tr className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
-                              <th className="p-2 border-r border-slate-200">QTY</th>
-                              <th className="p-2 border-r border-slate-200">Part #</th>
-                              <th className="p-2 border-r border-slate-200">Description</th>
-                              <th className="p-2 border-r border-slate-200">List Price</th>
-                              <th className="p-2 border-r border-slate-200">Our Price</th>
+                            <tr className="bg-slate-100/80 text-slate-700 font-bold border-b border-[#dbdade]">
+                              <th className="p-2 border-r border-[#dbdade]">QTY</th>
+                              <th className="p-2 border-r border-[#dbdade]">Part #</th>
+                              <th className="p-2 border-r border-[#dbdade]">Description</th>
+                              <th className="p-2 border-r border-[#dbdade]">List Price</th>
+                              <th className="p-2 border-r border-[#dbdade]">Our Price</th>
                               <th className="p-2">Line Total</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
                             <tr>
-                              <td className="p-2 font-bold text-center border-r border-slate-200">1</td>
-                              <td className="p-2 font-mono text-slate-900 border-r border-slate-200">HL-181R</td>
-                              <td className="p-2 border-r border-slate-200">Curved Credenza Shell w/ Right Extension - 71&quot;W x 24/36&quot;D x 29&quot;H</td>
-                              <td className="p-2 font-mono text-slate-500 line-through border-r border-slate-200">$555.00</td>
-                              <td className="p-2 font-mono font-bold text-slate-900 border-r border-slate-200">$375</td>
+                              <td className="p-2 font-bold text-center border-r border-[#dbdade]">1</td>
+                              <td className="p-2 font-mono text-slate-900 border-r border-[#dbdade]">HL-181R</td>
+                              <td className="p-2 border-r border-[#dbdade]">Curved Credenza Shell w/ Right Extension - 71&quot;W x 24/36&quot;D x 29&quot;H</td>
+                              <td className="p-2 font-mono text-slate-500 line-through border-r border-[#dbdade]">$555.00</td>
+                              <td className="p-2 font-mono font-bold text-slate-900 border-r border-[#dbdade]">$375</td>
                               <td className="p-2 font-mono font-bold text-emerald-700">$375.00</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold text-center border-r border-slate-200">1</td>
-                              <td className="p-2 font-mono text-slate-900 border-r border-slate-200">HL-192</td>
-                              <td className="p-2 border-r border-slate-200">Return Shell, Reversible - 36&quot;W x 24&quot;D x 29&quot;H</td>
-                              <td className="p-2 font-mono text-slate-500 line-through border-r border-slate-200">$266.00</td>
-                              <td className="p-2 font-mono font-bold text-slate-900 border-r border-slate-200">$180</td>
+                              <td className="p-2 font-bold text-center border-r border-[#dbdade]">1</td>
+                              <td className="p-2 font-mono text-slate-900 border-r border-[#dbdade]">HL-192</td>
+                              <td className="p-2 border-r border-[#dbdade]">Return Shell, Reversible - 36&quot;W x 24&quot;D x 29&quot;H</td>
+                              <td className="p-2 font-mono text-slate-500 line-through border-r border-[#dbdade]">$266.00</td>
+                              <td className="p-2 font-mono font-bold text-slate-900 border-r border-[#dbdade]">$180</td>
                               <td className="p-2 font-mono font-bold text-emerald-700">$180.00</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold text-center border-r border-slate-200">1</td>
-                              <td className="p-2 font-mono text-slate-900 border-r border-slate-200">HL-144OH</td>
-                              <td className="p-2 border-r border-slate-200">Open Hutch - 71&quot;W x 15&quot;D x 40&quot;H</td>
-                              <td className="p-2 font-mono text-slate-500 line-through border-r border-slate-200">$555.00</td>
-                              <td className="p-2 font-mono font-bold text-slate-900 border-r border-slate-200">$375</td>
+                              <td className="p-2 font-bold text-center border-r border-[#dbdade]">1</td>
+                              <td className="p-2 font-mono text-slate-900 border-r border-[#dbdade]">HL-144OH</td>
+                              <td className="p-2 border-r border-[#dbdade]">Open Hutch - 71&quot;W x 15&quot;D x 40&quot;H</td>
+                              <td className="p-2 font-mono text-slate-500 line-through border-r border-[#dbdade]">$555.00</td>
+                              <td className="p-2 font-mono font-bold text-slate-900 border-r border-[#dbdade]">$375</td>
                               <td className="p-2 font-mono font-bold text-emerald-700">$375.00</td>
                             </tr>
                             <tr>
-                              <td className="p-2 font-bold text-center border-r border-slate-200">2</td>
-                              <td className="p-2 font-mono text-slate-900 border-r border-slate-200">HL-144SGD</td>
-                              <td className="p-2 border-r border-slate-200">Silver Glass Doors for 71&quot;W Hutch, Set of 2</td>
-                              <td className="p-2 font-mono text-slate-500 line-through border-r border-slate-200">$223.00</td>
-                              <td className="p-2 font-mono font-bold text-slate-900 border-r border-slate-200">$150</td>
+                              <td className="p-2 font-bold text-center border-r border-[#dbdade]">2</td>
+                              <td className="p-2 font-mono text-slate-900 border-r border-[#dbdade]">HL-144SGD</td>
+                              <td className="p-2 border-r border-[#dbdade]">Silver Glass Doors for 71&quot;W Hutch, Set of 2</td>
+                              <td className="p-2 font-mono text-slate-500 line-through border-r border-[#dbdade]">$223.00</td>
+                              <td className="p-2 font-mono font-bold text-slate-900 border-r border-[#dbdade]">$150</td>
                               <td className="p-2 font-mono font-bold text-emerald-700">$300.00</td>
                             </tr>
                           </tbody>
@@ -3247,7 +3247,7 @@ export default function BrandProfileDetailPage() {
                   )}
 
                   {(previewTemplate.id === 'tpl_finishing' || previewTemplate.name?.toLowerCase().includes('finish') || previewTemplate.id === 'tpl_minimal_clean' || previewTemplate.id === 'tpl_premium_brand') && (
-                    <div className="space-y-4 bg-white p-4 rounded-xl border border-slate-200">
+                    <div className="space-y-4 bg-white p-4 rounded-xl border border-[#dbdade]">
                       <h4 className="font-bold text-slate-900 text-sm">Available Finishes</h4>
                       <div className="flex flex-wrap gap-4 items-start">
                         <div className="space-y-1.5">
@@ -3289,7 +3289,7 @@ export default function BrandProfileDetailPage() {
           {/* Create Custom Template Modal */}
           {showCustomTemplateModal && (
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
-              <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 shadow-2xl border border-slate-200 my-8">
+              <div className="bg-white rounded-xl max-w-2xl w-full p-6 space-y-4 shadow-2xl border border-[#dbdade] my-8">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <h3 className="text-sm font-black text-slate-900">Create Custom Content Template</h3>
                   <button type="button" onClick={() => setShowCustomTemplateModal(false)} className="text-slate-400 hover:text-slate-700">
@@ -3368,7 +3368,7 @@ export default function BrandProfileDetailPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade] space-y-2">
                       <span className="font-bold text-slate-800 block">Configured Sections:</span>
                       <p className="text-[11px] text-slate-500">
                         Sections automatically adapt: if a field like features or specifications is missing, the template hides that section safely.
@@ -3420,7 +3420,7 @@ export default function BrandProfileDetailPage() {
       {/* PHASE 9D TAB: MISSING DATA RULES                                          */}
       {/* ========================================================================= */}
       {activeTab === 'missing_rules' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -3470,7 +3470,7 @@ export default function BrandProfileDetailPage() {
                             },
                           });
                         }}
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800"
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-800"
                       >
                         <option value="leave_empty">Leave Empty</option>
                         <option value="manual_required">Request Manual Input (Needs Review)</option>
@@ -3493,7 +3493,7 @@ export default function BrandProfileDetailPage() {
                             });
                           }}
                           placeholder="e.g. Standard 1 Year"
-                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold"
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-[#dbdade] text-xs font-semibold"
                         />
                       )}
                     </div>
@@ -3509,7 +3509,7 @@ export default function BrandProfileDetailPage() {
       {/* PHASE 9D TAB: BRAND PRICING RULES                                         */}
       {/* ========================================================================= */}
       {activeTab === 'pricing_rules' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -3545,7 +3545,7 @@ export default function BrandProfileDetailPage() {
                 <select
                   value={pricingRules.strategy}
                   onChange={(e) => setPricingRules({ ...pricingRules, strategy: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900"
+                  className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-bold text-slate-900"
                 >
                   <option value="none">No Adjustment (Raw Source Price)</option>
                   <option value="percent_inc">Percentage Increase (+ %)</option>
@@ -3564,7 +3564,7 @@ export default function BrandProfileDetailPage() {
                   step="0.01"
                   value={pricingRules.value}
                   onChange={(e) => setPricingRules({ ...pricingRules, value: parseFloat(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono font-bold text-slate-900"
+                  className="w-full px-3 py-2 rounded-xl border border-[#dbdade] text-xs font-mono font-bold text-slate-900"
                 />
               </div>
 
@@ -3572,7 +3572,7 @@ export default function BrandProfileDetailPage() {
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Store Export Control
                 </label>
-                <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer">
+                <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-[#dbdade] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={pricingRules.exportPriceCalculated}
@@ -3585,7 +3585,7 @@ export default function BrandProfileDetailPage() {
             </div>
 
             {/* Live Pricing Formula Calculator Simulation */}
-            <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-3">
+            <div className="p-5 rounded-xl bg-amber-50/70 border border-amber-200 space-y-3">
               <span className="text-xs font-bold uppercase tracking-wider text-amber-950 flex items-center gap-1.5">
                 <DollarSign className="w-4 h-4 text-amber-700" /> Live Margin &amp; Price Calculation Preview
               </span>
@@ -3622,7 +3622,7 @@ export default function BrandProfileDetailPage() {
         </div>
       )}
       {activeTab === 'seo' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-6">
           <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -3651,7 +3651,7 @@ export default function BrandProfileDetailPage() {
 
           <div className="space-y-6">
             {/* Master Toggle */}
-            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-[#dbdade]">
               <div className="space-y-0.5">
                 <span className="text-xs font-bold text-slate-900">Generate AI SEO Metadata</span>
                 <p className="text-[11px] text-slate-500">
@@ -3698,7 +3698,7 @@ export default function BrandProfileDetailPage() {
                       className={`p-3.5 rounded-xl border text-xs cursor-pointer transition flex items-start gap-2.5 ${
                         isChecked
                           ? 'bg-emerald-50/40 border-emerald-300 text-slate-900 shadow-2xs'
-                          : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          : 'bg-white border-[#dbdade] text-slate-500 hover:bg-slate-50'
                       }`}
                     >
                       <input
@@ -3729,7 +3729,7 @@ export default function BrandProfileDetailPage() {
 - Always include 'Genuine OEM' and the official model number in the meta description.
 - Target keywords should focus on replacement parts and performance upgrades.
 - Format title as: [Product Name] - [Model] | Genuine Traxxas.`}
-                  className="w-full p-3.5 rounded-xl border border-slate-200 bg-slate-50 font-mono text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white leading-relaxed"
+                  className="w-full p-3.5 rounded-xl border border-[#dbdade] bg-slate-50 font-mono text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white leading-relaxed"
                 />
               </div>
             </div>
@@ -3739,7 +3739,7 @@ export default function BrandProfileDetailPage() {
 
       {/* TAB 6: OVERVIEW & BASIC SETTINGS */}
       {activeTab === 'overview' && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5 max-w-2xl">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-5 max-w-2xl">
           <h3 className="text-sm font-bold text-slate-900">Brand Profile Basic Settings</h3>
 
           <div className="space-y-4">
@@ -3751,7 +3751,7 @@ export default function BrandProfileDetailPage() {
                 type="text"
                 value={brandName}
                 onChange={(e) => setBrandName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
               />
             </div>
 
@@ -3763,7 +3763,7 @@ export default function BrandProfileDetailPage() {
                 type="url"
                 value={officialWebsite}
                 onChange={(e) => setOfficialWebsite(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
               />
             </div>
 
@@ -3774,7 +3774,7 @@ export default function BrandProfileDetailPage() {
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none"
               >
                 <option value="active">Active</option>
                 <option value="paused">Paused</option>
@@ -3790,7 +3790,7 @@ export default function BrandProfileDetailPage() {
                 rows={3}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
               />
             </div>
           </div>
@@ -3801,7 +3801,7 @@ export default function BrandProfileDetailPage() {
       {activeTab === 'store_export' && (
         <div className="space-y-6">
           {/* Header Card */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+          <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-[#0d2a2c]">
@@ -3871,7 +3871,7 @@ export default function BrandProfileDetailPage() {
                 <select
                   value={selectedExportStoreId}
                   onChange={(e) => setSelectedExportStoreId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
                 >
                   {connectedStores.length === 0 ? (
                     <option value="">No connected stores found (Add in Stores menu)</option>
@@ -3894,7 +3894,7 @@ export default function BrandProfileDetailPage() {
                   value={exportProfileName}
                   onChange={(e) => setExportProfileName(e.target.value)}
                   placeholder="e.g. Traxxas -> OpenCart US Store"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
                 />
               </div>
             </div>
@@ -3935,7 +3935,7 @@ export default function BrandProfileDetailPage() {
 
           {/* Discovered Store Schema Overview */}
           {storeSchema && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-3">
+            <div className="bg-white rounded-xl border border-[#dbdade] p-5 shadow-sm space-y-3">
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
@@ -3961,7 +3961,7 @@ export default function BrandProfileDetailPage() {
           )}
 
           {/* Export Field Mappings Table */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h4 className="text-sm font-bold text-slate-900">Brand Export Field Directives</h4>
@@ -3981,7 +3981,7 @@ export default function BrandProfileDetailPage() {
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700">
-                <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                <thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-[#dbdade]">
                   <tr>
                     <th className="py-3 px-4">Portal Field</th>
                     <th className="py-3 px-4">Store Target Field</th>
@@ -4010,7 +4010,7 @@ export default function BrandProfileDetailPage() {
                         <select
                           value={row.sourceField}
                           onChange={(e) => handleUpdateExportMappingRow(index, 'sourceField', e.target.value)}
-                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none"
+                          className="px-2.5 py-1.5 rounded-lg border border-[#dbdade] bg-white text-xs font-medium text-slate-900 focus:outline-none"
                         >
                           {/* Standard Ungrouped Fields */}
                           <optgroup label="Standard Portal Fields">
@@ -4050,7 +4050,7 @@ export default function BrandProfileDetailPage() {
                         <select
                           value={row.storeTargetField}
                           onChange={(e) => handleUpdateExportMappingRow(index, 'storeTargetField', e.target.value)}
-                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none"
+                          className="px-2.5 py-1.5 rounded-lg border border-[#dbdade] bg-white text-xs font-medium text-slate-900 focus:outline-none"
                         >
                           <option value="">-- Select Store Field --</option>
                           {storeSchema?.fields && storeSchema.fields.length > 0 ? (
@@ -4103,7 +4103,7 @@ export default function BrandProfileDetailPage() {
                         <select
                           value={row.permission || 'new_and_existing'}
                           onChange={(e) => handleUpdateExportMappingRow(index, 'permission', e.target.value)}
-                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none"
+                          className="px-2.5 py-1.5 rounded-lg border border-[#dbdade] bg-white text-xs font-medium text-slate-900 focus:outline-none"
                         >
                           <option value="new_and_existing">New & Existing Products</option>
                           <option value="new_only">New Products Only</option>
@@ -4117,7 +4117,7 @@ export default function BrandProfileDetailPage() {
                         <select
                           value={row.writePolicy || 'replace'}
                           onChange={(e) => handleUpdateExportMappingRow(index, 'writePolicy', e.target.value)}
-                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none"
+                          className="px-2.5 py-1.5 rounded-lg border border-[#dbdade] bg-white text-xs font-medium text-slate-900 focus:outline-none"
                         >
                           <option value="replace">Replace (Overwrite)</option>
                           <option value="create_only">Create Only (Skip if present)</option>
@@ -4132,7 +4132,7 @@ export default function BrandProfileDetailPage() {
                         <select
                           value={row.transformType || 'direct'}
                           onChange={(e) => handleUpdateExportMappingRow(index, 'transformType', e.target.value)}
-                          className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-900 focus:outline-none"
+                          className="px-2.5 py-1.5 rounded-lg border border-[#dbdade] bg-white text-xs font-medium text-slate-900 focus:outline-none"
                         >
                           <option value="direct">Direct Value</option>
                           <option value="json_to_text">Format JSON to Text</option>
@@ -4174,7 +4174,7 @@ export default function BrandProfileDetailPage() {
       {/* Add / Edit Manual Field Mapping Modal */}
       {showAddMappingModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 p-6 space-y-4 animate-scaleUp">
+          <div className="bg-white rounded-xl max-w-lg w-full shadow-2xl border border-[#dbdade] p-6 space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="w-5 h-5 text-[#0d2a2c]" />
@@ -4201,7 +4201,7 @@ export default function BrandProfileDetailPage() {
                 <select
                   value={newTargetField}
                   onChange={(e) => setNewTargetField(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none"
                 >
                   <optgroup label="Standard Fields">
                     {STANDARD_TARGET_FIELDS.map((f) => (
@@ -4236,7 +4236,7 @@ export default function BrandProfileDetailPage() {
                     placeholder="e.g. battery_connector_type"
                     value={customTargetField}
                     onChange={(e) => setCustomTargetField(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none"
                   />
                 </div>
               )}
@@ -4248,7 +4248,7 @@ export default function BrandProfileDetailPage() {
                 <select
                   value={newSourceType}
                   onChange={(e) => setNewSourceType(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none"
                 >
                   {SOURCE_TYPES.map((st) => (
                     <option key={st.key} value={st.key}>{st.label}</option>
@@ -4270,7 +4270,7 @@ export default function BrandProfileDetailPage() {
                   }
                   value={newSourceValue}
                   onChange={(e) => setNewSourceValue(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
                 />
                 {newSourceType === 'composite' && (
                   <p className="text-[11px] text-slate-500 mt-1">
@@ -4286,7 +4286,7 @@ export default function BrandProfileDetailPage() {
                 <select
                   value={newTransformation}
                   onChange={(e) => setNewTransformation(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-semibold text-slate-900 focus:outline-none"
                 >
                   {TRANSFORMATIONS.map((t) => (
                     <option key={t.key} value={t.key}>{t.label}</option>
@@ -4301,7 +4301,7 @@ export default function BrandProfileDetailPage() {
                     setShowAddMappingModal(false);
                     setEditingMappingIndex(null);
                   }}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition"
+                  className="px-4 py-2 border border-[#dbdade] text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition"
                 >
                   Cancel
                 </button>
@@ -4319,10 +4319,10 @@ export default function BrandProfileDetailPage() {
       {/* Store Compatibility Health Card Popup Modal */}
       {showHealthCardModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#dbdade] shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
                   <ShieldCheck className="w-5 h-5 text-emerald-700" />
                 </div>
                 <div>
@@ -4368,14 +4368,14 @@ export default function BrandProfileDetailPage() {
                   <p className="font-semibold text-slate-500">Auditing real scraped catalog fields against target store schema...</p>
                 </div>
               ) : healthCardError ? (
-                <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 font-bold flex items-center gap-2">
+                <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 font-bold flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
                   <span>{healthCardError}</span>
                 </div>
               ) : healthCardData ? (
                 <>
                   {/* Real Scraped Product Provenance Header */}
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="p-4 rounded-xl bg-slate-50 border border-[#dbdade] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div>
                       <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Audit Target Product (Real Scraped Entity)</div>
                       <div className="font-black text-slate-900 text-sm">{healthCardData.sampleProduct?.title || 'Catalog Product'}</div>
@@ -4394,15 +4394,15 @@ export default function BrandProfileDetailPage() {
 
                   {/* Summary Metric Stats */}
                   <div className="grid grid-cols-3 gap-3">
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center">
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-[#dbdade] text-center">
                       <div className="text-xl font-black text-slate-900">{healthCardData.summary.totalScrapedFields}</div>
                       <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">Total Scraped Fields</div>
                     </div>
-                    <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-center">
+                    <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
                       <div className="text-xl font-black text-emerald-800">{healthCardData.summary.readyToPushCount}</div>
                       <div className="text-[10px] font-bold text-emerald-700 uppercase mt-0.5">Native / Ready to Push</div>
                     </div>
-                    <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-center">
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-center">
                       <div className="text-xl font-black text-amber-800">{healthCardData.summary.missingStoreFieldsCount}</div>
                       <div className="text-[10px] font-bold text-amber-700 uppercase mt-0.5">Need Custom Tab / Metafield</div>
                     </div>
@@ -4414,7 +4414,7 @@ export default function BrandProfileDetailPage() {
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                       <span>Fields Supported by Store (Directly Exportable)</span>
                     </h4>
-                    <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-xs">
+                    <div className="divide-y divide-slate-100 rounded-xl border border-[#dbdade] overflow-hidden bg-white shadow-xs">
                       {healthCardData.supportedFields.map((f: any, idx: number) => (
                         <div key={idx} className="p-3 flex items-center justify-between gap-4 hover:bg-slate-50/50">
                           <div>
@@ -4440,7 +4440,7 @@ export default function BrandProfileDetailPage() {
                       </h4>
                       <div className="space-y-2.5">
                         {healthCardData.missingStoreFields.map((m: any, idx: number) => (
-                          <div key={idx} className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-1.5">
+                          <div key={idx} className="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200/80 space-y-1.5">
                             <div className="flex items-center justify-between gap-2">
                               <span className="font-black text-amber-950 text-xs">{m.label} <code className="text-[10px] font-normal text-amber-700">({m.portalField})</code></span>
                               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200/60 text-amber-900 font-mono">
@@ -4474,14 +4474,14 @@ export default function BrandProfileDetailPage() {
 
                       <div className="space-y-3">
                         {healthCardData.optionsAnalysis.map((opt: any, idx: number) => (
-                          <div key={idx} className="p-4 rounded-2xl border border-indigo-100 bg-indigo-50/30 space-y-3">
+                          <div key={idx} className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/30 space-y-3">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100/60 pb-2.5">
                               <div>
                                 <span className="text-xs font-black text-slate-900">{opt.optionName}</span>
                                 <span className="text-[10px] text-slate-400 font-mono ml-2">id: {opt.identifier}</span>
                               </div>
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-slate-700 border border-slate-200">
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-slate-700 border border-[#dbdade]">
                                   {opt.totalChoices} choices
                                 </span>
                                 {opt.hasPriceModifiers && (
@@ -4508,7 +4508,7 @@ export default function BrandProfileDetailPage() {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-[11px]">
-                              <div className="p-2.5 rounded-xl bg-white border border-slate-200 space-y-1">
+                              <div className="p-2.5 rounded-xl bg-white border border-[#dbdade] space-y-1">
                                 <span className="font-bold text-slate-700 text-[10px] uppercase tracking-wider block">
                                   Usable Store Field / Table:
                                 </span>

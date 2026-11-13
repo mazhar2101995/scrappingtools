@@ -47,7 +47,7 @@ export default function AdminGlobalBrandsPage() {
   return (
     <div className="space-y-6 w-full font-sans">
       {/* Header */}
-      <div className="p-7 rounded-3xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-7 rounded-xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#fad982]/50 text-[#7a5e12] border border-[#ebd085] uppercase tracking-wider font-mono">
@@ -82,7 +82,7 @@ export default function AdminGlobalBrandsPage() {
             placeholder="Search brands by name or website..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#ebdcb9] rounded-2xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#d4af37] transition shadow-xs"
+            className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#ebdcb9] rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#d4af37] transition shadow-xs"
           />
         </div>
         <div className="text-xs text-slate-500 font-medium">
@@ -105,11 +105,11 @@ export default function AdminGlobalBrandsPage() {
             <div
               key={b.id}
               onClick={() => setSelectedBrand(b)}
-              className="p-6 rounded-3xl bg-white border border-[#ebdcb9] hover:border-[#d4af37] transition shadow-xs cursor-pointer group space-y-4"
+              className="p-6 rounded-xl bg-white border border-[#ebdcb9] hover:border-[#d4af37] transition shadow-xs cursor-pointer group space-y-4"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#fad982] to-[#e6bd53] text-slate-950 font-black text-sm flex items-center justify-center shadow-xs border border-[#cfab47]">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#fad982] to-[#e6bd53] text-slate-950 font-black text-sm flex items-center justify-center shadow-xs border border-[#cfab47]">
                     {b.name ? b.name.slice(0, 2).toUpperCase() : 'BR'}
                   </div>
                   <div>
@@ -163,7 +163,7 @@ export default function AdminGlobalBrandsPage() {
       {/* Brand Inspection Drawer */}
       {selectedBrand && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full border border-[#ebdcb9] p-7 space-y-5 shadow-2xl animate-scaleUp max-h-[85vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-2xl w-full border border-[#ebdcb9] p-7 space-y-5 shadow-2xl animate-scaleUp max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#f1ebd9] pb-4">
               <div>
                 <span className="text-[10px] font-mono uppercase bg-[#fad982]/40 text-[#7a5e12] px-2 py-0.5 rounded font-bold">
@@ -173,7 +173,7 @@ export default function AdminGlobalBrandsPage() {
               </div>
               <button
                 onClick={() => setSelectedBrand(null)}
-                className="text-xs text-slate-400 hover:text-slate-800 px-3 py-1.5 rounded-xl border border-slate-200"
+                className="text-xs text-slate-400 hover:text-slate-800 px-3 py-1.5 rounded-xl border border-[#dbdade]"
               >
                 Close
               </button>
@@ -187,7 +187,7 @@ export default function AdminGlobalBrandsPage() {
 
               <div>
                 <span className="text-slate-400 uppercase text-[10px] block mb-1">Mapped CSS Field Selectors ({selectedBrand.fieldMappings?.length || 0})</span>
-                <div className="divide-y divide-slate-100 rounded-xl border border-slate-200 overflow-hidden bg-white max-h-52 overflow-y-auto font-sans">
+                <div className="divide-y divide-slate-100 rounded-xl border border-[#dbdade] overflow-hidden bg-white max-h-52 overflow-y-auto font-sans">
                   {(selectedBrand.fieldMappings || []).map((m: any, i: number) => (
                     <div key={i} className="p-2.5 flex items-center justify-between text-xs">
                       <span className="font-bold text-slate-900">{m.targetField}</span>

@@ -46,7 +46,7 @@ export default function AdminRevenueBillingPage() {
   return (
     <div className="space-y-6 w-full font-sans">
       {/* Header */}
-      <div className="p-7 rounded-3xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-7 rounded-xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#fad982]/50 text-[#7a5e12] border border-[#ebd085] uppercase tracking-wider font-mono">
@@ -74,7 +74,7 @@ export default function AdminRevenueBillingPage() {
 
       {/* 4 Primary Financial KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+        <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-2 font-medium">
             <span className="text-[10px] uppercase font-bold tracking-wider">Monthly Recurring (MRR)</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
@@ -90,7 +90,7 @@ export default function AdminRevenueBillingPage() {
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+        <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-2 font-medium">
             <span className="text-[10px] uppercase font-bold tracking-wider">Annual Run Rate (ARR)</span>
             <div className="w-8 h-8 rounded-xl bg-[#faf4e1] border border-[#ecdba8] flex items-center justify-center text-[#9c7f23]">
@@ -106,7 +106,7 @@ export default function AdminRevenueBillingPage() {
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+        <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-2 font-medium">
             <span className="text-[10px] uppercase font-bold tracking-wider">Avg. Revenue / Account</span>
             <div className="w-8 h-8 rounded-xl bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-600">
@@ -122,7 +122,7 @@ export default function AdminRevenueBillingPage() {
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+        <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 mb-2 font-medium">
             <span className="text-[10px] uppercase font-bold tracking-wider">Active Paying Tenants</span>
             <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
@@ -150,7 +150,7 @@ export default function AdminRevenueBillingPage() {
           {Object.values(plans).map((p: any) => (
             <div
               key={p.id}
-              className="p-6 rounded-3xl bg-white border border-[#ebdcb9] space-y-4 shadow-xs"
+              className="p-6 rounded-xl bg-white border border-[#ebdcb9] space-y-4 shadow-xs"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -162,7 +162,7 @@ export default function AdminRevenueBillingPage() {
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-[#fdfbf7] border border-[#ebdcb9] text-xs font-mono space-y-1.5">
+              <div className="p-3 rounded-xl bg-[#fdfbf7] border border-[#ebdcb9] text-xs font-mono space-y-1.5">
                 <div className="flex justify-between">
                   <span className="text-slate-500">Products Cap:</span>
                   <span className="font-bold text-slate-900">{p.productLimit.toLocaleString()}</span>

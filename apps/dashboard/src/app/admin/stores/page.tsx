@@ -38,7 +38,7 @@ export default function AdminStoresPage() {
   return (
     <div className="space-y-6 w-full font-sans">
       {/* Header */}
-      <div className="p-7 rounded-3xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-7 rounded-xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#fad982]/50 text-[#7a5e12] border border-[#ebd085] uppercase tracking-wider font-mono">
@@ -65,7 +65,7 @@ export default function AdminStoresPage() {
       </div>
 
       {/* Stores List */}
-      <div className="rounded-3xl border border-[#ebdcb9] bg-white overflow-hidden shadow-xs">
+      <div className="rounded-xl border border-[#ebdcb9] bg-white overflow-hidden shadow-xs">
         <table className="w-full text-left text-xs text-slate-700">
           <thead className="bg-[#fcfaf5] border-b border-[#ebdcb9] text-[11px] uppercase tracking-wider text-slate-500 font-mono">
             <tr>
@@ -139,9 +139,9 @@ export default function AdminStoresPage() {
       </div>
 
       {/* Universal Connector Downloads */}
-      <div className="p-6 rounded-3xl bg-white border border-[#ebdcb9] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+      <div className="p-6 rounded-xl bg-white border border-[#ebdcb9] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#fad982]/40 border border-[#ebd085] flex items-center justify-center text-[#7a5e12] shrink-0">
+          <div className="w-12 h-12 rounded-xl bg-[#fad982]/40 border border-[#ebd085] flex items-center justify-center text-[#7a5e12] shrink-0">
             <Download className="w-6 h-6" />
           </div>
           <div>

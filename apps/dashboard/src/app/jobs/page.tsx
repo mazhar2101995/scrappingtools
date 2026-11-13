@@ -92,7 +92,7 @@ export default function JobsPage() {
   return (
     <div className="space-y-6 w-full font-sans text-slate-800 pb-16">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Product Processing Transparency</h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -106,7 +106,7 @@ export default function JobsPage() {
               {feedbackSuccess}
             </span>
           )}
-          <span className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-sm">
+          <span className="px-3 py-1.5 rounded-lg bg-white border border-[#dbdade] text-xs font-bold text-slate-700 shadow-sm">
             Total Requests: {jobs.length}
           </span>
           <Link
@@ -120,7 +120,7 @@ export default function JobsPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="flex items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex items-center justify-between gap-4 bg-white p-4 rounded-xl border border-[#dbdade] shadow-sm">
         <div className="flex items-center gap-1.5">
           {['ALL', 'QUEUED', 'ACTIVE', 'COMPLETED', 'FAILED'].map((st) => (
             <button
@@ -145,7 +145,7 @@ export default function JobsPage() {
       {/* Main Jobs Layout: Split Screen with Real Processing Drawer */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Side: Pipeline List */}
-        <div className={`${selectedJobId ? 'lg:col-span-7' : 'lg:col-span-12'} bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all`}>
+        <div className={`${selectedJobId ? 'lg:col-span-7' : 'lg:col-span-12'} bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden transition-all`}>
           {loading && jobs.length === 0 ? (
             <div className="py-12 text-center text-xs text-slate-400">Loading pipeline tasks from Redis/DB...</div>
           ) : filtered.length === 0 ? (
@@ -153,7 +153,7 @@ export default function JobsPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50/70 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                <thead className="bg-slate-50/70 border-b border-[#dbdade] text-slate-500 font-bold uppercase tracking-wider text-[11px]">
                   <tr>
                     <th className="py-3 px-4">Target Product URL</th>
                     <th className="py-3 px-4">Current Stage</th>
@@ -227,8 +227,8 @@ export default function JobsPage() {
 
         {/* Right Side: Dedicated Client Transparency Drawer */}
         {selectedJobId && (
-          <div className="lg:col-span-5 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-6">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+          <div className="lg:col-span-5 bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-[#dbdade]">
               <div>
                 <h3 className="font-bold text-sm text-[#00473e]">Real-Time Processing Transparency</h3>
                 <p className="text-xs text-slate-500 mt-0.5">Live workflow progress and data validation milestones</p>
@@ -250,7 +250,7 @@ export default function JobsPage() {
               <div className="space-y-6">
                 {/* Active Client-Friendly State Card */}
                 <div
-                  className={`p-4 rounded-2xl border ${
+                  className={`p-4 rounded-xl border ${
                     jobDetail.clientTransparency.clientStatus === 'completed'
                       ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
                       : jobDetail.clientTransparency.clientStatus === 'failed'
@@ -302,7 +302,7 @@ export default function JobsPage() {
                               ? 'bg-blue-50 border-blue-300 text-blue-900 font-bold ring-2 ring-blue-100'
                               : isFailed
                               ? 'bg-rose-50 border-rose-200 text-rose-800'
-                              : 'bg-slate-50 border-slate-200 text-slate-400'
+                              : 'bg-slate-50 border-[#dbdade] text-slate-400'
                           }`}
                         >
                           <div className="flex items-center gap-2.5">
@@ -330,7 +330,7 @@ export default function JobsPage() {
                 </div>
 
                 {/* Timing Provenance */}
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-600 space-y-1">
+                <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade] text-[11px] text-slate-600 space-y-1">
                   <div className="flex justify-between">
                     <span>Submitted:</span>
                     <span className="font-semibold text-slate-800">

@@ -143,7 +143,7 @@ export default function SyncIntegrationPage() {
   return (
     <div className="space-y-6 w-full font-sans text-slate-800">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">
             Automated Background Sync &amp; Schedules
@@ -176,7 +176,7 @@ export default function SyncIntegrationPage() {
 
       {/* Sync Pipeline Highlights */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div className="bg-white p-5 rounded-xl border border-[#dbdade] shadow-sm space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500">
             <span>Automated Engine Runner</span>
             <span className="text-emerald-600 font-bold flex items-center gap-1">
@@ -192,7 +192,7 @@ export default function SyncIntegrationPage() {
           </p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div className="bg-white p-5 rounded-xl border border-[#dbdade] shadow-sm space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500">
             <span>Safety &amp; Verification</span>
             <span className="text-[#0d2a2c] text-sm">Idempotent</span>
@@ -203,7 +203,7 @@ export default function SyncIntegrationPage() {
           </p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div className="bg-white p-5 rounded-xl border border-[#dbdade] shadow-sm space-y-2">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500">
             <span>Multilingual Sync</span>
             <span className="text-purple-600 font-bold flex items-center gap-1">
@@ -219,7 +219,7 @@ export default function SyncIntegrationPage() {
       </div>
 
       {/* Schedules Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-[#0d2a2c]" />
@@ -237,7 +237,7 @@ export default function SyncIntegrationPage() {
         ) : schedules.length === 0 ? (
           <div className="py-16 text-center">
             <div className="max-w-md mx-auto space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#0d2a2c]/5 flex items-center justify-center mx-auto text-[#0d2a2c]">
+              <div className="w-12 h-12 rounded-xl bg-[#0d2a2c]/5 flex items-center justify-center mx-auto text-[#0d2a2c]">
                 <Clock className="w-6 h-6" />
               </div>
               <h3 className="text-sm font-bold text-slate-900">No automated schedules configured</h3>
@@ -256,7 +256,7 @@ export default function SyncIntegrationPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-700">
-              <thead className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+              <thead className="bg-slate-50 border-b border-[#dbdade] text-[11px] uppercase tracking-wider text-slate-500 font-bold">
                 <tr>
                   <th className="py-3 px-4">Schedule Name</th>
                   <th className="py-3 px-4">Destination Store</th>
@@ -307,7 +307,7 @@ export default function SyncIntegrationPage() {
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold cursor-pointer transition ${
                           sched.status === 'ACTIVE'
                             ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
-                            : 'bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200'
+                            : 'bg-slate-100 text-slate-500 border border-[#dbdade] hover:bg-slate-200'
                         }`}
                       >
                         {sched.status === 'ACTIVE' ? (
@@ -381,7 +381,7 @@ export default function SyncIntegrationPage() {
       {/* Create Schedule Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-xl shadow-2xl border border-[#dbdade] w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 bg-[#0d2a2c] text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-lg bg-[#fad982]/20 flex items-center justify-center">
@@ -410,7 +410,7 @@ export default function SyncIntegrationPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Daily Madison Liquidators OpenCart Push"
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                  className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   required
                 />
               </div>
@@ -423,7 +423,7 @@ export default function SyncIntegrationPage() {
                   <select
                     value={frequency}
                     onChange={(e: any) => setFrequency(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                    className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   >
                     <option value="HOURLY">Hourly (High Frequency)</option>
                     <option value="EVERY_6_HOURS">Every 6 Hours</option>
@@ -439,7 +439,7 @@ export default function SyncIntegrationPage() {
                   <select
                     value={targetLanguage}
                     onChange={(e) => setTargetLanguage(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                    className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   >
                     <option value="en">English (Default)</option>
                     <option value="nl">Dutch (Nederlands)</option>
@@ -461,7 +461,7 @@ export default function SyncIntegrationPage() {
                   <select
                     value={storeId}
                     onChange={(e) => setStoreId(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                    className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   >
                     {stores.map((st) => {
                       const platformStr = String(st.platformType || st.platform || 'STORE').toUpperCase();
@@ -483,7 +483,7 @@ export default function SyncIntegrationPage() {
                 <select
                   value={brandId}
                   onChange={(e) => setBrandId(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                  className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                 >
                   <option value="">All Brands (Entire Organization Catalog)</option>
                   {brands.map((b) => (
@@ -504,7 +504,7 @@ export default function SyncIntegrationPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                  className="px-4 py-2 rounded-xl border border-[#dbdade] text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
                 >
                   Cancel
                 </button>

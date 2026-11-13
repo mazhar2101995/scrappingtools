@@ -83,7 +83,7 @@ export default function ProductIntelligencePage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => loadData()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#dbdade] text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-xs"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-slate-400' : 'text-slate-600'}`} />
             <span>Refresh Telemetry</span>
@@ -107,42 +107,42 @@ export default function ProductIntelligencePage() {
       {/* 6 Real Client-Facing Metric Cards (No Hardcoded Statistics) */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {/* Metric 1: Processed */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+        <div className="bg-white p-4 rounded-xl border border-[#dbdade] shadow-xs space-y-1">
           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Processed</div>
           <div className="text-2xl font-black text-slate-900">{metrics?.totalProcessed ?? '—'}</div>
           <p className="text-[10px] text-slate-400">Total catalog &amp; source items</p>
         </div>
 
         {/* Metric 2: Auto-Matched */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+        <div className="bg-white p-4 rounded-xl border border-[#dbdade] shadow-xs space-y-1">
           <div className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Auto-Matched</div>
           <div className="text-2xl font-black text-emerald-700">{metrics?.automaticallyMatched ?? '—'}</div>
           <p className="text-[10px] text-slate-400">&ge; 90% verified confidence</p>
         </div>
 
         {/* Metric 3: Possible Duplicates */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+        <div className="bg-white p-4 rounded-xl border border-[#dbdade] shadow-xs space-y-1">
           <div className="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Duplicates</div>
           <div className="text-2xl font-black text-amber-700">{metrics?.possibleDuplicates ?? 0}</div>
           <p className="text-[10px] text-slate-400">Overlapping MPN or SKU</p>
         </div>
 
         {/* Metric 4: Unmatched */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+        <div className="bg-white p-4 rounded-xl border border-[#dbdade] shadow-xs space-y-1">
           <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Unmatched</div>
           <div className="text-2xl font-black text-slate-800">{metrics?.unmatched ?? 0}</div>
           <p className="text-[10px] text-slate-400">Standalone new listings</p>
         </div>
 
         {/* Metric 5: Data Conflicts */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+        <div className="bg-white p-4 rounded-xl border border-[#dbdade] shadow-xs space-y-1">
           <div className="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Conflicts</div>
           <div className="text-2xl font-black text-rose-700">{metrics?.conflictsCount ?? 0}</div>
           <p className="text-[10px] text-slate-400">Divergent price or specs</p>
         </div>
 
         {/* Metric 6: Needs Attention */}
-        <div className="bg-[#0d2a2c] p-4 rounded-2xl border border-[#0d2a2c] text-white shadow-xs space-y-1">
+        <div className="bg-[#0d2a2c] p-4 rounded-xl border border-[#0d2a2c] text-white shadow-xs space-y-1">
           <div className="text-[10px] font-bold text-[#fad982] uppercase tracking-wider flex items-center justify-between">
             <span>Needs Attention</span>
             {pendingCount > 0 && (
@@ -155,7 +155,7 @@ export default function ProductIntelligencePage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 gap-6 text-xs font-bold">
+      <div className="flex border-b border-[#dbdade] gap-6 text-xs font-bold">
         <button
           onClick={() => setActiveTab('pending')}
           className={`pb-3 transition flex items-center gap-2 ${
@@ -201,13 +201,13 @@ export default function ProductIntelligencePage() {
       {activeTab === 'pending' && (
         <div className="space-y-4">
           {loading ? (
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-xs text-slate-400">
+            <div className="bg-white rounded-xl border border-[#dbdade] p-12 text-center text-xs text-slate-400">
               Loading intelligence review tasks...
             </div>
           ) : candidates.length === 0 ? (
             /* Clean Authentic Empty State */
-            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3 shadow-sm">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto text-2xl font-bold border border-emerald-200">
+            <div className="bg-white rounded-xl border border-[#dbdade] p-12 text-center space-y-3 shadow-sm">
+              <div className="w-14 h-14 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto text-2xl font-bold border border-emerald-200">
                 <ShieldCheck className="w-8 h-8 text-emerald-600" />
               </div>
               <h3 className="text-base font-bold text-slate-900">All Product Entities Resolved</h3>
@@ -236,7 +236,7 @@ export default function ProductIntelligencePage() {
                 return (
                   <div
                     key={item.id}
-                    className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden divide-y divide-slate-100"
+                    className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden divide-y divide-slate-100"
                   >
                     {/* Top Bar: Confidence & Recommended Action */}
                     <div className="p-5 bg-slate-50/70 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -286,8 +286,8 @@ export default function ProductIntelligencePage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                         
                         {/* RECORD A: Existing Canonical Product */}
-                        <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
-                          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <div className="rounded-xl border border-[#dbdade] bg-slate-50/50 p-4 space-y-3">
+                          <div className="flex items-center justify-between border-b border-[#dbdade] pb-2">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                               Existing Catalog Record
                             </span>
@@ -312,8 +312,8 @@ export default function ProductIntelligencePage() {
                         </div>
 
                         {/* RECORD B: Incoming Source Product */}
-                        <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
-                          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <div className="rounded-xl border border-[#dbdade] bg-slate-50/50 p-4 space-y-3">
+                          <div className="flex items-center justify-between border-b border-[#dbdade] pb-2">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                               Incoming Listing Data
                             </span>
@@ -340,9 +340,9 @@ export default function ProductIntelligencePage() {
 
                       {/* Field-by-Field Matrix Comparison Table */}
                       {item.fieldComparisons && item.fieldComparisons.length > 0 && (
-                        <div className="mt-5 border border-slate-200 rounded-xl overflow-hidden text-xs">
+                        <div className="mt-5 border border-[#dbdade] rounded-xl overflow-hidden text-xs">
                           <table className="w-full text-left">
-                            <thead className="bg-slate-100/70 border-b border-slate-200 text-[10px] uppercase font-bold text-slate-500">
+                            <thead className="bg-slate-100/70 border-b border-[#dbdade] text-[10px] uppercase font-bold text-slate-500">
                               <tr>
                                 <th className="py-2.5 px-4 w-1/4">Field</th>
                                 <th className="py-2.5 px-4 w-1/3">Existing Catalog Value</th>
@@ -424,7 +424,7 @@ export default function ProductIntelligencePage() {
       {/* TAB 2: RESOLUTION HISTORY (LOGGED DECISIONS)                               */}
       {/* ========================================================================= */}
       {activeTab === 'resolved' && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+        <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Resolution Decision History</h3>
@@ -467,7 +467,7 @@ export default function ProductIntelligencePage() {
       {/* ========================================================================= */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div className="bg-white p-6 rounded-xl border border-[#dbdade] shadow-sm space-y-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
               <CheckCircle2 className="w-5 h-5" />
             </div>
@@ -477,7 +477,7 @@ export default function ProductIntelligencePage() {
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div className="bg-white p-6 rounded-xl border border-[#dbdade] shadow-sm space-y-3">
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold">
               <AlertTriangle className="w-5 h-5" />
             </div>
@@ -487,7 +487,7 @@ export default function ProductIntelligencePage() {
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+          <div className="bg-white p-6 rounded-xl border border-[#dbdade] shadow-sm space-y-3">
             <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-700 flex items-center justify-center font-bold">
               <Layers className="w-5 h-5" />
             </div>

@@ -96,7 +96,7 @@ export default function AdminOrganizationsPage() {
   return (
     <div className="space-y-6 w-full font-sans">
       {/* Header */}
-      <div className="p-7 rounded-3xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-7 rounded-xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#fad982]/50 text-[#7a5e12] border border-[#ebd085] uppercase tracking-wider font-mono">
@@ -123,7 +123,7 @@ export default function AdminOrganizationsPage() {
       </div>
 
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
           <strong>Error:</strong> {error}
         </div>
       )}
@@ -137,7 +137,7 @@ export default function AdminOrganizationsPage() {
             placeholder="Search organizations by name or slug..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#ebdcb9] rounded-2xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#d4af37] transition shadow-xs"
+            className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#ebdcb9] rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#d4af37] transition shadow-xs"
           />
         </div>
         <div className="text-xs text-slate-500 font-medium">
@@ -146,7 +146,7 @@ export default function AdminOrganizationsPage() {
       </div>
 
       {/* Tenants Table */}
-      <div className="rounded-3xl border border-[#ebdcb9] bg-white overflow-hidden shadow-xs">
+      <div className="rounded-xl border border-[#ebdcb9] bg-white overflow-hidden shadow-xs">
         <table className="w-full text-left text-xs text-slate-700">
           <thead className="bg-[#fcfaf5] border-b border-[#ebdcb9] text-[11px] uppercase tracking-wider text-slate-500 font-mono">
             <tr>
@@ -229,10 +229,10 @@ export default function AdminOrganizationsPage() {
       {/* Tenant Deep Inspection Modal */}
       {inspectModalOpen && selectedOrg && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-3xl w-full border border-[#ebdcb9] p-7 space-y-6 shadow-2xl animate-scaleUp max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-3xl w-full border border-[#ebdcb9] p-7 space-y-6 shadow-2xl animate-scaleUp max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-[#f1ebd9] pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-[#fad982]/40 border border-[#ebd085] flex items-center justify-center text-[#7a5e12]">
+                <div className="w-10 h-10 rounded-xl bg-[#fad982]/40 border border-[#ebd085] flex items-center justify-center text-[#7a5e12]">
                   <Building2 className="w-5 h-5" />
                 </div>
                 <div>
@@ -269,15 +269,15 @@ export default function AdminOrganizationsPage() {
               <div className="space-y-6">
                 {/* 1. Tenant KPI Quick Metrics */}
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="p-4 rounded-2xl bg-[#fdfbf7] border border-[#ebdcb9]">
+                  <div className="p-4 rounded-xl bg-[#fdfbf7] border border-[#ebdcb9]">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-mono">Catalog Items</span>
                     <span className="text-xl font-black text-slate-900 font-mono">{inspectData.products?.length || 0}</span>
                   </div>
-                  <div className="p-4 rounded-2xl bg-[#fdfbf7] border border-[#ebdcb9]">
+                  <div className="p-4 rounded-xl bg-[#fdfbf7] border border-[#ebdcb9]">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-mono">Configured Brands</span>
                     <span className="text-xl font-black text-slate-900 font-mono">{inspectData.brands?.length || 0}</span>
                   </div>
-                  <div className="p-4 rounded-2xl bg-[#fdfbf7] border border-[#ebdcb9]">
+                  <div className="p-4 rounded-xl bg-[#fdfbf7] border border-[#ebdcb9]">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-mono">Connected Stores</span>
                     <span className="text-xl font-black text-slate-900 font-mono">{inspectData.stores?.length || 0}</span>
                   </div>
@@ -290,7 +290,7 @@ export default function AdminOrganizationsPage() {
                     <span>Brand Profiles & Scraping Configurations ({inspectData.brands?.length || 0})</span>
                   </h4>
                   {inspectData.brands && inspectData.brands.length > 0 ? (
-                    <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 overflow-hidden bg-white">
+                    <div className="divide-y divide-slate-100 rounded-xl border border-[#dbdade] overflow-hidden bg-white">
                       {inspectData.brands.map((b: any) => (
                         <div key={b.id} className="p-3.5 flex items-center justify-between text-xs">
                           <div>
@@ -315,12 +315,12 @@ export default function AdminOrganizationsPage() {
                     <span>Scraped Products in Catalog ({inspectData.products?.length || 0})</span>
                   </h4>
                   {inspectData.products && inspectData.products.length > 0 ? (
-                    <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 overflow-hidden bg-white max-h-60 overflow-y-auto">
+                    <div className="divide-y divide-slate-100 rounded-xl border border-[#dbdade] overflow-hidden bg-white max-h-60 overflow-y-auto">
                       {inspectData.products.map((p: any) => (
                         <div key={p.mappingId} className="p-3.5 flex items-center justify-between text-xs hover:bg-slate-50 transition">
                           <div className="flex items-center gap-3">
                             {p.primaryImageUrl ? (
-                              <img src={p.primaryImageUrl} alt="" className="w-8 h-8 rounded-lg object-contain bg-slate-100 border border-slate-200" />
+                              <img src={p.primaryImageUrl} alt="" className="w-8 h-8 rounded-lg object-contain bg-slate-100 border border-[#dbdade]" />
                             ) : (
                               <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400">📦</div>
                             )}

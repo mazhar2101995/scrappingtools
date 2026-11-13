@@ -69,7 +69,7 @@ export default function ReportsAnalyticsPage() {
   return (
     <div className="space-y-6 w-full font-sans text-slate-800">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Reports &amp; Analytics</h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -78,7 +78,7 @@ export default function ReportsAnalyticsPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex p-1 bg-white border border-slate-200 rounded-xl shadow-sm text-xs font-bold">
+          <div className="flex p-1 bg-white border border-[#dbdade] rounded-xl shadow-sm text-xs font-bold">
             {['7D', '30D', '90D', 'YTD'].map((t) => (
               <button
                 key={t}
@@ -105,7 +105,7 @@ export default function ReportsAnalyticsPage() {
       {/* Top Usage & Quota Cards - 100% Dynamic */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Product Usage against Plan */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div className="bg-white p-5 rounded-xl border border-[#dbdade] shadow-sm space-y-3">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500">
             <span>Product Catalog Usage</span>
             <Layers className="w-4 h-4 text-[#0d2a2c]" />
@@ -126,7 +126,7 @@ export default function ReportsAnalyticsPage() {
         </div>
 
         {/* Card 2: AI Token & Inference Usage */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div className="bg-white p-5 rounded-xl border border-[#dbdade] shadow-sm space-y-3">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500">
             <span>AI Inference Consumption</span>
             <Cpu className="w-4 h-4 text-purple-600" />
@@ -149,7 +149,7 @@ export default function ReportsAnalyticsPage() {
         </div>
 
         {/* Card 3: Data Quality & Completeness */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div className="bg-white p-5 rounded-xl border border-[#dbdade] shadow-sm space-y-3">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500">
             <span>Catalog Data Quality</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -170,7 +170,7 @@ export default function ReportsAnalyticsPage() {
         </div>
 
         {/* Card 4: Store Sync Health */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div className="bg-white p-5 rounded-xl border border-[#dbdade] shadow-sm space-y-3">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500">
             <span>Connected Stores</span>
             <ShoppingBag className="w-4 h-4 text-amber-500" />
@@ -194,7 +194,7 @@ export default function ReportsAnalyticsPage() {
       {/* Middle: Brand Breakdown Table & Ingestion Trends */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Brand-Wise Product Distribution - 100% Dynamic */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-[#dbdade] shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900">Brand Intelligence Distribution</h3>
             <span className="text-xs font-bold text-slate-400">By Product Count</span>
@@ -232,7 +232,7 @@ export default function ReportsAnalyticsPage() {
         </div>
 
         {/* Right 1 Col: Dynamic Actionable Insights */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="bg-white p-6 rounded-xl border border-[#dbdade] shadow-sm space-y-4">
           <h3 className="text-sm font-bold text-slate-900">Workspace Status &amp; Guidance</h3>
 
           <div className="space-y-3 text-xs">

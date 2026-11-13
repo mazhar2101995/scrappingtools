@@ -4,16 +4,16 @@
 
 @layer base {
   :root {
-    --background: #f8fafc;
-    --foreground: #090d16;
+    --background: #f8f7fa;
+    --foreground: #4b465c;
     --card: #ffffff;
-    --card-foreground: #090d16;
+    --card-foreground: #4b465c;
     --primary: #0d2a2c;
     --primary-foreground: #ffffff;
     --accent: #fad982;
-    --muted: #f1f5f9;
-    --muted-foreground: #64748b;
-    --border: #e2e8f0;
+    --muted: #f8f7fa;
+    --muted-foreground: #82808b;
+    --border: #dbdade;
   }
 }
 

@@ -93,7 +93,7 @@ export default function BrandProfilesPage() {
   return (
     <div className="space-y-6 w-full font-sans text-slate-800">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Brand Profiles</h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -122,25 +122,25 @@ export default function BrandProfilesPage() {
             placeholder="Search manufacturer brands..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] shadow-sm transition"
+            className="w-full pl-9 pr-4 py-2 bg-white border border-[#dbdade] rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] shadow-sm transition"
           />
         </div>
 
-        <div className="text-xs font-bold text-slate-500 bg-white px-3.5 py-1.5 rounded-xl border border-slate-200 shadow-sm">
+        <div className="text-xs font-bold text-slate-500 bg-white px-3.5 py-1.5 rounded-xl border border-[#dbdade] shadow-sm">
           {brands.length} {brands.length === 1 ? 'Brand Profile' : 'Brand Profiles'}
         </div>
       </div>
 
       {/* Content Area */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-12 text-center shadow-sm">
           <div className="inline-block w-6 h-6 border-2 border-slate-300 border-t-[#0d2a2c] rounded-full animate-spin mb-3"></div>
           <p className="text-xs font-semibold text-slate-500">Loading your brand profiles...</p>
         </div>
       ) : brands.length === 0 ? (
         /* Mandatory Professional Empty State for New Client */
-        <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center shadow-sm space-y-4 max-w-2xl mx-auto">
-          <div className="w-16 h-16 rounded-2xl bg-[#0d2a2c]/10 text-[#0d2a2c] mx-auto flex items-center justify-center">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-16 text-center shadow-sm space-y-4 max-w-2xl mx-auto">
+          <div className="w-16 h-16 rounded-xl bg-[#0d2a2c]/10 text-[#0d2a2c] mx-auto flex items-center justify-center">
             <Award className="w-8 h-8 text-[#0d2a2c]" />
           </div>
           <div>
@@ -160,7 +160,7 @@ export default function BrandProfilesPage() {
           </div>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-12 text-center shadow-sm">
           <p className="text-xs font-semibold text-slate-500">No brands matching "{search}".</p>
         </div>
       ) : (
@@ -173,7 +173,7 @@ export default function BrandProfilesPage() {
             return (
               <div
                 key={b.id}
-                className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between group"
+                className="bg-white border border-[#dbdade] rounded-xl p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between group"
               >
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-3">
@@ -258,7 +258,7 @@ export default function BrandProfilesPage() {
       {/* Add Brand Profile Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 p-6 space-y-4 animate-scaleUp">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-2xl border border-[#dbdade] p-6 space-y-4 animate-scaleUp">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <Award className="w-5 h-5 text-[#0d2a2c]" />
@@ -289,7 +289,7 @@ export default function BrandProfilesPage() {
                   placeholder="e.g. Traxxas, Tamiya, Xray"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c]"
+                  className="w-full px-3 py-2 border border-[#dbdade] rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c]"
                 />
               </div>
 
@@ -302,7 +302,7 @@ export default function BrandProfilesPage() {
                   placeholder="https://example.com"
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c]"
+                  className="w-full px-3 py-2 border border-[#dbdade] rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c]"
                 />
               </div>
 
@@ -315,7 +315,7 @@ export default function BrandProfilesPage() {
                   placeholder="https://example.com/logo.png"
                   value={logoUrl}
                   onChange={(e) => setLogoUrl(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c]"
+                  className="w-full px-3 py-2 border border-[#dbdade] rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c]"
                 />
               </div>
 
@@ -328,7 +328,7 @@ export default function BrandProfilesPage() {
                   placeholder="Specific catalog details or notes..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c]"
+                  className="w-full px-3 py-2 border border-[#dbdade] rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c]"
                 />
               </div>
 
@@ -336,7 +336,7 @@ export default function BrandProfilesPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition"
+                  className="px-4 py-2 border border-[#dbdade] text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-50 transition"
                 >
                   Cancel
                 </button>

@@ -133,7 +133,7 @@ export default function ClientAiSettingsPage() {
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto p-12 text-center bg-white rounded-2xl border border-slate-200">
+      <div className="max-w-5xl mx-auto p-12 text-center bg-white rounded-xl border border-[#dbdade]">
         <div className="inline-block w-6 h-6 border-2 border-slate-300 border-t-[#0d2a2c] rounded-full animate-spin mb-3"></div>
         <p className="text-xs font-semibold text-slate-500">Loading workspace AI configuration...</p>
       </div>
@@ -143,7 +143,7 @@ export default function ClientAiSettingsPage() {
   return (
     <div className="space-y-6 w-full font-sans text-slate-800 pb-16">
       {/* Header */}
-      <div className="border-b border-slate-200 pb-5 flex items-center justify-between">
+      <div className="border-b border-[#dbdade] pb-5 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
@@ -174,7 +174,7 @@ export default function ClientAiSettingsPage() {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Model Selection Card */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+        <div className="p-6 rounded-xl bg-white border border-[#dbdade] shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <Cpu className="w-4 h-4 text-[#0d2a2c]" />
@@ -195,7 +195,7 @@ export default function ClientAiSettingsPage() {
                 className={`p-4 rounded-xl border cursor-pointer transition ${
                   selectedModel === m.id
                     ? 'border-[#0d2a2c] bg-[#0d2a2c]/5 ring-1 ring-[#0d2a2c]'
-                    : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                    : 'border-[#dbdade] bg-slate-50 hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
@@ -225,7 +225,7 @@ export default function ClientAiSettingsPage() {
         </div>
 
         {/* Global Prompt Rules & Templates with Multi-Language Tabs */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-5">
+        <div className="p-6 rounded-xl bg-white border border-[#dbdade] shadow-sm space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -268,7 +268,7 @@ export default function ClientAiSettingsPage() {
           </div>
 
           {/* Active Language Notice */}
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+          <div className="p-3 rounded-xl bg-slate-50 border border-[#dbdade] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Languages className="w-4 h-4 text-emerald-700" />
               <span className="text-xs font-bold text-slate-800">
@@ -292,7 +292,7 @@ export default function ClientAiSettingsPage() {
                 value={activePromptLang === 'en' ? globalRules : (languagePrompts[activePromptLang]?.rules || '')}
                 onChange={(e) => handleUpdateLangPrompt(activePromptLang, 'rules', e.target.value)}
                 placeholder={activePromptLang === 'en' ? "e.g. Ensure all product titles follow standardized e-commerce taxonomy. Never fabricate unlisted specs..." : `e.g. Custom instructions for ${activePromptLang.toUpperCase()} catalog generation...`}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition leading-relaxed"
+                className="w-full p-3 bg-slate-50 border border-[#dbdade] rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition leading-relaxed"
               />
             </div>
 
@@ -305,7 +305,7 @@ export default function ClientAiSettingsPage() {
                 value={activePromptLang === 'en' ? titlePrompt : (languagePrompts[activePromptLang]?.titlePrompt || '')}
                 onChange={(e) => handleUpdateLangPrompt(activePromptLang, 'titlePrompt', e.target.value)}
                 placeholder={activePromptLang === 'en' ? "Format: [Brand] + [Model Name] + [Scale/Category] + [Key Specification/Color]. Maintain strict manufacturer part numbers." : `Language specific title prompt formula for ${activePromptLang.toUpperCase()}...`}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition leading-relaxed"
+                className="w-full p-3 bg-slate-50 border border-[#dbdade] rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition leading-relaxed"
               />
             </div>
 
@@ -318,14 +318,14 @@ export default function ClientAiSettingsPage() {
                 value={activePromptLang === 'en' ? descriptionPrompt : (languagePrompts[activePromptLang]?.descriptionPrompt || '')}
                 onChange={(e) => handleUpdateLangPrompt(activePromptLang, 'descriptionPrompt', e.target.value)}
                 placeholder={activePromptLang === 'en' ? "Act as an expert technical e-commerce copywriter. Using the provided manufacturer specifications and features, craft a compelling, SEO-optimized product title and 3-paragraph product description highlighting durability, scale specifications, and compatibility." : `Language specific description and SEO prompt for ${activePromptLang.toUpperCase()}...`}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition leading-relaxed"
+                className="w-full p-3 bg-slate-50 border border-[#dbdade] rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition leading-relaxed"
               />
             </div>
           </div>
         </div>
 
         {/* In-House AI Self-Training Dataset & Feedback Section (Step 6) */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+        <div className="p-6 rounded-xl bg-white border border-[#dbdade] shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -364,7 +364,7 @@ export default function ClientAiSettingsPage() {
               <span className="text-[10px] text-emerald-600/80">Auto-updates translation cache</span>
             </div>
 
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <div className="p-3 bg-slate-50 border border-[#dbdade] rounded-xl">
               <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wide block">Dataset Format</span>
               <span className="text-xl font-black text-slate-800 font-mono mt-1 block">
                 JSONL
@@ -378,7 +378,7 @@ export default function ClientAiSettingsPage() {
               <span className="text-xs font-bold text-slate-700 block">Recent Training Pairs Captured:</span>
               <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {recentExamples.map((ex) => (
-                  <div key={ex.id} className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-[11px] font-mono space-y-1">
+                  <div key={ex.id} className="p-2.5 bg-slate-50 rounded-lg border border-[#dbdade] text-[11px] font-mono space-y-1">
                     <div className="flex items-center justify-between text-[10px] text-slate-400">
                       <span className="font-bold text-purple-700 uppercase">{ex.taskType} ({ex.languageCode})</span>
                       <span>{new Date(ex.createdAt).toLocaleDateString()}</span>
@@ -393,7 +393,7 @@ export default function ClientAiSettingsPage() {
         </div>
 
         {/* BYOK Section */}
-        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+        <div className="p-6 rounded-xl bg-white border border-[#dbdade] shadow-sm space-y-4">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <Key className="w-4 h-4 text-emerald-600" />
             <span>Bring Your Own API Key (Optional)</span>
@@ -407,7 +407,7 @@ export default function ClientAiSettingsPage() {
             placeholder="AIzaSy... or sk-ant-... or sk-proj-..."
             value={customApiKey}
             onChange={(e) => setCustomApiKey(e.target.value)}
-            className="w-full max-w-md p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+            className="w-full max-w-md p-2.5 bg-slate-50 border border-[#dbdade] rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
           />
         </div>
 

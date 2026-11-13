@@ -104,7 +104,7 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6 w-full font-sans text-slate-800 pb-16">
       {/* Header Breadcrumb */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Link href="/" className="text-xs font-semibold text-slate-500 hover:text-slate-800 transition flex items-center gap-1">
@@ -133,8 +133,8 @@ export default function ProfilePage() {
       )}
 
       {/* Profile Card Header */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center gap-5">
-        <div className="w-16 h-16 rounded-2xl bg-[#0d2a2c] text-[#fad982] font-black text-xl flex items-center justify-center shadow-md">
+      <div className="bg-white border border-[#dbdade] rounded-xl p-6 shadow-sm flex items-center gap-5">
+        <div className="w-16 h-16 rounded-xl bg-[#0d2a2c] text-[#fad982] font-black text-xl flex items-center justify-center shadow-md">
           {initials}
         </div>
         <div className="flex-1">
@@ -159,7 +159,7 @@ export default function ProfilePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Profile Information Form */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
+        <div className="bg-white border border-[#dbdade] rounded-xl p-6 shadow-sm space-y-5">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
             <User className="w-4 h-4 text-[#0d2a2c]" />
             <h3 className="text-sm font-bold text-slate-900">Personal Information</h3>
@@ -174,7 +174,7 @@ export default function ProfilePage() {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
                 required
               />
             </div>
@@ -187,7 +187,7 @@ export default function ProfilePage() {
                 type="email"
                 value={email}
                 disabled
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-100 text-xs font-medium text-slate-500 cursor-not-allowed"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-100 text-xs font-medium text-slate-500 cursor-not-allowed"
               />
               <span className="text-[10px] text-slate-400 mt-1 block">
                 Email address cannot be changed directly. Contact support for organization ownership transfer.
@@ -202,7 +202,7 @@ export default function ProfilePage() {
                 type="text"
                 value={organizationName}
                 disabled
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-100 text-xs font-medium text-slate-500 cursor-not-allowed"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-100 text-xs font-medium text-slate-500 cursor-not-allowed"
               />
             </div>
 
@@ -218,7 +218,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Change Password Form */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
+        <div className="bg-white border border-[#dbdade] rounded-xl p-6 shadow-sm space-y-5">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
             <Lock className="w-4 h-4 text-[#0d2a2c]" />
             <h3 className="text-sm font-bold text-slate-900">Change Password</h3>
@@ -234,7 +234,7 @@ export default function ProfilePage() {
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
                 required
               />
             </div>
@@ -248,7 +248,7 @@ export default function ProfilePage() {
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
                 required
               />
             </div>
@@ -262,7 +262,7 @@ export default function ProfilePage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Repeat new password"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-medium text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
                 required
               />
             </div>

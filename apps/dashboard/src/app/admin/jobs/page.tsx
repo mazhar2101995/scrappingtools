@@ -59,7 +59,7 @@ export default function AdminBullMqJobsPage() {
   return (
     <div className="space-y-6 w-full font-sans">
       {/* Header */}
-      <div className="p-7 rounded-3xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="p-7 rounded-xl bg-gradient-to-r from-white via-[#fefdfa] to-[#fbf7ed] border border-[#ebdcb9] shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#fad982]/50 text-[#7a5e12] border border-[#ebd085] uppercase tracking-wider font-mono">
@@ -87,7 +87,7 @@ export default function AdminBullMqJobsPage() {
 
       {/* Top 4 KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+        <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-xs mb-1 font-medium">
             <span className="font-bold uppercase tracking-wider text-[10px]">Total Logged Tasks</span>
             <Layers className="w-4 h-4 text-[#9c7f23]" />
@@ -96,7 +96,7 @@ export default function AdminBullMqJobsPage() {
           <div className="text-[11px] text-slate-500 mt-1 font-medium">Cross-tenant execution events</div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+        <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-xs mb-1 font-medium">
             <span className="font-bold uppercase tracking-wider text-[10px]">Completed Successfully</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -107,7 +107,7 @@ export default function AdminBullMqJobsPage() {
           </div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+        <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-xs mb-1 font-medium">
             <span className="font-bold uppercase tracking-wider text-[10px]">Active / Queued</span>
             <Activity className="w-4 h-4 text-sky-600" />
@@ -116,7 +116,7 @@ export default function AdminBullMqJobsPage() {
           <div className="text-[11px] text-slate-500 mt-1 font-medium">Currently in Redis queue</div>
         </div>
 
-        <div className="p-5 rounded-3xl bg-white border border-[#ebdcb9] shadow-xs">
+        <div className="p-5 rounded-xl bg-white border border-[#ebdcb9] shadow-xs">
           <div className="flex items-center justify-between text-slate-500 text-xs mb-1 font-medium">
             <span className="font-bold uppercase tracking-wider text-[10px]">Failed Tasks</span>
             <AlertTriangle className="w-4 h-4 text-rose-600" />
@@ -151,13 +151,13 @@ export default function AdminBullMqJobsPage() {
             placeholder="Search by job ID, target URL or type..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#ebdcb9] rounded-2xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#d4af37] transition shadow-xs"
+            className="w-full pl-9 pr-4 py-2.5 bg-white border border-[#ebdcb9] rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#d4af37] transition shadow-xs"
           />
         </div>
       </div>
 
       {/* Main Jobs Table */}
-      <div className="rounded-3xl border border-[#ebdcb9] bg-white overflow-hidden shadow-xs">
+      <div className="rounded-xl border border-[#ebdcb9] bg-white overflow-hidden shadow-xs">
         <table className="w-full text-left text-xs text-slate-700">
           <thead className="bg-[#fcfaf5] border-b border-[#ebdcb9] text-[11px] uppercase tracking-wider text-slate-500 font-mono">
             <tr>
@@ -235,7 +235,7 @@ export default function AdminBullMqJobsPage() {
       {/* Job Details Modal */}
       {selectedJob && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-xl w-full border border-[#ebdcb9] p-7 space-y-4 shadow-2xl animate-scaleUp">
+          <div className="bg-white rounded-xl max-w-xl w-full border border-[#ebdcb9] p-7 space-y-4 shadow-2xl animate-scaleUp">
             <div className="flex items-center justify-between border-b border-[#f1ebd9] pb-3">
               <div>
                 <span className="text-[10px] font-mono uppercase bg-[#fad982]/40 text-[#7a5e12] px-2 py-0.5 rounded font-bold">
@@ -245,7 +245,7 @@ export default function AdminBullMqJobsPage() {
               </div>
               <button
                 onClick={() => setSelectedJob(null)}
-                className="text-xs text-slate-400 hover:text-slate-800 px-3 py-1.5 rounded-xl border border-slate-200"
+                className="text-xs text-slate-400 hover:text-slate-800 px-3 py-1.5 rounded-xl border border-[#dbdade]"
               >
                 Close
               </button>
@@ -271,7 +271,7 @@ export default function AdminBullMqJobsPage() {
                 </div>
               </div>
               {selectedJob.errorMessage && (
-                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs">
                   <span className="font-bold block mb-1">Execution Error:</span>
                   {selectedJob.errorMessage}
                 </div>

@@ -65,7 +65,7 @@ function ResetPasswordForm() {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-6 shadow-md border border-slate-200 rounded-2xl sm:px-10 space-y-6">
+        <div className="bg-white py-8 px-6 shadow-md border border-[#dbdade] rounded-xl sm:px-10 space-y-6">
           {error && (
             <div className="p-3.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -104,7 +104,7 @@ function ResetPasswordForm() {
                   value={token}
                   onChange={(e) => setToken(e.target.value)}
                   placeholder="Paste reset token if not in URL"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+                  className="w-full px-3 py-2 bg-slate-50 border border-[#dbdade] rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
                 />
               </div>
 
@@ -121,7 +121,7 @@ function ResetPasswordForm() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -139,7 +139,7 @@ function ResetPasswordForm() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
+                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-[#dbdade] rounded-lg text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-[#0d2a2c] focus:bg-white transition"
                   />
                 </div>
               </div>

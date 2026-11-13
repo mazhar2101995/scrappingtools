@@ -136,7 +136,7 @@ export default function ImageStudioPage() {
   return (
     <div className="space-y-6 w-full font-sans text-slate-800 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-teal-800 font-bold mb-1">
             <Sparkles className="w-3.5 h-3.5 text-teal-700" />
@@ -176,7 +176,7 @@ export default function ImageStudioPage() {
       {/* Main Studio Work Area */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Product Selector Sidebar */}
-        <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[700px]">
+        <div className="lg:col-span-4 bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden flex flex-col h-[700px]">
           <div className="p-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
               <ImageIcon className="w-3.5 h-3.5 text-teal-700" />
@@ -184,7 +184,7 @@ export default function ImageStudioPage() {
             </h2>
             <button
               onClick={loadProducts}
-              className="p-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-500"
+              className="p-1.5 rounded-lg bg-[#f8f7fa] hover:bg-slate-100 text-slate-500"
               title="Refresh Products"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-teal-600' : ''}`} />
@@ -198,10 +198,10 @@ export default function ImageStudioPage() {
                 <div
                   key={p.id}
                   onClick={() => selectProductForStudio(p)}
-                  className={`p-3 flex items-center gap-3 cursor-pointer transition ${isSelected ? 'bg-amber-50/70 border-l-4 border-[#fad982]' : 'hover:bg-slate-50'
+                  className={`p-3 flex items-center gap-3 cursor-pointer transition ${isSelected ? 'bg-amber-50/70 border-l-4 border-[#fad982]' : 'hover:bg-[#f8f7fa]'
                     }`}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 shrink-0 overflow-hidden flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 border border-[#dbdade] shrink-0 overflow-hidden flex items-center justify-center">
                     {p.primaryImageUrl ? (
                       <img src={p.primaryImageUrl} alt={p.canonicalTitle} className="w-full h-full object-cover" />
                     ) : (
@@ -226,7 +226,7 @@ export default function ImageStudioPage() {
         {/* Right Column: Studio Canvas & Controls */}
         <div className="lg:col-span-8 space-y-5">
           {/* Studio Controls Header Card */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+          <div className="p-5 rounded-xl bg-white border border-[#dbdade] shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
               <div>
                 <span className="text-[10px] uppercase tracking-wider font-bold text-teal-800 font-mono">
@@ -249,7 +249,7 @@ export default function ImageStudioPage() {
 
             {/* Config Toggles */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <label className="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-start gap-2.5 cursor-pointer hover:bg-slate-100/70 transition">
+              <label className="p-3 rounded-xl border border-[#dbdade] bg-[#f8f7fa] flex items-start gap-2.5 cursor-pointer hover:bg-slate-100/70 transition">
                 <input
                   type="checkbox"
                   checked={removeBg}
@@ -262,7 +262,7 @@ export default function ImageStudioPage() {
                 </div>
               </label>
 
-              <label className="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-start gap-2.5 cursor-pointer hover:bg-slate-100/70 transition">
+              <label className="p-3 rounded-xl border border-[#dbdade] bg-[#f8f7fa] flex items-start gap-2.5 cursor-pointer hover:bg-slate-100/70 transition">
                 <input
                   type="checkbox"
                   checked={removeWatermark}
@@ -275,7 +275,7 @@ export default function ImageStudioPage() {
                 </div>
               </label>
 
-              <label className="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-start gap-2.5 cursor-pointer hover:bg-slate-100/70 transition">
+              <label className="p-3 rounded-xl border border-[#dbdade] bg-[#f8f7fa] flex items-start gap-2.5 cursor-pointer hover:bg-slate-100/70 transition">
                 <input
                   type="checkbox"
                   checked={autoCenter}
@@ -291,7 +291,7 @@ export default function ImageStudioPage() {
           </div>
 
           {/* Interactive Before & After Canvas */}
-          <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+          <div className="p-6 rounded-xl bg-white border border-[#dbdade] shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <Eye className="w-4 h-4 text-teal-700" />
@@ -304,7 +304,7 @@ export default function ImageStudioPage() {
               )}
             </div>
 
-            <div className="relative w-full h-[420px] rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center select-none">
+            <div className="relative w-full h-[420px] rounded-xl overflow-hidden border border-[#dbdade] bg-[#f8f7fa] flex items-center justify-center select-none">
               {!selectedProduct?.primaryImageUrl ? (
                 <div className="text-center text-slate-400 text-xs">
                   <ImageIcon className="w-10 h-10 mx-auto mb-2 text-slate-300" />

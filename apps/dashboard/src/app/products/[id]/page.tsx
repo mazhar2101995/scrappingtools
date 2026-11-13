@@ -338,7 +338,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         <div className="flex items-center gap-2 text-xs text-slate-400">
           <div className="w-24 h-4 bg-slate-200 rounded animate-pulse" />
         </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm space-y-4">
+        <div className="bg-white border border-[#dbdade] rounded-xl p-8 shadow-sm space-y-4">
           <div className="w-32 h-6 bg-slate-200 rounded animate-pulse" />
           <div className="w-3/4 h-8 bg-slate-200 rounded animate-pulse" />
           <div className="w-1/2 h-4 bg-slate-200 rounded animate-pulse" />
@@ -357,7 +357,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Catalog</span>
         </Link>
-        <div className="bg-rose-50 border border-rose-200 rounded-2xl p-8 text-center space-y-3">
+        <div className="bg-rose-50 border border-rose-200 rounded-xl p-8 text-center space-y-3">
           <h3 className="text-sm font-bold text-rose-800">Product Not Found</h3>
           <p className="text-xs text-rose-600">{error || 'Unable to load product information.'}</p>
         </div>
@@ -383,7 +383,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       <div className="flex items-center justify-between">
         <Link
           href="/products"
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-xs transition"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-[#dbdade] text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-xs transition"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Product Catalog</span>
@@ -403,7 +403,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           <button
             type="button"
             onClick={() => setShowRawDataModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 shadow-xs transition"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-[#dbdade] shadow-xs transition"
           >
             <Layers className="w-3.5 h-3.5 text-slate-600" />
             <span>View Raw Data</span>
@@ -414,7 +414,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               href={product.productUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 transition bg-white border border-slate-200 shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-900 transition bg-white border border-[#dbdade] shadow-xs"
             >
               <span>View Source Website</span>
               <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
@@ -439,7 +439,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       )}
 
       {/* Processing Pipeline Status Bar */}
-      <div className="bg-white border border-slate-200 rounded-2xl px-5 py-3 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="bg-white border border-[#dbdade] rounded-xl px-5 py-3 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2 font-bold text-slate-700">
           <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Pipeline Status:</span>
           <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11px]">
@@ -471,7 +471,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           <button
             type="button"
             onClick={() => setShowQualityModal(true)}
-            className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-700 flex items-center gap-1 transition"
+            className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-[#dbdade] text-[11px] font-bold text-slate-700 flex items-center gap-1 transition"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span>Data Quality ({qualityScore}/100)</span>
@@ -480,7 +480,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           <button
             type="button"
             onClick={() => setShowProvenanceModal(true)}
-            className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-700 flex items-center gap-1 transition"
+            className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-[#dbdade] text-[11px] font-bold text-slate-700 flex items-center gap-1 transition"
           >
             <Globe className="w-3.5 h-3.5 text-teal-600" />
             <span>Source Provenance</span>
@@ -489,7 +489,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
           <button
             type="button"
             onClick={() => setShowMonitoringModal(true)}
-            className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-700 flex items-center gap-1 transition"
+            className="px-2.5 py-1 rounded-lg bg-slate-50 hover:bg-slate-100 border border-[#dbdade] text-[11px] font-bold text-slate-700 flex items-center gap-1 transition"
           >
             <Radio className="w-3.5 h-3.5 text-amber-600" />
             <span>Price &amp; Stock Drift</span>
@@ -498,12 +498,12 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       </div>
 
       {/* Main Product Header Card */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
+      <div className="bg-white border border-[#dbdade] rounded-xl p-6 sm:p-8 shadow-sm">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
           {/* Images Section (Left 5 cols) */}
           <div className="lg:col-span-5 space-y-4">
-            <div className="w-full aspect-square rounded-2xl border border-slate-200 bg-slate-50 p-4 flex items-center justify-center overflow-hidden">
+            <div className="w-full aspect-square rounded-xl border border-[#dbdade] bg-slate-50 p-4 flex items-center justify-center overflow-hidden">
               {selectedImage ? (
                 <img
                   src={selectedImage}
@@ -534,7 +534,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                         type="button"
                         onClick={() => setSelectedImage(url)}
                         className={`w-14 h-14 rounded-xl border p-1 bg-white transition overflow-hidden flex items-center justify-center ${
-                          isSelected ? 'border-[#0d2a2c] ring-2 ring-[#0d2a2c]/20' : 'border-slate-200 hover:border-slate-400'
+                          isSelected ? 'border-[#0d2a2c] ring-2 ring-[#0d2a2c]/20' : 'border-[#dbdade] hover:border-slate-400'
                         }`}
                       >
                         <img src={url} alt={`Thumb ${i}`} className="w-full h-full object-contain" />
@@ -563,7 +563,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                       ? 'bg-rose-50 text-rose-800 border-rose-200'
                       : overallQuality === 'NEEDS_REVIEW'
                       ? 'bg-amber-50 text-amber-800 border-amber-200'
-                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                      : 'bg-slate-100 text-slate-700 border-[#dbdade]'
                   }`}
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
@@ -571,7 +571,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </span>
 
                 {product.categoryPath && (
-                  <span className="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 border border-slate-200" title={product.categoryPath}>
+                  <span className="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 bg-slate-100 border border-[#dbdade]" title={product.categoryPath}>
                     {product.categoryPath.split('>')[0].trim()}
                   </span>
                 )}
@@ -596,7 +596,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               {/* Brand Label Under Title */}
               <div className="flex items-center gap-2 pt-0.5">
                 <span className="text-xs font-semibold text-slate-500">Brand:</span>
-                <span className="text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-slate-200 transition">
+                <span className="text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg border border-[#dbdade] transition">
                   {brandName || 'Unspecified Brand'}
                 </span>
               </div>
@@ -620,7 +620,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                         className={`px-3 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 border ${
                           isActive
                             ? 'bg-[#0d2a2c] text-[#fad982] border-[#0d2a2c] shadow-xs'
-                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                            : 'bg-white text-slate-700 border-[#dbdade] hover:bg-slate-50'
                         }`}
                       >
                         <span className="uppercase">{langCode}</span>
@@ -647,7 +647,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   </div>
 
                   {product.calculatedPrice && product.calculatedPrice !== product.price && (
-                    <div className="text-xs bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-xl space-y-0.5">
+                    <div className="text-xs bg-slate-100 border border-[#dbdade] px-3 py-1.5 rounded-xl space-y-0.5">
                       <span className="text-[10px] font-bold text-slate-400 uppercase block">Raw Scraped Price:</span>
                       <span className="font-mono font-bold text-slate-600 line-through">{product.price}</span>
                       <span className="text-[10px] font-extrabold text-amber-800 ml-1.5 bg-amber-100 px-1.5 py-0.2 rounded">
@@ -660,7 +660,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             </div>
 
             {/* Quick Identifier Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-slate-50 border border-[#dbdade]">
               <div>
                 <span className="text-[10px] font-bold uppercase text-slate-400 block">Model / MPN</span>
                 <span className="text-xs font-mono font-bold text-slate-800 truncate block">{model}</span>
@@ -682,7 +682,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             </div>
 
             {/* Direct Store Export & Multi-Store Distribution Action Bar */}
-            <div id="store-sync" className="p-4 rounded-2xl bg-gradient-to-r from-[#0d2a2c]/5 via-amber-500/5 to-transparent border border-slate-200 space-y-3">
+            <div id="store-sync" className="p-4 rounded-xl bg-gradient-to-r from-[#0d2a2c]/5 via-amber-500/5 to-transparent border border-[#dbdade] space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <ShoppingBag className="w-4 h-4 text-[#0d2a2c]" />
@@ -745,7 +745,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               if (!Array.isArray(options) || options.length === 0) return null;
 
               return (
-                <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-4">
+                <div className="p-4 rounded-xl bg-white border border-[#dbdade] shadow-xs space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
@@ -760,7 +760,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                     {options.map((optGroup: any, gIdx: number) => (
-                      <div key={gIdx} className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1.5">
+                      <div key={gIdx} className="p-3 rounded-xl bg-slate-50 border border-[#dbdade]/80 space-y-1.5">
                         <div className="flex items-center justify-between">
                           <label className="text-xs font-bold text-slate-700 capitalize flex items-center gap-1.5">
                             <span>{optGroup.name || optGroup.identifier}</span>
@@ -771,7 +771,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                         </div>
 
                         <select
-                          className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0d2a2c]"
+                          className="w-full px-2.5 py-1.5 rounded-lg border border-[#dbdade] bg-white text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#0d2a2c]"
                           defaultValue={optGroup.values?.find((v: any) => v.isDefault)?.value || optGroup.values?.[0]?.value}
                         >
                           {(optGroup.values || []).map((v: any, vIdx: number) => {
@@ -835,11 +835,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   </div>
                   {/<[a-z][\s\S]*>/i.test(descToRender) ? (
                     <div
-                      className="p-5 rounded-xl bg-white border border-slate-200 text-xs text-slate-700 leading-relaxed max-h-96 overflow-y-auto prose prose-slate prose-sm max-w-none shadow-xs"
+                      className="p-5 rounded-xl bg-white border border-[#dbdade] text-xs text-slate-700 leading-relaxed max-h-96 overflow-y-auto prose prose-slate prose-sm max-w-none shadow-xs"
                       dangerouslySetInnerHTML={{ __html: descToRender }}
                     />
                   ) : (
-                    <div className="p-4 rounded-xl bg-slate-50/70 border border-slate-200 text-xs text-slate-700 leading-relaxed whitespace-pre-line max-h-60 overflow-y-auto">
+                    <div className="p-4 rounded-xl bg-slate-50/70 border border-[#dbdade] text-xs text-slate-700 leading-relaxed whitespace-pre-line max-h-60 overflow-y-auto">
                       {descToRender}
                     </div>
                   )}
@@ -866,7 +866,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             {/* 1. Features Section */}
             {((data.features && Array.isArray(data.features) && data.features.length > 0) ||
               (data.aiProcessedData?.keyHighlights && data.aiProcessedData.keyHighlights.length > 0)) && (
-              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+              <div className="bg-white border border-[#dbdade] rounded-xl p-6 shadow-sm space-y-3">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                   <Sparkles className="w-4 h-4 text-amber-500" />
                   <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Product Features &amp; Key Highlights</h3>
@@ -884,7 +884,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
             {/* 2. Compatible Models Section */}
             {data.compatibleModels && Array.isArray(data.compatibleModels) && data.compatibleModels.length > 0 && (
-              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+              <div className="bg-white border border-[#dbdade] rounded-xl p-6 shadow-sm space-y-3">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                   <Layers className="w-4 h-4 text-[#0d2a2c]" />
                   <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Compatible Models &amp; Fitment</h3>
@@ -902,7 +902,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             {/* 3. Specifications Section */}
             {((data.specifications && typeof data.specifications === 'object' && Object.keys(data.specifications).length > 0) ||
               (attributes && typeof attributes === 'object' && Object.keys(attributes).length > 0)) && (
-              <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+              <div className="bg-white border border-[#dbdade] rounded-xl p-6 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
                   <Sliders className="w-4 h-4 text-[#0d2a2c]" />
                   <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
@@ -1003,9 +1003,9 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         const currentActiveTab = tabList.find((t) => t.id === currentActiveId) || tabList[0];
 
         return (
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+          <div className="bg-white border border-[#dbdade] rounded-xl p-6 shadow-sm space-y-6">
             {/* Dynamic Tab Bar Navigation */}
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+            <div className="flex items-center gap-2 border-b border-[#dbdade] pb-2 overflow-x-auto">
               {tabList.map((t) => {
                 const isActive = currentActiveTab.id === t.id;
                 return (
@@ -1016,7 +1016,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                     className={`px-4 py-2.5 rounded-xl text-xs font-bold transition whitespace-nowrap flex items-center gap-2 border ${
                       isActive
                         ? 'bg-[#0d2a2c] text-[#fad982] border-[#0d2a2c] shadow-xs'
-                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        : 'bg-white text-slate-600 border-[#dbdade] hover:bg-slate-50'
                     }`}
                   >
                     <span>{t.label}</span>
@@ -1063,7 +1063,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                     ].filter((sec) => sec.items.length > 0);
 
                     return (
-                      <div className="space-y-6 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs max-w-4xl">
+                      <div className="space-y-6 bg-white p-6 rounded-xl border border-[#dbdade] shadow-xs max-w-4xl">
                         <div className="border-b border-slate-100 pb-3">
                           <h4 className="font-bold text-slate-900 text-base">Product Specs</h4>
                         </div>
@@ -1117,33 +1117,33 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
                   if (parsedRows.length > 0) {
                     return (
-                      <div className="space-y-3 bg-white p-4 rounded-xl border border-slate-200">
+                      <div className="space-y-3 bg-white p-4 rounded-xl border border-[#dbdade]">
                         <div className="border-b border-slate-100 pb-2">
                           <h4 className="font-bold text-slate-900 text-sm">Parts List</h4>
                           <p className="text-[11px] text-slate-500 mt-0.5">
                             Please note that for items with multiple size options, the parts list may be slightly modified to meet the dimensions requested.
                           </p>
                         </div>
-                        <div className="overflow-x-auto border border-slate-200 rounded-lg">
+                        <div className="overflow-x-auto border border-[#dbdade] rounded-lg">
                           <table className="w-full text-left text-xs border-collapse">
                             <thead>
-                              <tr className="bg-slate-100/80 text-slate-700 font-bold border-b border-slate-200">
-                                <th className="p-2.5 border-r border-slate-200 text-center w-12">QTY</th>
-                                <th className="p-2.5 border-r border-slate-200 w-28">Part #</th>
-                                <th className="p-2.5 border-r border-slate-200">Description</th>
-                                <th className="p-2.5 border-r border-slate-200 text-right w-24">List Price</th>
-                                <th className="p-2.5 border-r border-slate-200 text-right w-24">Our Price</th>
+                              <tr className="bg-slate-100/80 text-slate-700 font-bold border-b border-[#dbdade]">
+                                <th className="p-2.5 border-r border-[#dbdade] text-center w-12">QTY</th>
+                                <th className="p-2.5 border-r border-[#dbdade] w-28">Part #</th>
+                                <th className="p-2.5 border-r border-[#dbdade]">Description</th>
+                                <th className="p-2.5 border-r border-[#dbdade] text-right w-24">List Price</th>
+                                <th className="p-2.5 border-r border-[#dbdade] text-right w-24">Our Price</th>
                                 <th className="p-2.5 text-right w-24">Line Total</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 font-normal">
                               {parsedRows.map((r, pIdx) => (
                                 <tr key={pIdx} className="hover:bg-slate-50/50">
-                                  <td className="p-2.5 font-bold text-center border-r border-slate-200">{r.qty}</td>
-                                  <td className="p-2.5 font-mono text-slate-900 border-r border-slate-200 font-medium">{r.partNo}</td>
-                                  <td className="p-2.5 border-r border-slate-200 text-slate-700">{r.desc}</td>
-                                  <td className="p-2.5 font-mono text-slate-400 line-through text-right border-r border-slate-200">{r.listPrice}</td>
-                                  <td className="p-2.5 font-mono font-bold text-slate-900 text-right border-r border-slate-200">{r.ourPrice}</td>
+                                  <td className="p-2.5 font-bold text-center border-r border-[#dbdade]">{r.qty}</td>
+                                  <td className="p-2.5 font-mono text-slate-900 border-r border-[#dbdade] font-medium">{r.partNo}</td>
+                                  <td className="p-2.5 border-r border-[#dbdade] text-slate-700">{r.desc}</td>
+                                  <td className="p-2.5 font-mono text-slate-400 line-through text-right border-r border-[#dbdade]">{r.listPrice}</td>
+                                  <td className="p-2.5 font-mono font-bold text-slate-900 text-right border-r border-[#dbdade]">{r.ourPrice}</td>
                                   <td className="p-2.5 font-mono font-bold text-emerald-700 text-right">{r.total}</td>
                                 </tr>
                               ))}
@@ -1207,7 +1207,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   };
 
                   return (
-                    <div className="space-y-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
+                    <div className="space-y-4 bg-white p-6 rounded-xl border border-[#dbdade] shadow-xs">
                       <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
                         <h4 className="font-bold text-slate-900 text-sm">Available Finishes</h4>
                         <span className="text-[11px] text-slate-400 font-mono">{swatchList.length} swatches available</span>
@@ -1254,7 +1254,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
                   if (bullets.length > 0) {
                     return (
-                      <div className="space-y-3 bg-white p-5 rounded-xl border border-slate-200">
+                      <div className="space-y-3 bg-white p-5 rounded-xl border border-[#dbdade]">
                         <h4 className="font-bold text-slate-900 text-sm">Details</h4>
                         <ul className="space-y-2 text-xs text-slate-700 leading-relaxed">
                           {bullets.map((b: string, bIdx: number) => (
@@ -1279,7 +1279,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
                 if (!tabVal) {
                   return (
-                    <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-400 text-center">
+                    <div className="p-6 rounded-xl bg-slate-50 border border-[#dbdade] text-xs text-slate-400 text-center">
                       No extracted content available for <strong className="text-slate-600">{currentActiveTab.label}</strong>.
                     </div>
                   );
@@ -1289,7 +1289,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 if (typeof tabVal === 'string' && /<[a-z][\s\S]*>/i.test(tabVal)) {
                   return (
                     <div
-                      className="p-5 rounded-2xl bg-slate-50/50 border border-slate-200 text-xs text-slate-700 leading-relaxed max-h-[500px] overflow-y-auto prose prose-slate prose-sm max-w-none shadow-xs"
+                      className="p-5 rounded-xl bg-slate-50/50 border border-[#dbdade] text-xs text-slate-700 leading-relaxed max-h-[500px] overflow-y-auto prose prose-slate prose-sm max-w-none shadow-xs"
                       dangerouslySetInnerHTML={{ __html: tabVal }}
                     />
                   );
@@ -1297,7 +1297,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
                 // Clean plain text representation with nice line breaks
                 return (
-                  <div className="p-5 rounded-2xl bg-slate-50/70 border border-slate-200 text-xs text-slate-700 leading-relaxed whitespace-pre-line font-normal">
+                  <div className="p-5 rounded-xl bg-slate-50/70 border border-[#dbdade] text-xs text-slate-700 leading-relaxed whitespace-pre-line font-normal">
                     {String(tabVal)}
                   </div>
                 );
@@ -1308,11 +1308,11 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 <div className="space-y-4">
                   {/<[a-z][\s\S]*>/i.test(product.standardizedDescription || '') ? (
                     <div
-                      className="p-5 rounded-2xl bg-slate-50/50 border border-slate-200 text-xs text-slate-700 leading-relaxed max-h-[500px] overflow-y-auto prose prose-slate prose-sm max-w-none shadow-xs"
+                      className="p-5 rounded-xl bg-slate-50/50 border border-[#dbdade] text-xs text-slate-700 leading-relaxed max-h-[500px] overflow-y-auto prose prose-slate prose-sm max-w-none shadow-xs"
                       dangerouslySetInnerHTML={{ __html: product.standardizedDescription }}
                     />
                   ) : (
-                    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed whitespace-pre-line">
+                    <div className="p-4 rounded-xl bg-slate-50 border border-[#dbdade] text-xs text-slate-700 leading-relaxed whitespace-pre-line">
                       {product.standardizedDescription || 'No description available for this product.'}
                     </div>
                   )}
@@ -1323,7 +1323,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               {currentActiveTab.type === 'standard' && currentActiveTab.id === 'Features' && (
                 <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-slate-700">
                   {(data.features && Array.isArray(data.features) && data.features.length > 0 ? data.features : data.aiProcessedData?.keyHighlights || []).map((feat: any, fIdx: number) => (
-                    <li key={fIdx} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-start gap-2.5">
+                    <li key={fIdx} className="p-3 rounded-xl bg-slate-50 border border-[#dbdade] flex items-start gap-2.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                       <span>{String(feat)}</span>
                     </li>
@@ -1337,7 +1337,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   {Object.entries(data.specifications || attributes || {}).map(([k, v]) => {
                     if (String(v).includes('(Not found on tested page)')) return null;
                     return (
-                      <div key={k} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex justify-between gap-4">
+                      <div key={k} className="p-3 rounded-xl bg-slate-50 border border-[#dbdade] flex justify-between gap-4">
                         <span className="font-semibold text-slate-700">{k}</span>
                         <span className="font-mono text-slate-900 text-right">{String(v)}</span>
                       </div>
@@ -1374,7 +1374,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                         {groupFields.map((fName: string, i: number) => {
                           const val = data?.attributes?.[fName] || data?.customFields?.[fName] || data?.rawScrapedData?.[fName] || '(Configured Field)';
                           return (
-                            <div key={i} className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex justify-between gap-3">
+                            <div key={i} className="p-3 rounded-xl bg-slate-50 border border-[#dbdade] flex justify-between gap-3">
                               <span className="font-semibold text-slate-700">{fName}</span>
                               <span className="font-mono text-slate-900">{String(val)}</span>
                             </div>
@@ -1393,7 +1393,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       {/* ========================================================================= */}
       {/* PHASE 9D: MANUAL INFORMATION SECTION (Client Controlled Input)            */}
       {/* ========================================================================= */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
+      <div className="bg-white border border-[#dbdade] rounded-xl p-6 sm:p-8 shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
             <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
@@ -1432,9 +1432,9 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 value={manualFieldsData.product_weight || ''}
                 onChange={(e) => setManualFieldsData({ ...manualFieldsData, product_weight: e.target.value })}
                 placeholder="e.g. 2.5"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 font-semibold text-slate-900"
+                className="w-full px-3 py-2 rounded-xl border border-[#dbdade] font-semibold text-slate-900"
               />
-              <span className="px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 font-bold text-slate-500">KG</span>
+              <span className="px-3 py-2 rounded-xl bg-slate-100 border border-[#dbdade] font-bold text-slate-500">KG</span>
             </div>
           </div>
 
@@ -1446,9 +1446,9 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 value={manualFieldsData.package_dimensions || ''}
                 onChange={(e) => setManualFieldsData({ ...manualFieldsData, package_dimensions: e.target.value })}
                 placeholder="L x W x H"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 font-semibold text-slate-900"
+                className="w-full px-3 py-2 rounded-xl border border-[#dbdade] font-semibold text-slate-900"
               />
-              <span className="px-3 py-2 rounded-xl bg-slate-100 border border-slate-200 font-bold text-slate-500">CM</span>
+              <span className="px-3 py-2 rounded-xl bg-slate-100 border border-[#dbdade] font-bold text-slate-500">CM</span>
             </div>
           </div>
 
@@ -1459,7 +1459,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               value={manualFieldsData.country_of_origin || ''}
               onChange={(e) => setManualFieldsData({ ...manualFieldsData, country_of_origin: e.target.value })}
               placeholder="e.g. USA / Germany"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 font-semibold text-slate-900"
+              className="w-full px-3 py-2 rounded-xl border border-[#dbdade] font-semibold text-slate-900"
             />
           </div>
 
@@ -1470,7 +1470,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               value={manualFieldsData.internal_handling_notes || ''}
               onChange={(e) => setManualFieldsData({ ...manualFieldsData, internal_handling_notes: e.target.value })}
               placeholder="Add client-internal operational or handling specifications..."
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs text-slate-800"
+              className="w-full px-3 py-2 rounded-xl border border-[#dbdade] text-xs text-slate-800"
             />
           </div>
         </div>
@@ -1493,7 +1493,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {data.fieldGroupsData.map((grp: any) => (
-                <div key={grp.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-3">
+                <div key={grp.id} className="bg-white border border-[#dbdade] rounded-xl p-6 shadow-sm space-y-3">
                   <div className="border-b border-slate-100 pb-2.5">
                     <h4 className="text-sm font-bold text-slate-900 flex items-center justify-between">
                       <span>{grp.name}</span>
@@ -1550,7 +1550,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
         const displayMetaDesc = activeSeo.metaDescription || (trans?.description ? trans.description.replace(/<[^>]+>/g, ' ').slice(0, 160) : product.standardizedDescription);
 
         return (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
+          <div className="bg-white border border-[#dbdade] rounded-xl p-6 shadow-sm space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-emerald-600" />
@@ -1569,7 +1569,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             </div>
 
             {/* Google SERP Preview Box */}
-            <div className="p-4 rounded-xl bg-slate-50/80 border border-slate-200 space-y-1.5 font-sans">
+            <div className="p-4 rounded-xl bg-slate-50/80 border border-[#dbdade] space-y-1.5 font-sans">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Google Search Engine Result Snippet (SERP Live Preview - {activeLang.toUpperCase()})
               </span>
@@ -1602,7 +1602,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   <span className="font-bold text-slate-700 block">Target Search Keywords ({activeSeo.targetKeywords.length})</span>
                   <div className="flex flex-wrap gap-1.5">
                     {activeSeo.targetKeywords.map((kw: string, kwIdx: number) => (
-                      <span key={kwIdx} className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-mono text-[11px]">
+                      <span key={kwIdx} className="px-2.5 py-1 rounded-lg bg-white border border-[#dbdade] text-slate-700 font-mono text-[11px]">
                         #{kw}
                       </span>
                     ))}
@@ -1617,7 +1617,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       {/* Human Review Correction Modal (Phase 6) */}
       {showCorrectionModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Edit2 className="w-4 h-4 text-amber-600" />
@@ -1695,7 +1695,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       {/* View Raw Data Modal */}
       {showRawDataModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 max-h-[85vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-3xl w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2">
                 <Layers className="w-5 h-5 text-amber-600" />
@@ -1718,7 +1718,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
             </div>
 
             <div className="overflow-y-auto space-y-4 pr-1 text-xs text-slate-700">
-              <div className="flex items-center justify-between p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl">
+              <div className="flex items-center justify-between p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl">
                 <div>
                   <span className="font-bold text-slate-900 block text-xs">Reprocess from Original Raw Data</span>
                   <p className="text-[11px] text-slate-600">Re-evaluates this product using current Workspace Global Rules and Brand Profile Rules without scraping again.</p>
@@ -1737,7 +1737,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               {data?.rawScrapedData ? (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade]">
                       <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Scraped Source URL</span>
                       <a
                         href={data.rawScrapedData.sourceUrl}
@@ -1748,7 +1748,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                         {data.rawScrapedData.sourceUrl || '—'}
                       </a>
                     </div>
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade]">
                       <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Scraped Timestamp</span>
                       <span className="font-mono text-[11px] text-slate-800">
                         {data.rawScrapedData.scrapedAt ? new Date(data.rawScrapedData.scrapedAt).toLocaleString() : '—'}
@@ -1759,7 +1759,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   {/* Field-by-Field Original Scraped Values */}
                   <div className="space-y-1">
                     <span className="text-[10px] uppercase font-bold text-slate-500 block">Original Source Extraction (Pre-AI)</span>
-                    <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl bg-white overflow-hidden text-xs">
+                    <div className="divide-y divide-slate-100 border border-[#dbdade] rounded-xl bg-white overflow-hidden text-xs">
                       {[
                         { label: 'Original Product Title', val: data.rawScrapedData.rawTitle },
                         { label: 'Original Description', val: data.rawScrapedData.rawDescription },
@@ -1802,7 +1802,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </>
               ) : (
                 <div className="space-y-4">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade]">
                     <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Extracted Attributes Payload</span>
                     <pre className="p-3 bg-slate-900 text-slate-100 rounded-xl font-mono text-[11px] overflow-x-auto whitespace-pre">
                       {JSON.stringify({ attributes, customFields, identifiers }, null, 2)}
@@ -1828,7 +1828,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       {/* 1. DATA QUALITY MODAL */}
       {showQualityModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 max-h-[85vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-3xl w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-emerald-600" />
@@ -1852,19 +1852,19 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
             <div className="overflow-y-auto space-y-4 pr-1 text-xs text-slate-700">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+                <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade] text-center">
                   <span className="text-[10px] text-slate-400 block font-bold uppercase">Quality Score</span>
                   <span className="text-base font-black text-emerald-700">{qualityScore}/100</span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+                <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade] text-center">
                   <span className="text-[10px] text-slate-400 block font-bold uppercase">Completeness</span>
                   <span className="text-base font-black text-slate-900">{completenessScore}%</span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+                <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade] text-center">
                   <span className="text-[10px] text-slate-400 block font-bold uppercase">Status</span>
                   <span className="text-xs font-mono font-bold text-slate-800 uppercase">{overallQuality}</span>
                 </div>
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-center">
+                <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade] text-center">
                   <span className="text-[10px] text-slate-400 block font-bold uppercase">Review Priority</span>
                   <span className="text-xs font-mono font-bold text-slate-800 uppercase">{qualityReport?.reviewPriority || 'NORMAL'}</span>
                 </div>
@@ -1884,9 +1884,9 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </div>
               )}
 
-              <div className="overflow-x-auto border border-slate-200 rounded-xl">
+              <div className="overflow-x-auto border border-[#dbdade] rounded-xl">
                 <table className="w-full text-left text-xs text-slate-700">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-mono text-slate-500">
+                  <thead className="bg-slate-50 border-b border-[#dbdade] text-[10px] uppercase font-mono text-slate-500">
                     <tr>
                       <th className="py-2.5 px-3">Field Name</th>
                       <th className="py-2.5 px-3">Confidence</th>
@@ -1935,7 +1935,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       {/* 2. SOURCE PROVENANCE MODAL */}
       {showProvenanceModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 max-h-[85vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-3xl w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2">
                 <Globe className="w-5 h-5 text-teal-600" />
@@ -1959,13 +1959,13 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
             <div className="overflow-y-auto space-y-4 pr-1 text-xs text-slate-700">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-[#dbdade] space-y-1">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Primary Brand Source</span>
                   <div className="font-bold text-xs text-slate-900">{brandName || 'Manufacturer Official'}</div>
                   <p className="text-[11px] text-slate-500 font-mono truncate">{product.productUrl || 'Direct extraction'}</p>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-[#dbdade] space-y-1">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Extraction Freshness</span>
                   <div className="font-bold text-xs text-slate-900">
                     {product.lastVerifiedAt ? new Date(product.lastVerifiedAt).toLocaleDateString() : 'Active (Recent)'}
@@ -1973,7 +1973,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   <p className="text-[11px] text-slate-500">Staleness check: &lt; 30 days threshold.</p>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-[#dbdade] space-y-1">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Deduplication</span>
                   <div className="font-bold text-xs text-emerald-700 flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1984,7 +1984,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               </div>
 
               {product.productUrl && (
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade] space-y-1">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Original Source URL</span>
                   <a
                     href={product.productUrl}
@@ -2014,7 +2014,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       {/* 3. PRICE & STOCK MONITORING MODAL */}
       {showMonitoringModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 max-h-[85vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
               <div className="flex items-center gap-2">
                 <Radio className="w-5 h-5 text-amber-600" />
@@ -2038,7 +2038,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
             <div className="overflow-y-auto space-y-4 pr-1 text-xs text-slate-700">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-[#dbdade] space-y-1.5">
                   <span className="text-xs font-bold text-slate-700 block">Monitoring Status</span>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -2053,7 +2053,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   </label>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-[#dbdade] space-y-1.5">
                   <span className="text-xs font-bold text-slate-700 block">Frequency</span>
                   <select
                     value={monitoringFreq}
@@ -2066,7 +2066,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   </select>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-[#dbdade] space-y-1.5">
                   <span className="text-xs font-bold text-slate-700 block">Extracted Baseline Price</span>
                   <div className="text-sm font-black text-slate-900">{product.price || 'N/A'}</div>
                   <span className="text-[10px] text-emerald-700 font-bold block">In Stock: Yes</span>
@@ -2074,7 +2074,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               </div>
 
               {product.productUrl && (
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade] space-y-1">
                   <span className="text-[10px] uppercase font-bold text-slate-400 block">Monitored Target URL</span>
                   <span className="font-mono text-xs text-slate-700 break-all block">{product.productUrl}</span>
                 </div>
@@ -2114,7 +2114,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       {/* PHASE 9B: CONTROLLED STORE CHANGE PLAN PREVIEW MODAL */}
       {showChangePlanModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-3xl w-full shadow-2xl border border-slate-200 p-6 space-y-5 animate-scaleUp max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-3xl w-full shadow-2xl border border-[#dbdade] p-6 space-y-5 animate-scaleUp max-h-[90vh] flex flex-col">
             {/* Header */}
             <div className="flex items-start justify-between border-b border-slate-100 pb-4 shrink-0">
               <div className="flex items-center gap-3">
@@ -2167,13 +2167,13 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 <div className="space-y-4">
                   {/* Export Metadata Summary */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade]">
                       <span className="text-[10px] font-bold uppercase text-slate-400 block">Target Store</span>
                       <span className="text-xs font-bold text-slate-900 truncate block">{changePlan.storeName}</span>
                       <span className="text-[10px] text-slate-500 font-mono">[{changePlan.platformType?.toUpperCase()}]</span>
                     </div>
 
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade]">
                       <span className="text-[10px] font-bold uppercase text-slate-400 block">Target Classification</span>
                       <span className={`text-xs font-bold inline-flex items-center gap-1 ${
                         changePlan.targetType === 'new_product'
@@ -2188,12 +2188,12 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                       </span>
                     </div>
 
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade]">
                       <span className="text-[10px] font-bold uppercase text-slate-400 block">Export Profile</span>
                       <span className="text-xs font-bold text-slate-800 truncate block">{changePlan.exportProfileName}</span>
                     </div>
 
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade]">
                       <span className="text-[10px] font-bold uppercase text-slate-400 block">Store Fingerprint</span>
                       <span className="text-[10px] font-mono text-slate-600 truncate block">{changePlan.storeFingerprint?.slice(0, 16)}...</span>
                       <span className="text-[9px] text-emerald-700 font-semibold">Fresh Baseline Read</span>
@@ -2214,8 +2214,8 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                   )}
 
                   {/* Field Changes Table */}
-                  <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-                    <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
+                  <div className="border border-[#dbdade] rounded-xl overflow-hidden shadow-sm">
+                    <div className="bg-slate-50 px-4 py-2.5 border-b border-[#dbdade] flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                         Planned Field Operations ({changePlan.fieldChanges?.length || 0})
                       </span>
@@ -2234,7 +2234,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
 
                     <div className="overflow-x-auto">
                       <table className="w-full text-left text-xs text-slate-700">
-                        <thead className="bg-slate-100/60 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                        <thead className="bg-slate-100/60 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-[#dbdade]">
                           <tr>
                             <th className="py-2.5 px-3">Field</th>
                             <th className="py-2.5 px-3">Current Store Value</th>
@@ -2318,7 +2318,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 <button
                   type="button"
                   onClick={() => setShowChangePlanModal(false)}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition"
+                  className="px-4 py-2 border border-[#dbdade] hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition"
                 >
                   Cancel
                 </button>
@@ -2341,7 +2341,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       {/* PHASE 9C: MULTI-STORE PRODUCT DISTRIBUTION MODAL */}
       {showDistributionModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-200 p-6 space-y-5 animate-scaleUp max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-xl max-w-4xl w-full shadow-2xl border border-[#dbdade] p-6 space-y-5 animate-scaleUp max-h-[90vh] flex flex-col">
             <div className="flex items-start justify-between border-b border-slate-100 pb-4 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="p-2.5 bg-teal-50 border border-teal-200 rounded-xl text-teal-900">
@@ -2397,7 +2397,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
               {distributionData && (
                 <div className="space-y-5">
                   {/* Master Product Reusable Language Versions Header */}
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                  <div className="p-4 bg-slate-50 rounded-xl border border-[#dbdade] space-y-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                       Reusable Product Language Versions ({distributionData.languageVersions?.length || 0})
                     </span>
@@ -2405,7 +2405,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                       {distributionData.languageVersions?.map((lv: any) => (
                         <div
                           key={lv.languageCode}
-                          className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs flex items-center gap-2 shadow-2xs"
+                          className="px-3 py-1.5 rounded-lg bg-white border border-[#dbdade] text-xs flex items-center gap-2 shadow-2xs"
                         >
                           <span className="font-mono font-bold uppercase text-slate-900">[{lv.languageCode}]</span>
                           <span className="text-slate-700 truncate max-w-xs">{lv.title}</span>
@@ -2422,7 +2422,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                     {distributionData.storeDistributions?.map((sd: any) => (
                       <div
                         key={sd.storeId}
-                        className="p-4 rounded-xl border border-slate-200 bg-white shadow-xs space-y-3"
+                        className="p-4 rounded-xl border border-[#dbdade] bg-white shadow-xs space-y-3"
                       >
                         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                           <div className="flex items-center gap-2">
@@ -2467,7 +2467,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                                 l.exportStatus === 'EXPORTED'
                                   ? 'bg-emerald-50/40 border-emerald-200'
                                   : l.canExport
-                                  ? 'bg-slate-50 border-slate-200'
+                                  ? 'bg-slate-50 border-[#dbdade]'
                                   : 'bg-amber-50/40 border-amber-200'
                               }`}
                             >

@@ -197,7 +197,7 @@ export default function CompetitorSpyPage() {
   return (
     <div className="space-y-6 w-full font-sans text-slate-800 pb-12 relative">
       {/* Executive Command Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-wider text-rose-800 font-bold mb-1">
             <Crosshair className="w-3.5 h-3.5 text-rose-600" />
@@ -216,7 +216,7 @@ export default function CompetitorSpyPage() {
           <button
             onClick={handleScanAll}
             disabled={scanningAll || monitors.length === 0}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl shadow-2xs transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-[#f8f7fa] border border-[#dbdade] text-slate-700 font-bold text-xs rounded-xl shadow-2xs transition disabled:opacity-50"
           >
             <Activity className={`w-3.5 h-3.5 text-rose-600 ${scanningAll ? 'animate-spin' : ''}`} />
             <span>{scanningAll ? 'Auditing Rivals...' : 'Audit All Competitors'}</span>
@@ -253,7 +253,7 @@ export default function CompetitorSpyPage() {
 
       {/* KPI Visual Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+        <div className="p-4 rounded-xl bg-white border border-[#dbdade] shadow-2xs">
           <div className="flex items-center justify-between text-slate-400 mb-1">
             <span className="text-[11px] font-bold uppercase tracking-wider">Active Competitor Radars</span>
             <Crosshair className="w-4 h-4 text-rose-600" />
@@ -265,7 +265,7 @@ export default function CompetitorSpyPage() {
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+        <div className="p-4 rounded-xl bg-white border border-[#dbdade] shadow-2xs">
           <div className="flex items-center justify-between text-slate-400 mb-1">
             <span className="text-[11px] font-bold uppercase tracking-wider">Undercut Advantage</span>
             <TrendingDown className="w-4 h-4 text-emerald-600" />
@@ -274,7 +274,7 @@ export default function CompetitorSpyPage() {
           <div className="text-[10px] text-slate-400 mt-1">Winning the Buy Box against rivals</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+        <div className="p-4 rounded-xl bg-white border border-[#dbdade] shadow-2xs">
           <div className="flex items-center justify-between text-slate-400 mb-1">
             <span className="text-[11px] font-bold uppercase tracking-wider">Floor Guard Armor</span>
             <Shield className="w-4 h-4 text-teal-700" />
@@ -283,7 +283,7 @@ export default function CompetitorSpyPage() {
           <div className="text-[10px] text-slate-400 mt-1">Guaranteed zero loss selling safeguard</div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-2xs">
+        <div className="p-4 rounded-xl bg-white border border-[#dbdade] shadow-2xs">
           <div className="flex items-center justify-between text-slate-400 mb-1">
             <span className="text-[11px] font-bold uppercase tracking-wider">Store Auto-Sync</span>
             <ShoppingBag className="w-4 h-4 text-amber-500" />
@@ -294,8 +294,8 @@ export default function CompetitorSpyPage() {
       </div>
 
       {/* Main Tracked Competitors Table with Filter */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+      <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#f8f7fa]/50">
           <div>
             <h2 className="font-bold text-sm text-slate-900 flex items-center gap-2">
               <Crosshair className="w-4 h-4 text-rose-600" />
@@ -311,7 +311,7 @@ export default function CompetitorSpyPage() {
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               placeholder="Filter by product or rival store..."
-              className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-teal-700 shadow-2xs"
+              className="w-full pl-8 pr-3 py-1.5 text-xs bg-white border border-[#dbdade] rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-teal-700 shadow-2xs"
             />
           </div>
         </div>
@@ -350,7 +350,7 @@ export default function CompetitorSpyPage() {
                 <div
                   key={m.id}
                   onClick={() => openInspectionDrawer(m)}
-                  className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/80 transition cursor-pointer group"
+                  className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#f8f7fa]/80 transition cursor-pointer group"
                 >
                   <div className="space-y-1.5 max-w-lg min-w-0">
                     <div className="flex items-center gap-2.5 flex-wrap">
@@ -404,7 +404,7 @@ export default function CompetitorSpyPage() {
                   </div>
 
                   {/* Visual Price Comparison Card */}
-                  <div className="flex items-center gap-3 bg-slate-50/80 p-2.5 px-4 rounded-xl border border-slate-200 shrink-0">
+                  <div className="flex items-center gap-3 bg-[#f8f7fa]/80 p-2.5 px-4 rounded-xl border border-[#dbdade] shrink-0">
                     <div className="text-right">
                       <div className="text-[9px] uppercase tracking-wider text-slate-400 font-bold">Rival Price</div>
                       <div className="text-sm font-black text-rose-600 font-mono">
@@ -412,7 +412,7 @@ export default function CompetitorSpyPage() {
                       </div>
                     </div>
 
-                    <div className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 shadow-2xs">
+                    <div className="w-6 h-6 rounded-full bg-white border border-[#dbdade] flex items-center justify-center text-slate-400 shadow-2xs">
                       <ArrowDownRight className="w-3.5 h-3.5 text-emerald-600" />
                     </div>
 
@@ -430,7 +430,7 @@ export default function CompetitorSpyPage() {
                       type="button"
                       disabled={checkingId === m.id}
                       onClick={() => handleCheckSingle(m.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 hover:bg-slate-100 transition disabled:opacity-50 shadow-2xs"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#dbdade] text-xs font-bold text-slate-700 hover:bg-slate-100 transition disabled:opacity-50 shadow-2xs"
                       title="Fetch live competitor price and auto-reprice now"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 text-rose-600 ${checkingId === m.id ? 'animate-spin' : ''}`} />
@@ -440,7 +440,7 @@ export default function CompetitorSpyPage() {
                     <button
                       type="button"
                       onClick={() => openInspectionDrawer(m)}
-                      className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition border border-slate-200 shadow-2xs"
+                      className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition border border-[#dbdade] shadow-2xs"
                       title="Open Radar Drawer"
                     >
                       <ChevronRight className="w-4 h-4 text-slate-600" />
@@ -465,9 +465,9 @@ export default function CompetitorSpyPage() {
       {/* SLIDE-OVER DRAWER: PRICE RADAR INSPECTOR */}
       {selectedMonitorForDrawer && (
         <div className="fixed inset-0 z-50 overflow-hidden bg-slate-950/40 backdrop-blur-xs flex justify-end animate-in fade-in duration-200">
-          <div className="w-full max-w-xl bg-white border-l border-slate-200 shadow-2xl h-full flex flex-col animate-in slide-in-from-right duration-250">
+          <div className="w-full max-w-xl bg-white border-l border-[#dbdade] shadow-2xl h-full flex flex-col animate-in slide-in-from-right duration-250">
             {/* Drawer Header */}
-            <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-slate-50/60">
+            <div className="p-6 border-b border-slate-100 flex items-start justify-between bg-[#f8f7fa]/60">
               <div className="space-y-1 pr-4">
                 <div className="flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-rose-700 font-bold">
                   <Crosshair className="w-3.5 h-3.5 text-rose-600" />
@@ -492,21 +492,21 @@ export default function CompetitorSpyPage() {
             {/* Drawer Body */}
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
               {/* Radar Price Card */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="p-4 rounded-xl bg-[#f8f7fa] border border-[#dbdade] space-y-3">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-700">
                   <span>Current Price Differential</span>
                   <span className="text-teal-800 font-mono">Real-time</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-center">
-                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="p-3 bg-white rounded-xl border border-[#dbdade] shadow-2xs">
                     <span className="text-[10px] uppercase font-bold text-slate-400">Competitor Price</span>
                     <div className="text-xl font-black text-rose-600 font-mono mt-0.5">
                       {selectedMonitorForDrawer.latestCompetitorPrice ? `$${selectedMonitorForDrawer.latestCompetitorPrice}` : 'N/A'}
                     </div>
                   </div>
 
-                  <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                  <div className="p-3 bg-white rounded-xl border border-[#dbdade] shadow-2xs">
                     <span className="text-[10px] uppercase font-bold text-slate-400">Our Auto-Undercut</span>
                     <div className="text-xl font-black text-emerald-700 font-mono mt-0.5">
                       {selectedMonitorForDrawer.latestCalculatedPrice ? `$${selectedMonitorForDrawer.latestCalculatedPrice}` : 'N/A'}
@@ -514,7 +514,7 @@ export default function CompetitorSpyPage() {
                   </div>
                 </div>
 
-                <div className="p-3 rounded-xl bg-white border border-slate-200 text-xs space-y-1.5">
+                <div className="p-3 rounded-xl bg-white border border-[#dbdade] text-xs space-y-1.5">
                   <div className="flex justify-between text-slate-600">
                     <span>Floor Price Safeguard:</span>
                     <strong className="text-slate-900 font-mono">${selectedMonitorForDrawer.floorPrice}</strong>
@@ -540,14 +540,14 @@ export default function CompetitorSpyPage() {
                   <span className="text-[10px] font-mono text-slate-400">{drawerHistory.length} logs recorded</span>
                 </div>
 
-                <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white overflow-hidden max-h-72 overflow-y-auto">
+                <div className="divide-y divide-slate-100 rounded-xl border border-[#dbdade] bg-white overflow-hidden max-h-72 overflow-y-auto">
                   {loadingDrawerHistory ? (
                     <div className="py-8 text-center text-xs text-slate-400">Loading audit logs...</div>
                   ) : drawerHistory.length === 0 ? (
                     <div className="py-8 text-center text-xs text-slate-400">No price change recorded yet.</div>
                   ) : (
                     drawerHistory.map((h) => (
-                      <div key={h.id} className="p-3.5 flex items-center justify-between text-xs hover:bg-slate-50 transition">
+                      <div key={h.id} className="p-3.5 flex items-center justify-between text-xs hover:bg-[#f8f7fa] transition">
                         <div>
                           <div className="text-[10px] text-slate-400 flex items-center gap-1 font-mono">
                             <Clock className="w-3 h-3 text-slate-400" />
@@ -570,7 +570,7 @@ export default function CompetitorSpyPage() {
             </div>
 
             {/* Drawer Footer */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+            <div className="p-4 border-t border-slate-100 bg-[#f8f7fa] flex items-center justify-between">
               <Link
                 href={`/products/${selectedMonitorForDrawer.globalProductId}`}
                 className="text-xs font-bold text-teal-800 hover:underline flex items-center gap-1"
@@ -596,7 +596,7 @@ export default function CompetitorSpyPage() {
       {/* ADD COMPETITOR MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-[#dbdade] max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <Crosshair className="w-5 h-5 text-rose-600" />
@@ -617,7 +617,7 @@ export default function CompetitorSpyPage() {
                   required
                   value={selectedProductId}
                   onChange={(e) => setSelectedProductId(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                  className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                 >
                   {products.map((p) => (
                     <option key={p.id} value={p.id}>
@@ -634,7 +634,7 @@ export default function CompetitorSpyPage() {
                   placeholder="e.g. RivalHobbies / Amazon / Horizon"
                   value={competitorName}
                   onChange={(e) => setCompetitorName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                  className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                 />
               </div>
 
@@ -646,7 +646,7 @@ export default function CompetitorSpyPage() {
                   placeholder="https://competitor.com/products/example-part-123"
                   value={competitorUrl}
                   onChange={(e) => setCompetitorUrl(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-mono focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                  className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-mono focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                 />
               </div>
 
@@ -656,7 +656,7 @@ export default function CompetitorSpyPage() {
                   <select
                     value={strategy}
                     onChange={(e) => setStrategy(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                    className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   >
                     <option value="UNDERCUT_BY_AMOUNT">Undercut by Fixed Amount ($)</option>
                     <option value="UNDERCUT_BY_PERCENT">Undercut by Percentage (%)</option>
@@ -673,7 +673,7 @@ export default function CompetitorSpyPage() {
                     placeholder="1.00 or 5"
                     value={strategyValue}
                     onChange={(e) => setStrategyValue(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                    className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   />
                 </div>
               </div>
@@ -687,7 +687,7 @@ export default function CompetitorSpyPage() {
                   placeholder="20.00"
                   value={floorPrice}
                   onChange={(e) => setFloorPrice(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                  className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                 />
                 <p className="text-[10px] text-slate-400 mt-1">
                   Protection guarantee: Even if the competitor sells for $5, our price will never go below this floor.
@@ -710,7 +710,7 @@ export default function CompetitorSpyPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                  className="px-4 py-2 rounded-xl border border-[#dbdade] text-xs font-bold text-slate-600 hover:bg-[#f8f7fa] transition"
                 >
                   Cancel
                 </button>

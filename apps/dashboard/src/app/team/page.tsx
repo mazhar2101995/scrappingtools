@@ -127,7 +127,7 @@ export default function TeamPermissionsPage() {
   return (
     <div className="space-y-6 w-full font-sans text-slate-800 pb-12">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Team &amp; Role-Based Access</h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -169,7 +169,7 @@ export default function TeamPermissionsPage() {
 
       {/* Role Definitions Explainer Banner */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
+        <div className="p-3.5 rounded-xl bg-white border border-[#dbdade] shadow-2xs space-y-1">
           <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900">
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             <span>Admin / Owner</span>
@@ -179,7 +179,7 @@ export default function TeamPermissionsPage() {
           </p>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
+        <div className="p-3.5 rounded-xl bg-white border border-[#dbdade] shadow-2xs space-y-1">
           <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900">
             <span className="w-2 h-2 rounded-full bg-blue-500" />
             <span>Editor</span>
@@ -189,7 +189,7 @@ export default function TeamPermissionsPage() {
           </p>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-1">
+        <div className="p-3.5 rounded-xl bg-white border border-[#dbdade] shadow-2xs space-y-1">
           <div className="flex items-center gap-1.5 font-bold text-xs text-slate-900">
             <span className="w-2 h-2 rounded-full bg-slate-400" />
             <span>Viewer / Auditor</span>
@@ -201,7 +201,7 @@ export default function TeamPermissionsPage() {
       </div>
 
       {/* Active Team Members List */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-[#0d2a2c]" />
@@ -246,7 +246,7 @@ export default function TeamPermissionsPage() {
                           ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
                           : m.role === 'editor'
                           ? 'bg-blue-50 border-blue-200 text-blue-900'
-                          : 'bg-slate-100 border-slate-200 text-slate-700'
+                          : 'bg-slate-100 border-[#dbdade] text-slate-700'
                       }`}
                     >
                       <option value="owner" disabled>Owner</option>
@@ -275,7 +275,7 @@ export default function TeamPermissionsPage() {
       </div>
 
       {/* Pending Invitations Section */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#dbdade] shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-600" />
@@ -314,7 +314,7 @@ export default function TeamPermissionsPage() {
                       navigator.clipboard.writeText(url);
                       alert('Invitation link copied to clipboard!');
                     }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#dbdade] text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
                   >
                     <Copy className="w-3 h-3" />
                     <span>Copy Link</span>
@@ -338,7 +338,7 @@ export default function TeamPermissionsPage() {
       {/* Invite Team Member Modal */}
       {showInviteModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-[#dbdade]">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <UserPlus className="w-5 h-5 text-[#0d2a2c]" />
@@ -407,7 +407,7 @@ export default function TeamPermissionsPage() {
                     placeholder="colleague@yourcompany.com"
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                    className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   />
                 </div>
 
@@ -418,7 +418,7 @@ export default function TeamPermissionsPage() {
                   <select
                     value={inviteRole}
                     onChange={(e) => setInviteRole(e.target.value)}
-                    className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
+                    className="w-full px-3 py-2 text-xs border border-[#dbdade] rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   >
                     <option value="editor">Editor — Can scrape, review, and push products</option>
                     <option value="admin">Admin — Full workspace control &amp; store setup</option>
@@ -430,7 +430,7 @@ export default function TeamPermissionsPage() {
                   <button
                     type="button"
                     onClick={() => setShowInviteModal(false)}
-                    className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                    className="px-4 py-2 rounded-xl border border-[#dbdade] text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
                   >
                     Cancel
                   </button>

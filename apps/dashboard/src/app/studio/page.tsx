@@ -90,7 +90,7 @@ export default function ScrapingStudioPage() {
 
   return (
     <div className="space-y-6 w-full font-sans text-slate-800">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#dbdade] pb-5">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Scraping Studio &amp; Selector Debugger</h1>
           <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -117,7 +117,7 @@ export default function ScrapingStudioPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Real Configuration Form */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-4">
           <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <Wrench className="w-4 h-4 text-[#0d2a2c]" />
             <span>Live Extraction Sandbox</span>
@@ -132,7 +132,7 @@ export default function ScrapingStudioPage() {
                 <select
                   value={selectedBrandId}
                   onChange={(e) => handleBrandChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none"
                 >
                   {brands.map((b) => (
                     <option key={b.id} value={b.id}>
@@ -151,16 +151,16 @@ export default function ScrapingStudioPage() {
                 value={testUrl}
                 onChange={(e) => setTestUrl(e.target.value)}
                 placeholder="https://brand.com/products/item-detail"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white"
+                className="w-full px-3 py-2 rounded-xl border border-[#dbdade] bg-slate-50 text-xs font-mono text-slate-900 focus:outline-none focus:bg-white"
               />
             </div>
 
             {selectedBrand && (
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+              <div className="p-3 bg-slate-50 rounded-xl border border-[#dbdade] space-y-2">
                 <span className="text-[10px] font-bold text-slate-500 uppercase block">Active Database Mappings ({selectedBrand.fieldMappings?.length || 0})</span>
                 <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
                   {(selectedBrand.fieldMappings || []).map((m: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between text-[11px] bg-white p-1.5 rounded-lg border border-slate-200">
+                    <div key={i} className="flex items-center justify-between text-[11px] bg-white p-1.5 rounded-lg border border-[#dbdade]">
                       <span className="font-bold text-slate-800">{m.targetField}</span>
                       <span className="font-mono text-[10px] text-slate-500 truncate max-w-[180px]">{m.sourceValue}</span>
                     </div>
@@ -193,7 +193,7 @@ export default function ScrapingStudioPage() {
         </div>
 
         {/* Right: Live Extraction Execution Results */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div className="bg-white rounded-xl border border-[#dbdade] p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <Code className="w-4 h-4 text-[#0d2a2c]" />
@@ -207,7 +207,7 @@ export default function ScrapingStudioPage() {
           </div>
 
           {!previewResult && !isRunning && (
-            <div className="h-64 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-slate-200 rounded-xl text-slate-400">
+            <div className="h-64 flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-[#dbdade] rounded-xl text-slate-400">
               <Sparkles className="w-8 h-8 text-slate-300 mb-2" />
               <p className="text-xs font-semibold text-slate-600">Zero Fake Simulation</p>
               <p className="text-[11px] text-slate-400 max-w-xs mt-1">
@@ -226,7 +226,7 @@ export default function ScrapingStudioPage() {
 
           {previewResult && (
             <div className="space-y-3 animate-fadeIn">
-              <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+              <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-[#dbdade] text-xs">
                 <div>
                   <span className="font-bold text-slate-900">{previewResult.brandName}</span>
                   <span className="text-[10px] text-slate-500 block">Total Mappings: {previewResult.totalConfiguredMappings}</span>
