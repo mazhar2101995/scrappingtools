@@ -90,6 +90,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
+  const [quotaUsage, setQuotaUsage] = useState<{
+    planName: string;
+    productUsed: number;
+    productLimit: number;
+    productPercent: number;
+    storeUsed: number;
+    storeLimit: number;
+    storePercent: number;
+  } | null>(null);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
@@ -125,6 +134,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           if (ws?.organization?.name) {
             setWorkspaceName(ws.organization.name);
             localStorage.setItem('saas_current_org_name', ws.organization.name);
+          }
+        }).catch(() => {});
+
+        // Load billing quotas for bottom sidebar indicator
+        apiClient.getMySubscription().then((sub) => {
+          if (sub?.usage) {
+            setQuotaUsage({
+              planName: sub.plan?.name || 'Starter Plan',
+              productUsed: sub.usage.products?.used || 0,
+              productLimit: sub.usage.products?.limit || 500,
+              productPercent: sub.usage.products?.percentage || 0,
+              storeUsed: sub.usage.stores?.used || 0,
+              storeLimit: sub.usage.stores?.limit || 1,
+              storePercent: sub.usage.stores?.percentage || 0,
+            });
           }
         }).catch(() => {});
       }
@@ -248,6 +272,55 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           ))}
         </nav>
+
+        {/* Dynamic Tenant Plan & Quota Guardrail Mini Widget */}
+        {quotaUsage && (
+          <div className="px-3.5 py-2.5 relative z-10 border-t border-[#143d40]/80 bg-[#0a2022]/60">
+            <div className="p-3 rounded-xl bg-[#143d40]/70 border border-[#1d575c] space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-200 truncate">{quotaUsage.planName}</span>
+                <Link
+                  href="/settings/billing"
+                  className="text-[9px] font-bold text-[#fad982] hover:underline"
+                >
+                  Upgrade
+                </Link>
+              </div>
+
+              {/* Products Quota */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-[9px] text-teal-200/80 font-medium">
+                  <span>Catalog</span>
+                  <span className="font-mono">{quotaUsage.productUsed} / {quotaUsage.productLimit}</span>
+                </div>
+                <div className="w-full bg-[#0d2a2c] h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      quotaUsage.productPercent > 90 ? 'bg-rose-500' : 'bg-[#fad982]'
+                    }`}
+                    style={{ width: `${Math.min(100, quotaUsage.productPercent)}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              {/* Stores Quota */}
+              <div className="space-y-1">
+                <div className="flex justify-between text-[9px] text-teal-200/80 font-medium">
+                  <span>Stores</span>
+                  <span className="font-mono">{quotaUsage.storeUsed} / {quotaUsage.storeLimit}</span>
+                </div>
+                <div className="w-full bg-[#0d2a2c] h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      quotaUsage.storePercent >= 100 ? 'bg-amber-400' : 'bg-emerald-400'
+                    }`}
+                    style={{ width: `${Math.min(100, quotaUsage.storePercent)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Sidebar Footer */}
         <div className="p-3 border-t border-[#143d40]/80 bg-[#0a2022] text-[10px] text-slate-400 flex items-center justify-between px-4 relative z-10">

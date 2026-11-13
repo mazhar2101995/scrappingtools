@@ -96,7 +96,10 @@ productsRouter.post('/lookup-intelligence', async (req: Request, res: Response) 
 });
 
 // --- Phase 1: Map Reusable Global Product into Tenant Catalog ---
-productsRouter.post('/reuse-canonical', async (req: Request, res: Response) => {
+productsRouter.post('/reuse-canonical', async (req: Request, res: Response, next) => {
+  const check = await quotaMiddleware('product');
+  return check(req, res, next);
+}, async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
   if (!orgId) {
     return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
@@ -1558,7 +1561,10 @@ productsRouter.patch('/:id/manual-fields', async (req: Request, res: Response) =
 });
 
 // 8. BATCH IMPORT & SCRAPE JOB DISPATCHER
-productsRouter.post('/batch-scrape', async (req: Request, res: Response) => {
+productsRouter.post('/batch-scrape', async (req: Request, res: Response, next) => {
+  const check = await quotaMiddleware('product');
+  return check(req, res, next);
+}, async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
   if (!orgId) {
     return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
