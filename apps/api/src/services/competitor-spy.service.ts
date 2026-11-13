@@ -57,25 +57,44 @@ export class CompetitorSpyService {
         '.price',
       ];
 
+      const parsePriceFromText = (str: string): number | null => {
+        if (!str) return null;
+        // Match standard currency pattern (e.g. $515, $643.00, 515.99, etc.)
+        const match = str.match(/(?:[\$\€\£\₹]\s*)?([0-9]{1,3}(?:,[0-9]{3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)/);
+        if (match && match[1]) {
+          const num = parseFloat(match[1].replace(/,/g, ''));
+          // Sanity check: e-commerce consumer prices won't realistically exceed $500,000 or be <= 0
+          if (!isNaN(num) && num > 0 && num < 500000) {
+            return num;
+          }
+        }
+        return null;
+      };
+
       for (const sel of selectors) {
         if (sel.startsWith('meta')) {
           const content = $(sel).attr('content');
           if (content) {
-            const clean = parseFloat(content.replace(/[^0-9.]/g, ''));
-            if (!isNaN(clean) && clean > 0) {
+            const clean = parsePriceFromText(content);
+            if (clean !== null) {
               detectedPrice = clean;
               break;
             }
           }
         } else {
-          const text = $(sel).first().text().trim();
-          if (text) {
-            const clean = parseFloat(text.replace(/[^0-9.]/g, ''));
-            if (!isNaN(clean) && clean > 0) {
+          // If selector matches multiple elements (e.g. .price), check only direct price container text
+          const elements = $(sel);
+          for (let i = 0; i < Math.min(elements.length, 5); i++) {
+            const el = elements.eq(i);
+            // Get text, ignoring nested container text if this is a wrapper
+            const directText = el.clone().children().remove().end().text().trim() || el.text().trim();
+            const clean = parsePriceFromText(directText);
+            if (clean !== null) {
               detectedPrice = clean;
               break;
             }
           }
+          if (detectedPrice !== null) break;
         }
       }
 
@@ -344,3 +363,4 @@ export class CompetitorSpyService {
     };
   }
 }
+
