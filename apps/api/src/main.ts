@@ -18,6 +18,7 @@ import { organizationRouter } from './routes/organization.routes';
 import { billingRouter } from './routes/billing.routes';
 import { feedbackRouter } from './routes/feedback.routes';
 import { storageRouter } from './routes/storage.routes';
+import { scheduleRouter } from './routes/schedule.routes';
 import { ServiceHealth } from '@saas/shared-types';
 
 const app = express();
@@ -70,6 +71,7 @@ app.use('/api/v1/organizations', organizationRouter);
 app.use('/api/v1/billing', billingRouter);
 app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/storage', storageRouter);
+app.use('/api/v1/schedules', scheduleRouter);
 
 // 4. Start Server & Background Storage Garbage Collection Worker
 if (process.env.NODE_ENV !== 'test') {
@@ -93,6 +95,17 @@ if (process.env.NODE_ENV !== 'test') {
       console.error('[Scheduled GC] Error during automated execution:', gcErr);
     }
   }, GC_INTERVAL_MS);
+
+  // Background Schedule Engine Runner (checks every 60 seconds)
+  const SCHEDULE_INTERVAL_MS = 60 * 1000;
+  setInterval(async () => {
+    try {
+      const { BackgroundSyncSchedulerService } = await import('./services/background-sync-scheduler.service');
+      await BackgroundSyncSchedulerService.processDueSchedules();
+    } catch (schedErr) {
+      console.error('[SyncScheduler Runner] Error checking due schedules:', schedErr);
+    }
+  }, SCHEDULE_INTERVAL_MS);
 }
 
 export default app;

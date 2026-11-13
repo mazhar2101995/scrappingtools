@@ -1092,6 +1092,50 @@ export class DashboardApiClient {
       body: JSON.stringify(payload),
     }, 'client');
   }
+
+  // --- Step 2: Automated Background Sync & Schedules ---
+  async getSyncSchedules(): Promise<{ success: boolean; schedules: any[] }> {
+    return this.fetchJson('/schedules', {}, 'client');
+  }
+
+  async createSyncSchedule(payload: {
+    name: string;
+    frequency: 'HOURLY' | 'EVERY_6_HOURS' | 'DAILY' | 'WEEKLY';
+    storeId?: string;
+    brandId?: string;
+    targetLanguage?: string;
+    autoTranslate?: boolean;
+    scheduleType?: 'STORE_PUSH' | 'SCRAPE_REFRESH' | 'BIDIRECTIONAL';
+  }): Promise<{ success: boolean; schedule: any }> {
+    return this.fetchJson('/schedules', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async updateSyncSchedule(id: string, payload: {
+    name?: string;
+    frequency?: 'HOURLY' | 'EVERY_6_HOURS' | 'DAILY' | 'WEEKLY';
+    status?: 'ACTIVE' | 'PAUSED';
+    targetLanguage?: string;
+  }): Promise<{ success: boolean; schedule: any }> {
+    return this.fetchJson(`/schedules/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async deleteSyncSchedule(id: string): Promise<{ success: boolean; message: string }> {
+    return this.fetchJson(`/schedules/${id}`, {
+      method: 'DELETE',
+    }, 'client');
+  }
+
+  async triggerScheduleRunNow(id: string): Promise<{ success: boolean; result: any }> {
+    return this.fetchJson(`/schedules/${id}/run-now`, {
+      method: 'POST',
+    }, 'client');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

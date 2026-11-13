@@ -226,14 +226,14 @@ export default function ProductsPage() {
       if (selectedBrand.officialWebsite) {
         try {
           allowedDomains.push(new URL(selectedBrand.officialWebsite).hostname.toLowerCase().replace(/^www\./, ''));
-        } catch (_) {}
+        } catch (_) { }
       }
       if (Array.isArray(selectedBrand.sourceConfigs)) {
         for (const src of selectedBrand.sourceConfigs) {
           if (src.url) {
             try {
               allowedDomains.push(new URL(src.url).hostname.toLowerCase().replace(/^www\./, ''));
-            } catch (_) {}
+            } catch (_) { }
           }
         }
       }
@@ -667,11 +667,10 @@ export default function ProductsPage() {
               setShowBulkPushModal(true);
             }}
             disabled={selectedProductIds.length === 0}
-            className={`flex items-center gap-1.5 px-3.5 py-2 font-bold text-xs rounded-xl shadow-sm transition ${
-              selectedProductIds.length > 0
+            className={`flex items-center gap-1.5 px-3.5 py-2 font-bold text-xs rounded-xl shadow-sm transition ${selectedProductIds.length > 0
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white animate-pulse'
                 : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-            }`}
+              }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             <span>Bulk Push to Store ({selectedProductIds.length})</span>
@@ -713,9 +712,8 @@ export default function ProductsPage() {
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
             onClick={() => setBrandFilter('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
-              brandFilter === 'ALL' ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${brandFilter === 'ALL' ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
           >
             ALL
           </button>
@@ -723,11 +721,10 @@ export default function ProductsPage() {
             <button
               key={b.id}
               onClick={() => setBrandFilter(b.name)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition uppercase ${
-                brandFilter.toLowerCase() === b.name?.toLowerCase()
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition uppercase ${brandFilter.toLowerCase() === b.name?.toLowerCase()
                   ? 'bg-[#0d2a2c] text-[#fad982] shadow-sm'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+                }`}
             >
               {b.name}
             </button>
@@ -791,126 +788,125 @@ export default function ProductsPage() {
               filtered.map((prod) => {
                 const isSelected = selectedProductIds.includes(prod.id);
                 return (
-                <tr key={prod.id} className={`transition ${isSelected ? 'bg-emerald-50/50' : 'hover:bg-slate-50/80'}`}>
-                  <td className="py-4 px-3 text-center">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => handleToggleSelectProduct(prod.id)}
-                      className="w-4 h-4 rounded border-slate-300 text-[#0d2a2c] focus:ring-[#fad982] cursor-pointer"
-                    />
-                  </td>
-                  <td className="py-4 px-5 max-w-sm">
-                    <Link
-                      href={`/products/${prod.id}`}
-                      className="font-bold text-slate-900 hover:text-[#0d2a2c] hover:underline block leading-snug"
-                    >
-                      {prod.canonicalTitle}
-                    </Link>
-                    <span className="text-[11px] text-slate-400 block mt-0.5">
-                      {prod.categoryPath ? prod.categoryPath.split('>')[0].trim() : 'General'}
-                    </span>
-                  </td>
-
-                  <td className="py-4 px-4">
-                    <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#0d2a2c]/5 text-[#0d2a2c] border border-[#0d2a2c]/10">
-                      {prod.brand || '—'}
-                    </span>
-                  </td>
-
-                  <td className="py-4 px-4 font-mono text-[11px] text-slate-600 space-y-0.5">
-                    {/* Phase 6 Quality Status Badge */}
-                    <div className="mb-1">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono border ${
-                          prod.verificationStatus === 'verified'
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            : prod.verificationStatus === 'conflict'
-                            ? 'bg-rose-50 text-rose-800 border-rose-200'
-                            : 'bg-amber-50 text-amber-800 border-amber-200'
-                        }`}
-                      >
-                        <ShieldCheck className="w-3 h-3" />
-                        <span>{prod.verificationStatus || 'NEEDS_REVIEW'}</span>
-                      </span>
-                    </div>
-                    <div>
-                      EAN: <span className="text-slate-900 font-bold">{prod.gtinEan || '—'}</span>
-                    </div>
-                    <div>
-                      MPN: <span className="text-slate-500">{prod.modelNumber || '—'}</span>
-                    </div>
-                  </td>
-
-                  <td className="py-4 px-4 text-[11px] text-slate-600">
-                    <div>{prod.sourcesCount || 1} domains</div>
-                    <div className="text-slate-400 font-medium">{prod.variantsCount || 1} variants</div>
-                  </td>
-
-                  {/* Store Sync Status Badge (Single consolidated badge on listing) */}
-                  <td className="py-4 px-4">
-                    {Array.isArray(prod.syncedStores) && prod.syncedStores.length > 0 ? (
-                      (() => {
-                        const first = prod.syncedStores[0];
-                        const extraCount = prod.syncedStores.length - 1;
-                        return (
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              title={`Synced with ${prod.syncedStores.map((st: any) => st.storeName).join(', ')}`}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs whitespace-nowrap"
-                            >
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              <ShoppingBag className="w-3 h-3 text-emerald-600" />
-                              <span>
-                                Synced to {first.storeName} ({String(first.platformType || '').toUpperCase()})
-                              </span>
-                              {extraCount > 0 && (
-                                <span className="ml-1 px-1.5 py-0.2 rounded bg-emerald-200 text-emerald-900 text-[9px] font-black">
-                                  +{extraCount}
-                                </span>
-                              )}
-                            </span>
-                            <Link
-                              href={`/products/${prod.id}#store-sync`}
-                              title="Click to view detailed store sync history & credentials"
-                              className="text-slate-400 hover:text-slate-700 transition p-0.5 rounded hover:bg-slate-100"
-                            >
-                              <AlertCircle className="w-3.5 h-3.5 rotate-180" />
-                            </Link>
-                          </div>
-                        );
-                      })()
-                    ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                        Not Pushed
-                      </span>
-                    )}
-                  </td>
-
-                  <td className="py-4 px-4 font-bold text-slate-900">{prod.priceEstimate || '—'}</td>
-
-                  <td className="py-4 px-5 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  <tr key={prod.id} className={`transition ${isSelected ? 'bg-emerald-50/50' : 'hover:bg-slate-50/80'}`}>
+                    <td className="py-4 px-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelectProduct(prod.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-[#0d2a2c] focus:ring-[#fad982] cursor-pointer"
+                      />
+                    </td>
+                    <td className="py-4 px-5 max-w-sm">
                       <Link
                         href={`/products/${prod.id}`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                        className="font-bold text-slate-900 hover:text-[#0d2a2c] hover:underline block leading-snug"
                       >
-                        <span>Inspect</span>
-                        <span>›</span>
+                        {prod.canonicalTitle}
                       </Link>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteProduct(prod.id, prod.canonicalTitle)}
-                        disabled={deletingId === prod.id}
-                        title="Delete product from catalog"
-                        className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition disabled:opacity-50"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
+                      <span className="text-[11px] text-slate-400 block mt-0.5">
+                        {prod.categoryPath ? prod.categoryPath.split('>')[0].trim() : 'General'}
+                      </span>
+                    </td>
+
+                    <td className="py-4 px-4">
+                      <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-[#0d2a2c]/5 text-[#0d2a2c] border border-[#0d2a2c]/10">
+                        {prod.brand || '—'}
+                      </span>
+                    </td>
+
+                    <td className="py-4 px-4 font-mono text-[11px] text-slate-600 space-y-0.5">
+                      {/* Phase 6 Quality Status Badge */}
+                      <div className="mb-1">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase font-mono border ${prod.verificationStatus === 'verified'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : prod.verificationStatus === 'conflict'
+                                ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                : 'bg-amber-50 text-amber-800 border-amber-200'
+                            }`}
+                        >
+                          <ShieldCheck className="w-3 h-3" />
+                          <span>{prod.verificationStatus || 'NEEDS_REVIEW'}</span>
+                        </span>
+                      </div>
+                      <div>
+                        EAN: <span className="text-slate-900 font-bold">{prod.gtinEan || '—'}</span>
+                      </div>
+                      <div>
+                        MPN: <span className="text-slate-500">{prod.modelNumber || '—'}</span>
+                      </div>
+                    </td>
+
+                    <td className="py-4 px-4 text-[11px] text-slate-600">
+                      <div>{prod.sourcesCount || 1} domains</div>
+                      <div className="text-slate-400 font-medium">{prod.variantsCount || 1} variants</div>
+                    </td>
+
+                    {/* Store Sync Status Badge (Single consolidated badge on listing) */}
+                    <td className="py-4 px-4">
+                      {Array.isArray(prod.syncedStores) && prod.syncedStores.length > 0 ? (
+                        (() => {
+                          const first = prod.syncedStores[0];
+                          const extraCount = prod.syncedStores.length - 1;
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                title={`Synced with ${prod.syncedStores.map((st: any) => st.storeName).join(', ')}`}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs whitespace-nowrap"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <ShoppingBag className="w-3 h-3 text-emerald-600" />
+                                <span>
+                                  Synced to {first.storeName} ({String(first.platformType || '').toUpperCase()})
+                                </span>
+                                {extraCount > 0 && (
+                                  <span className="ml-1 px-1.5 py-0.2 rounded bg-emerald-200 text-emerald-900 text-[9px] font-black">
+                                    +{extraCount}
+                                  </span>
+                                )}
+                              </span>
+                              <Link
+                                href={`/products/${prod.id}#store-sync`}
+                                title="Click to view detailed store sync history & credentials"
+                                className="text-slate-400 hover:text-slate-700 transition p-0.5 rounded hover:bg-slate-100"
+                              >
+                                <AlertCircle className="w-3.5 h-3.5 rotate-180" />
+                              </Link>
+                            </div>
+                          );
+                        })()
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                          Not Pushed
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="py-4 px-4 font-bold text-slate-900">{prod.priceEstimate || '—'}</td>
+
+                    <td className="py-4 px-5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          href={`/products/${prod.id}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                        >
+                          <span>Inspect</span>
+                          <span>›</span>
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteProduct(prod.id, prod.canonicalTitle)}
+                          disabled={deletingId === prod.id}
+                          title="Delete product from catalog"
+                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
               })
             )}
           </tbody>
@@ -977,22 +973,20 @@ export default function ProductsPage() {
                     <button
                       type="button"
                       onClick={() => setInputMode('URL')}
-                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
-                        inputMode === 'URL'
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${inputMode === 'URL'
                           ? 'bg-white text-slate-900 shadow-xs'
                           : 'text-slate-500 hover:text-slate-800'
-                      }`}
+                        }`}
                     >
                       Option A: Brand Website URL
                     </button>
                     <button
                       type="button"
                       onClick={() => setInputMode('IDENTIFIER')}
-                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 ${
-                        inputMode === 'IDENTIFIER'
+                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-1.5 ${inputMode === 'IDENTIFIER'
                           ? 'bg-[#0d2a2c] text-[#fad982] shadow-xs'
                           : 'text-slate-500 hover:text-slate-800'
-                      }`}
+                        }`}
                     >
                       <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                       <span>Option B: Multi-Source Discovery (Barcode / MPN)</span>
@@ -1072,176 +1066,175 @@ export default function ProductsPage() {
                       </div>
                     </form>
                   ) : (
-                /* STEP 1, 2 & 3: FORM INPUT */
-                <form onSubmit={handleExtractProduct} className="space-y-5">
-                  {/* Step 1: Select Brand Profile */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
-                      Step 1 — Select Brand Profile <span className="text-rose-500">*</span>
-                    </label>
-                    <select
-                      value={selectedBrandId}
-                      onChange={(e) => handleSelectBrand(e.target.value)}
-                      required
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
-                    >
-                      <option value="">-- Choose Brand Profile --</option>
-                      {brandsList.map((b) => (
-                        <option key={b.id} value={b.id}>
-                          {b.name} ({b.officialWebsite || 'No official domain'} &bull;{' '}
-                          {Array.isArray(b.fieldMappings) ? b.fieldMappings.length : 0} Mappings)
-                        </option>
-                      ))}
-                    </select>
-
-                    {/* Brand Status / Guidance Pill */}
-                    {selectedBrand && (
-                      <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <span className="font-bold text-slate-900 block">{selectedBrand.name}</span>
-                          <span className="text-[11px] text-slate-500 font-mono">
-                            Domain: {selectedBrand.officialWebsite || 'Configured via sources'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
-                            {selectedBrand.status || 'Active'}
-                          </span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fad982] text-slate-950">
-                            {Array.isArray(selectedBrand.fieldMappings) ? selectedBrand.fieldMappings.length : 0} Mappings
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Warning if Brand Profile has 0 mappings */}
-                  {selectedBrand && (!selectedBrand.fieldMappings || selectedBrand.fieldMappings.length === 0) && (
-                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2.5">
-                      <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    /* STEP 1, 2 & 3: FORM INPUT */
+                    <form onSubmit={handleExtractProduct} className="space-y-5">
+                      {/* Step 1: Select Brand Profile */}
                       <div>
-                        <span className="font-bold block">No Field Mappings Configured</span>
-                        <span>This Brand Profile does not have extraction mappings configured yet. </span>
-                        <Link
-                          href={`/brands/${selectedBrand.id}`}
-                          className="font-bold underline hover:text-amber-950"
+                        <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                          Step 1 — Select Brand Profile <span className="text-rose-500">*</span>
+                        </label>
+                        <select
+                          value={selectedBrandId}
+                          onChange={(e) => handleSelectBrand(e.target.value)}
+                          required
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-900 focus:outline-none focus:border-[#0d2a2c] focus:bg-white"
                         >
-                          Configure Field Mapping &rarr;
-                        </Link>
-                      </div>
-                    </div>
-                  )}
+                          <option value="">-- Choose Brand Profile --</option>
+                          {brandsList.map((b) => (
+                            <option key={b.id} value={b.id}>
+                              {b.name} ({b.officialWebsite || 'No official domain'} &bull;{' '}
+                              {Array.isArray(b.fieldMappings) ? b.fieldMappings.length : 0} Mappings)
+                            </option>
+                          ))}
+                        </select>
 
-                  {/* Step 2: Select Source (Only if multiple sources exist) */}
-                  {selectedBrand && Array.isArray(selectedBrand.sourceConfigs) && selectedBrand.sourceConfigs.length > 1 && (
-                    <div>
-                      <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
-                        Step 2 — Select Source / Domain
-                      </label>
-                      <select
-                        value={selectedSourceUrl}
-                        onChange={(e) => setSelectedSourceUrl(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none"
-                      >
-                        {selectedBrand.officialWebsite && (
-                          <option value={selectedBrand.officialWebsite}>
-                            Official Website — {selectedBrand.officialWebsite}
-                          </option>
+                        {/* Brand Status / Guidance Pill */}
+                        {selectedBrand && (
+                          <div className="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
+                            <div className="space-y-0.5">
+                              <span className="font-bold text-slate-900 block">{selectedBrand.name}</span>
+                              <span className="text-[11px] text-slate-500 font-mono">
+                                Domain: {selectedBrand.officialWebsite || 'Configured via sources'}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
+                                {selectedBrand.status || 'Active'}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#fad982] text-slate-950">
+                                {Array.isArray(selectedBrand.fieldMappings) ? selectedBrand.fieldMappings.length : 0} Mappings
+                              </span>
+                            </div>
+                          </div>
                         )}
-                        {selectedBrand.sourceConfigs.map((src: any, idx: number) => (
-                          <option key={idx} value={src.url}>
-                            {src.type || 'Catalog'} — {src.url}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                      </div>
 
-                  {/* Step 3: Product URL Input */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
-                      {selectedBrand && Array.isArray(selectedBrand.sourceConfigs) && selectedBrand.sourceConfigs.length > 1
-                        ? 'Step 3 — Product URL'
-                        : 'Step 2 — Product URL'}{' '}
-                      <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="url"
-                      required
-                      disabled={!selectedBrand}
-                      placeholder={
-                        selectedBrand?.officialWebsite
-                          ? `${selectedBrand.officialWebsite}/products/...`
-                          : 'https://brand-domain.com/product-slug'
-                      }
-                      value={productUrl}
-                      onChange={(e) => handleUrlChange(e.target.value)}
-                      className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono transition focus:outline-none ${
-                        urlValidationError
-                          ? 'border-rose-300 bg-rose-50/50 text-rose-900 focus:border-rose-500'
-                          : urlValidSuccess
-                          ? 'border-emerald-300 bg-emerald-50/40 text-emerald-950 focus:border-emerald-500'
-                          : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-[#0d2a2c] focus:bg-white'
-                      }`}
-                    />
-
-                    {/* Live Validation Guidance */}
-                    {urlValidSuccess && (
-                      <p className="text-[11px] text-emerald-700 font-semibold mt-1 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>URL belongs to approved {selectedBrand?.name} source</span>
-                      </p>
-                    )}
-                    {urlValidationError && (
-                      <p className="text-[11px] text-rose-600 font-semibold mt-1 flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
-                        <span>{urlValidationError}</span>
-                      </p>
-                    )}
-                  </div>
-
-                  {extractionError && (
-                    <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
-                      {extractionError}
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddModal(false)}
-                      className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={
-                        extracting ||
-                        !selectedBrandId ||
-                        !productUrl.trim() ||
-                        Boolean(urlValidationError) ||
-                        (!selectedBrand?.fieldMappings || selectedBrand.fieldMappings.length === 0)
-                      }
-                      className="px-5 py-2.5 rounded-xl bg-[#fad982] hover:bg-amber-300 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-sm transition flex items-center gap-2"
-                    >
-                      {extracting ? (
-                        <>
-                          <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
-                          <span>Extracting Product...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>Extract Product</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </>
+                      {/* Warning if Brand Profile has 0 mappings */}
+                      {selectedBrand && (!selectedBrand.fieldMappings || selectedBrand.fieldMappings.length === 0) && (
+                        <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2.5">
+                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                          <div>
+                            <span className="font-bold block">No Field Mappings Configured</span>
+                            <span>This Brand Profile does not have extraction mappings configured yet. </span>
+                            <Link
+                              href={`/brands/${selectedBrand.id}`}
+                              className="font-bold underline hover:text-amber-950"
+                            >
+                              Configure Field Mapping &rarr;
+                            </Link>
+                          </div>
+                        </div>
                       )}
-                    </button>
-                  </div>
-                </form>
-                )}
-              </div>
+
+                      {/* Step 2: Select Source (Only if multiple sources exist) */}
+                      {selectedBrand && Array.isArray(selectedBrand.sourceConfigs) && selectedBrand.sourceConfigs.length > 1 && (
+                        <div>
+                          <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                            Step 2 — Select Source / Domain
+                          </label>
+                          <select
+                            value={selectedSourceUrl}
+                            onChange={(e) => setSelectedSourceUrl(e.target.value)}
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-semibold text-slate-800 focus:outline-none"
+                          >
+                            {selectedBrand.officialWebsite && (
+                              <option value={selectedBrand.officialWebsite}>
+                                Official Website — {selectedBrand.officialWebsite}
+                              </option>
+                            )}
+                            {selectedBrand.sourceConfigs.map((src: any, idx: number) => (
+                              <option key={idx} value={src.url}>
+                                {src.type || 'Catalog'} — {src.url}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Step 3: Product URL Input */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider mb-1.5">
+                          {selectedBrand && Array.isArray(selectedBrand.sourceConfigs) && selectedBrand.sourceConfigs.length > 1
+                            ? 'Step 3 — Product URL'
+                            : 'Step 2 — Product URL'}{' '}
+                          <span className="text-rose-500">*</span>
+                        </label>
+                        <input
+                          type="url"
+                          required
+                          disabled={!selectedBrand}
+                          placeholder={
+                            selectedBrand?.officialWebsite
+                              ? `${selectedBrand.officialWebsite}/products/...`
+                              : 'https://brand-domain.com/product-slug'
+                          }
+                          value={productUrl}
+                          onChange={(e) => handleUrlChange(e.target.value)}
+                          className={`w-full px-3.5 py-2.5 rounded-xl border text-xs font-mono transition focus:outline-none ${urlValidationError
+                              ? 'border-rose-300 bg-rose-50/50 text-rose-900 focus:border-rose-500'
+                              : urlValidSuccess
+                                ? 'border-emerald-300 bg-emerald-50/40 text-emerald-950 focus:border-emerald-500'
+                                : 'border-slate-200 bg-slate-50 text-slate-900 focus:border-[#0d2a2c] focus:bg-white'
+                            }`}
+                        />
+
+                        {/* Live Validation Guidance */}
+                        {urlValidSuccess && (
+                          <p className="text-[11px] text-emerald-700 font-semibold mt-1 flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>URL belongs to approved {selectedBrand?.name} source</span>
+                          </p>
+                        )}
+                        {urlValidationError && (
+                          <p className="text-[11px] text-rose-600 font-semibold mt-1 flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+                            <span>{urlValidationError}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      {extractionError && (
+                        <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+                          {extractionError}
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => setShowAddModal(false)}
+                          className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={
+                            extracting ||
+                            !selectedBrandId ||
+                            !productUrl.trim() ||
+                            Boolean(urlValidationError) ||
+                            (!selectedBrand?.fieldMappings || selectedBrand.fieldMappings.length === 0)
+                          }
+                          className="px-5 py-2.5 rounded-xl bg-[#fad982] hover:bg-amber-300 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-sm transition flex items-center gap-2"
+                        >
+                          {extracting ? (
+                            <>
+                              <div className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin"></div>
+                              <span>Extracting Product...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>Extract Product</span>
+                              <ArrowRight className="w-3.5 h-3.5" />
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
               ) : (
                 /* STEP 4: REVIEW & CONFIRM EXTRACTED PRODUCT */
                 <div className="space-y-5">
@@ -1653,11 +1646,10 @@ export default function ProductsPage() {
               {/* If Push Completed */}
               {bulkPushResults ? (
                 <div className="space-y-4">
-                  <div className={`p-4 rounded-xl border ${
-                    bulkPushResults.failedCount === 0 
-                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
+                  <div className={`p-4 rounded-xl border ${bulkPushResults.failedCount === 0
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                       : 'bg-amber-50 border-amber-200 text-amber-800'
-                  }`}>
+                    }`}>
                     <div className="flex items-center gap-2 font-bold text-sm">
                       <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                       <span>Bulk Export Run Complete</span>

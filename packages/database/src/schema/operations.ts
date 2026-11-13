@@ -3,6 +3,7 @@ import { sql } from 'drizzle-orm';
 import { organizations, users } from './tenants';
 import { brands, sourceWebsites, sourceProductListings, tenantBrandProfiles } from './sources';
 import { globalProducts } from './products';
+import { connectedStores } from './stores';
 
 export const scrapingJobs = pgTable('scraping_jobs', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -122,5 +123,28 @@ export const communityFeedback = pgTable('community_feedback', {
   index('idx_feedback_org').on(table.organizationId, table.createdAt),
   index('idx_feedback_status').on(table.status),
 ]);
+
+export const automatedSyncSchedules = pgTable('automated_sync_schedules', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  scheduleType: varchar('schedule_type', { length: 50 }).notNull().default('STORE_PUSH'), // 'STORE_PUSH', 'SCRAPE_REFRESH', 'BIDIRECTIONAL'
+  frequency: varchar('frequency', { length: 50 }).notNull().default('DAILY'), // 'HOURLY', 'EVERY_6_HOURS', 'DAILY', 'WEEKLY'
+  storeId: uuid('store_id').references(() => connectedStores.id, { onDelete: 'cascade' }),
+  brandId: uuid('brand_id').references(() => brands.id, { onDelete: 'set null' }),
+  targetLanguage: varchar('target_language', { length: 10 }).default('en'),
+  autoTranslate: boolean('auto_translate').notNull().default(true),
+  status: varchar('status', { length: 50 }).notNull().default('ACTIVE'), // 'ACTIVE', 'PAUSED'
+  lastRunAt: timestamp('last_run_at', { withTimezone: true }),
+  lastRunStatus: varchar('last_run_status', { length: 50 }), // 'SUCCESS', 'FAILED', 'PARTIAL'
+  lastRunSummary: text('last_run_summary'),
+  nextRunAt: timestamp('next_run_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_sync_schedules_org').on(table.organizationId),
+  index('idx_sync_schedules_status').on(table.status, table.nextRunAt),
+]);
+
 
 
