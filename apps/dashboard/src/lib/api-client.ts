@@ -1153,6 +1153,34 @@ export class DashboardApiClient {
       method: 'POST',
     }, 'client');
   }
+
+  // --- Step 6: In-House AI Self-Training Dataset & Feedback ---
+  async getAiTrainingStats(): Promise<{ success: boolean; stats: any }> {
+    return this.fetchJson('/ai-training/stats', {}, 'client');
+  }
+
+  async getAiTrainingDataset(params?: { taskType?: string; languageCode?: string; limit?: number }): Promise<{ success: boolean; dataset: any[] }> {
+    const qs = new URLSearchParams();
+    if (params?.taskType) qs.set('taskType', params.taskType);
+    if (params?.languageCode) qs.set('languageCode', params.languageCode);
+    if (params?.limit) qs.set('limit', String(params.limit));
+    return this.fetchJson(`/ai-training/dataset?${qs.toString()}`, {}, 'client');
+  }
+
+  async recordAiTrainingCorrection(payload: {
+    taskType: 'TRANSLATION' | 'TITLE_NORMALIZATION' | 'ATTRIBUTE_EXTRACTION' | 'DESCRIPTION_CLEANING';
+    sourceText: string;
+    modelOutput?: string;
+    correctedOutput: string;
+    brandScope?: string;
+    languageCode?: string;
+    correctionReason?: string;
+  }): Promise<{ success: boolean; example: any }> {
+    return this.fetchJson('/ai-training/record-correction', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

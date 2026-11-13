@@ -71,3 +71,24 @@ export const productMergeHistory = pgTable('product_merge_history', {
   index('idx_pmh_source').on(table.sourceGlobalProductId),
 ]);
 
+// 5. In-House AI Fine-Tuning & Correction Feedback Dataset (Self-Training Pipeline)
+export const aiTrainingExamples = pgTable('ai_training_examples', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  taskType: varchar('task_type', { length: 50 }).notNull(), // 'TRANSLATION', 'TITLE_NORMALIZATION', 'ATTRIBUTE_EXTRACTION', 'DESCRIPTION_CLEANING'
+  sourceText: text('source_text').notNull(),
+  modelOutput: text('model_output').notNull(),
+  correctedOutput: text('corrected_output').notNull(),
+  brandScope: varchar('brand_scope', { length: 150 }).default('GLOBAL'),
+  languageCode: varchar('language_code', { length: 20 }).default('en'),
+  correctionReason: text('correction_reason'),
+  isVerifiedForTraining: boolean('is_verified_for_training').notNull().default(true),
+  sourceModel: varchar('source_model', { length: 100 }).default('in_house_baseline'),
+  qualityScore: numeric('quality_score', { precision: 3, scale: 2 }).default('1.00'),
+  metadata: jsonb('metadata').default(sql`'{}'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_ai_training_task').on(table.taskType, table.languageCode),
+  index('idx_ai_training_brand').on(table.brandScope),
+]);
+
+

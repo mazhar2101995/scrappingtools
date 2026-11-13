@@ -49,3 +49,4 @@ notificationRouter.post('/read-all', async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Failed to mark all notifications as read', details: err.message });
   }
 });
+

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Cpu, Sparkles, Sliders, Check, Key, Save, AlertCircle, FileText, CheckCircle2, Globe, Languages } from 'lucide-react';
+import { Cpu, Sparkles, Sliders, Check, Key, Save, AlertCircle, FileText, CheckCircle2, Globe, Languages, Download, Database } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
 export default function ClientAiSettingsPage() {
@@ -17,6 +17,10 @@ export default function ClientAiSettingsPage() {
     'Act as an expert technical e-commerce copywriter. Using the provided manufacturer specifications and features, craft a compelling, SEO-optimized product title and 3-paragraph product description highlighting durability, scale specifications, and compatibility.'
   );
   const [customApiKey, setCustomApiKey] = useState('');
+
+  // Step 6: In-House AI Self-Training Dataset States
+  const [trainingStats, setTrainingStats] = useState<any | null>(null);
+  const [recentExamples, setRecentExamples] = useState<any[]>([]);
 
   // Multi-Language Workspace Custom Prompts
   const [storeLanguages, setStoreLanguages] = useState<{ primary: string; supported: string[] }>({
@@ -37,10 +41,19 @@ export default function ClientAiSettingsPage() {
       try {
         setLoading(true);
         setErrorMsg('');
-        const [res, langsRes] = await Promise.allSettled([
+        const [res, langsRes, statsRes, datasetRes] = await Promise.allSettled([
           apiClient.getAiSettings(),
           apiClient.getStoreLanguages(),
+          apiClient.getAiTrainingStats(),
+          apiClient.getAiTrainingDataset({ limit: 5 }),
         ]);
+
+        if (statsRes.status === 'fulfilled') {
+          setTrainingStats(statsRes.value?.stats || null);
+        }
+        if (datasetRes.status === 'fulfilled') {
+          setRecentExamples(datasetRes.value?.dataset || []);
+        }
 
         if (langsRes.status === 'fulfilled' && langsRes.value?.supported) {
           setStoreLanguages(langsRes.value);
@@ -309,6 +322,74 @@ export default function ClientAiSettingsPage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* In-House AI Self-Training Dataset & Feedback Section (Step 6) */}
+        <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <Database className="w-4 h-4 text-purple-600" />
+                <span>In-House AI Self-Training Pipeline</span>
+              </h3>
+              <p className="text-xs text-slate-500 font-medium mt-0.5">
+                Catalog edits, manual translations, and attribute corrections are automatically captured as training pairs for fine-tuning your local models.
+              </p>
+            </div>
+
+            <a
+              href={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/api/v1/ai-training/export`}
+              download
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition shrink-0"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-600" />
+              <span>Export Fine-Tuning JSONL</span>
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-3 bg-purple-50/60 border border-purple-200 rounded-xl">
+              <span className="text-[10px] font-bold text-purple-900 uppercase tracking-wide block">Collected Examples</span>
+              <span className="text-xl font-black text-purple-700 font-mono mt-1 block">
+                {trainingStats?.totalExamples || 0}
+              </span>
+              <span className="text-[10px] text-purple-600/80">Ready for Llama / Mistral tuning</span>
+            </div>
+
+            <div className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl">
+              <span className="text-[10px] font-bold text-emerald-900 uppercase tracking-wide block">Correction Memory</span>
+              <span className="text-xl font-black text-emerald-700 font-mono mt-1 block">
+                Active
+              </span>
+              <span className="text-[10px] text-emerald-600/80">Auto-updates translation cache</span>
+            </div>
+
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wide block">Dataset Format</span>
+              <span className="text-xl font-black text-slate-800 font-mono mt-1 block">
+                JSONL
+              </span>
+              <span className="text-[10px] text-slate-500">OpenAI / Unsloth compliant</span>
+            </div>
+          </div>
+
+          {recentExamples.length > 0 && (
+            <div className="mt-3 space-y-2">
+              <span className="text-xs font-bold text-slate-700 block">Recent Training Pairs Captured:</span>
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                {recentExamples.map((ex) => (
+                  <div key={ex.id} className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-[11px] font-mono space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400">
+                      <span className="font-bold text-purple-700 uppercase">{ex.taskType} ({ex.languageCode})</span>
+                      <span>{new Date(ex.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className="text-slate-600 truncate"><span className="text-slate-400 font-bold">Input:</span> {ex.sourceText}</div>
+                    <div className="text-emerald-700 font-semibold truncate"><span className="text-emerald-500 font-bold">Trained Output:</span> {ex.correctedOutput}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* BYOK Section */}
