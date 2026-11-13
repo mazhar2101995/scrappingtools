@@ -1136,6 +1136,23 @@ export class DashboardApiClient {
       method: 'POST',
     }, 'client');
   }
+
+  // --- Step 5: Notifications & Webhook Alerts ---
+  async getNotifications(): Promise<{ success: boolean; notifications: any[] }> {
+    return this.fetchJson('/notifications', {}, 'client');
+  }
+
+  async markNotificationAsRead(id: string): Promise<{ success: boolean; notification: any }> {
+    return this.fetchJson(`/notifications/${id}/read`, {
+      method: 'PATCH',
+    }, 'client');
+  }
+
+  async markAllNotificationsAsRead(): Promise<{ success: boolean; message: string }> {
+    return this.fetchJson('/notifications/read-all', {
+      method: 'POST',
+    }, 'client');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

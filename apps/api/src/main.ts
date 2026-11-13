@@ -19,6 +19,7 @@ import { billingRouter } from './routes/billing.routes';
 import { feedbackRouter } from './routes/feedback.routes';
 import { storageRouter } from './routes/storage.routes';
 import { scheduleRouter } from './routes/schedule.routes';
+import { notificationRouter } from './routes/notification.routes';
 import { ServiceHealth } from '@saas/shared-types';
 
 const app = express();
@@ -72,6 +73,7 @@ app.use('/api/v1/billing', billingRouter);
 app.use('/api/v1/feedback', feedbackRouter);
 app.use('/api/v1/storage', storageRouter);
 app.use('/api/v1/schedules', scheduleRouter);
+app.use('/api/v1/notifications', notificationRouter);
 
 // 4. Start Server & Background Storage Garbage Collection Worker
 if (process.env.NODE_ENV !== 'test') {

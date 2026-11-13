@@ -951,6 +951,27 @@ export class StoreExportExecutionService {
       }
     }
 
+    // Auto-dispatch Notification & Webhook Alert for bulk push completion
+    try {
+      const { NotificationAndWebhookService } = await import('./notification-and-webhook.service');
+      await NotificationAndWebhookService.dispatch({
+        organizationId,
+        type: 'STORE_EXPORT',
+        title: failedCount === 0 ? 'Bulk Store Export Completed' : 'Bulk Store Export Finished with Failures',
+        message: `Exported ${succeededCount} of ${productIds.length} products to store.${failedCount > 0 ? ` (${failedCount} products failed)` : ''}`,
+        severity: failedCount === 0 ? 'success' : succeededCount > 0 ? 'warning' : 'error',
+        actionUrl: '/products',
+        metadata: {
+          total: productIds.length,
+          succeeded: succeededCount,
+          failed: failedCount,
+          storeId: connectedStoreId,
+        },
+      });
+    } catch (notifErr) {
+      console.error('[BulkPush] Failed to dispatch notification:', notifErr);
+    }
+
     return {
       totalRequested: productIds.length,
       succeededCount,

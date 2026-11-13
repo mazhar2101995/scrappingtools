@@ -146,5 +146,22 @@ export const automatedSyncSchedules = pgTable('automated_sync_schedules', {
   index('idx_sync_schedules_status').on(table.status, table.nextRunAt),
 ]);
 
+export const tenantNotifications = pgTable('tenant_notifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  type: varchar('type', { length: 50 }).notNull().default('INFO'), // 'STORE_EXPORT', 'SYNC_SCHEDULE', 'QUOTA_WARNING', 'SCHEMA_MISMATCH', 'SYSTEM'
+  title: varchar('title', { length: 255 }).notNull(),
+  message: text('message').notNull(),
+  severity: varchar('severity', { length: 20 }).notNull().default('info'), // 'info', 'success', 'warning', 'error'
+  isRead: boolean('is_read').notNull().default(false),
+  actionUrl: text('action_url'),
+  metadata: jsonb('metadata').default(sql`'{}'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_notifications_org').on(table.organizationId, table.createdAt),
+  index('idx_notifications_unread').on(table.organizationId, table.isRead),
+]);
+
+
 
 

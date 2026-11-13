@@ -89,6 +89,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   // Dropdown states
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsList, setNotificationsList] = useState<any[]>([]);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
   const [quotaUsage, setQuotaUsage] = useState<{
     planName: string;
@@ -149,6 +150,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               storeLimit: sub.usage.stores?.limit || 1,
               storePercent: sub.usage.stores?.percentage || 0,
             });
+          }
+        }).catch(() => {});
+        // Load real-time notifications
+        apiClient.getNotifications().then((res) => {
+          if (res?.notifications) {
+            setNotificationsList(res.notifications);
           }
         }).catch(() => {});
       }
@@ -373,33 +380,69 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 py-2.5 z-50 animate-in fade-in zoom-in-95">
                   <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-100">
                     <span className="text-xs font-bold text-slate-900">Notifications</span>
-                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                      2 New
-                    </span>
+                    {notificationsList.filter((n) => !n.isRead).length > 0 ? (
+                      <button
+                        onClick={async () => {
+                          await apiClient.markAllNotificationsAsRead();
+                          setNotificationsList((prev) => prev.map((n) => ({ ...n, isRead: true })));
+                        }}
+                        className="text-[10px] font-bold text-teal-700 hover:underline"
+                      >
+                        Mark all as read
+                      </button>
+                    ) : (
+                      <span className="text-[10px] text-slate-400">All caught up</span>
+                    )}
                   </div>
-                  <div className="divide-y divide-slate-50 max-h-64 overflow-y-auto">
-                    <div className="px-4 py-2.5 hover:bg-slate-50 transition cursor-pointer">
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1 shrink-0" />
-                        <div>
-                          <p className="text-xs font-semibold text-slate-900">Workspace Ready</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            {workspaceName} is set up with multi-tenant data isolation.
-                          </p>
-                        </div>
+                  <div className="divide-y divide-slate-50 max-h-72 overflow-y-auto">
+                    {notificationsList.length === 0 ? (
+                      <div className="py-6 text-center text-xs text-slate-400">
+                        No recent notifications
                       </div>
-                    </div>
-                    <div className="px-4 py-2.5 hover:bg-slate-50 transition cursor-pointer">
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-2 h-2 rounded-full bg-amber-500 mt-1 shrink-0" />
-                        <div>
-                          <p className="text-xs font-semibold text-slate-900">Store Verification</p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            Install saas_connector.ocmod.zip to verify OpenCart connection.
-                          </p>
+                    ) : (
+                      notificationsList.map((notif) => (
+                        <div
+                          key={notif.id}
+                          onClick={async () => {
+                            if (!notif.isRead) {
+                              await apiClient.markNotificationAsRead(notif.id);
+                              setNotificationsList((prev) =>
+                                prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
+                              );
+                            }
+                            if (notif.actionUrl) {
+                              window.location.href = notif.actionUrl;
+                            }
+                          }}
+                          className={`px-4 py-2.5 hover:bg-slate-50 transition cursor-pointer ${
+                            !notif.isRead ? 'bg-amber-50/30' : ''
+                          }`}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <div
+                              className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                                notif.severity === 'error'
+                                  ? 'bg-rose-500'
+                                  : notif.severity === 'warning'
+                                  ? 'bg-amber-500'
+                                  : notif.severity === 'success'
+                                  ? 'bg-emerald-500'
+                                  : 'bg-teal-500'
+                              }`}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-slate-900 truncate">{notif.title}</p>
+                              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug line-clamp-2">
+                                {notif.message}
+                              </p>
+                              <span className="text-[9px] text-slate-400 mt-1 block">
+                                {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
