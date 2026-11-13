@@ -67,6 +67,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
   const [confirmingPush, setConfirmingPush] = useState(false);
   const [selectedPreviewStoreId, setSelectedPreviewStoreId] = useState<string>('');
   const [targetExportLang, setTargetExportLang] = useState<string>('en');
+  const [fieldDecisions, setFieldDecisions] = useState<Record<string, 'APPLY' | 'SKIP'>>({});
 
   // Phase 9C: Multi-Store Product Distribution State
   const [distributionData, setDistributionData] = useState<any | null>(null);
@@ -231,17 +232,35 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
       setLoadingChangePlan(true);
       setChangePlan(null);
       setPushErrorMsg(null);
+      setFieldDecisions({});
       setShowChangePlanModal(true);
 
       const res = await apiClient.generateStoreChangePlan(data.product.id, storeId, lang);
       if (res?.changePlan) {
         setChangePlan(res.changePlan);
+        // Initialize default decisions based on policy
+        const initialDecisions: Record<string, 'APPLY' | 'SKIP'> = {};
+        (res.changePlan.fieldChanges || []).forEach((fc: any) => {
+          if (fc.action === 'CREATE' || fc.action === 'UPDATE' || fc.action === 'ADD') {
+            initialDecisions[fc.storeDestinationField] = 'APPLY';
+          } else {
+            initialDecisions[fc.storeDestinationField] = 'SKIP';
+          }
+        });
+        setFieldDecisions(initialDecisions);
       }
     } catch (err: any) {
       setPushErrorMsg(err.message || 'Failed to generate Change Plan');
     } finally {
       setLoadingChangePlan(false);
     }
+  }
+
+  async function handleToggleFieldDecision(fieldKey: string) {
+    setFieldDecisions((prev) => ({
+      ...prev,
+      [fieldKey]: prev[fieldKey] === 'APPLY' ? 'SKIP' : 'APPLY',
+    }));
   }
 
   async function fetchDistribution() {
@@ -266,7 +285,7 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
     try {
       setConfirmingPush(true);
       setPushErrorMsg(null);
-      const res = await apiClient.executeControlledStorePush(changePlan.planId);
+      const res = await apiClient.executeControlledStorePush(changePlan.planId, fieldDecisions);
       if (res?.result) {
         setPushSuccessMsg(res.result.message || 'Controlled push successfully verified and executed!');
         setShowChangePlanModal(false);
@@ -2220,17 +2239,18 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                             <th className="py-2.5 px-3">Field</th>
                             <th className="py-2.5 px-3">Current Store Value</th>
                             <th className="py-2.5 px-3">Proposed Value</th>
-                            <th className="py-2.5 px-3">Policy / Action</th>
+                            <th className="py-2.5 px-3">Decision Override</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                           {changePlan.fieldChanges?.map((fc: any, idx: number) => {
-                            const isWrite = fc.action === 'CREATE' || fc.action === 'UPDATE' || fc.action === 'ADD';
-                            const isSkip = fc.action === 'SKIP';
-                            const isBlocked = fc.action === 'BLOCKED';
+                            const currentDecision = fieldDecisions[fc.storeDestinationField] || (
+                              fc.action === 'CREATE' || fc.action === 'UPDATE' || fc.action === 'ADD' ? 'APPLY' : 'SKIP'
+                            );
+                            const isApply = currentDecision === 'APPLY';
 
                             return (
-                              <tr key={idx} className={`hover:bg-slate-50 transition ${isBlocked ? 'opacity-50' : ''}`}>
+                              <tr key={idx} className={`hover:bg-slate-50 transition ${!isApply ? 'bg-slate-50/60' : ''}`}>
                                 <td className="py-2.5 px-3 font-semibold text-slate-900">
                                   <span>{fc.productIntelligenceField}</span>
                                   <span className="text-[10px] text-slate-400 block font-mono">→ {fc.storeDestinationField}</span>
@@ -2261,23 +2281,20 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                                 </td>
 
                                 <td className="py-2.5 px-3">
-                                  <div className="flex items-center gap-1.5">
-                                    <span
-                                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                        isWrite
-                                          ? 'bg-emerald-100 text-emerald-800'
-                                          : isSkip
-                                          ? 'bg-amber-100 text-amber-800'
-                                          : isBlocked
-                                          ? 'bg-rose-100 text-rose-800'
-                                          : 'bg-slate-100 text-slate-600'
-                                      }`}
-                                    >
-                                      {fc.action}
-                                    </span>
-                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleFieldDecision(fc.storeDestinationField)}
+                                    className={`px-3 py-1 rounded-lg text-xs font-bold transition border flex items-center gap-1.5 shadow-2xs ${
+                                      isApply
+                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                        : 'bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200'
+                                    }`}
+                                  >
+                                    <span className={`w-2 h-2 rounded-full ${isApply ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                                    <span>{isApply ? 'Apply to Store' : 'Skip (Keep Store Value)'}</span>
+                                  </button>
                                   {fc.reason && (
-                                    <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">{fc.reason}</p>
+                                    <p className="text-[10px] text-slate-400 mt-1 leading-snug">{fc.reason}</p>
                                   )}
                                 </td>
                               </tr>

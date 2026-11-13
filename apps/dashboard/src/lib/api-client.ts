@@ -1095,10 +1095,10 @@ export class DashboardApiClient {
     }, 'client');
   }
 
-  async executeControlledStorePush(planId: string): Promise<any> {
+  async executeControlledStorePush(planId: string, fieldDecisions?: Record<string, 'APPLY' | 'SKIP'>): Promise<any> {
     return this.fetchJson('/stores/controlled-push', {
       method: 'POST',
-      body: JSON.stringify({ planId }),
+      body: JSON.stringify({ planId, fieldDecisions }),
     }, 'client');
   }
 

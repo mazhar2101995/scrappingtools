@@ -468,7 +468,7 @@ storeRouter.post('/controlled-push', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Tenant context required' });
     }
 
-    const { planId } = req.body;
+    const { planId, fieldDecisions } = req.body;
     if (!planId) {
       return res.status(400).json({ error: 'planId is required' });
     }
@@ -476,7 +476,8 @@ storeRouter.post('/controlled-push', async (req: Request, res: Response) => {
     const result = await StoreExportExecutionService.executeControlledPush(
       orgId,
       planId,
-      (req as any).user?.userId
+      (req as any).user?.userId,
+      fieldDecisions
     );
 
     return res.status(200).json({

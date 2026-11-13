@@ -579,7 +579,8 @@ export class StoreExportExecutionService {
   public static async executeControlledPush(
     organizationId: string,
     planId: string,
-    userId?: string
+    userId?: string,
+    overriddenFieldDecisions?: Record<string, 'APPLY' | 'SKIP'>
   ): Promise<ControlledPushResult> {
     // 1. Fetch Change Plan and verify tenancy
     const [plan] = await db
@@ -629,16 +630,19 @@ export class StoreExportExecutionService {
 
     // 4. Construct Strict Minimal Payload containing ONLY allowed/approved fields
     const details = plan.planDetails as any;
-    const allowedFieldChanges = (details.fieldChanges || []).filter(
-      (f: FieldChangeDetail) => f.action === 'CREATE' || f.action === 'UPDATE' || f.action === 'ADD'
-    );
-
     const minimalPayload: Record<string, any> = {};
     const appliedFields: string[] = [];
     const skippedFields: string[] = [];
 
     (details.fieldChanges || []).forEach((f: FieldChangeDetail) => {
-      if (f.action === 'CREATE' || f.action === 'UPDATE' || f.action === 'ADD') {
+      // Check if user manually overrode this field in the Diff & Merge UI
+      const manualDecision = overriddenFieldDecisions ? overriddenFieldDecisions[f.storeDestinationField] : undefined;
+
+      const shouldApply = manualDecision !== undefined
+        ? manualDecision === 'APPLY'
+        : (f.action === 'CREATE' || f.action === 'UPDATE' || f.action === 'ADD');
+
+      if (shouldApply) {
         minimalPayload[f.storeDestinationField] = f.proposedValue;
         appliedFields.push(f.storeDestinationField);
       } else {
