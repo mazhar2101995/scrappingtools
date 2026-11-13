@@ -545,6 +545,10 @@ export class DashboardApiClient {
     }, 'client');
   }
 
+  async getStoreInboundWebhooks(storeId: string): Promise<any> {
+    return this.fetchJson(`/stores/${storeId}/inbound-webhooks`, {}, 'client');
+  }
+
   async triggerStoreSync(storeId: string): Promise<any> {
     return this.fetchJson(`/stores/${storeId}/sync`, {
       method: 'POST',

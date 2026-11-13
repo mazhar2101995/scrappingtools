@@ -63,6 +63,12 @@ export default function StoresPage() {
   const [storeLanguagesList, setStoreLanguagesList] = useState<any[]>([]);
   const [loadingLangs, setLoadingLangs] = useState(false);
   const [savingLang, setSavingLang] = useState(false);
+
+  // Inbound Webhooks Modal State
+  const [activeWebhookStore, setActiveWebhookStore] = useState<any | null>(null);
+  const [webhookLogs, setWebhookLogs] = useState<any[]>([]);
+  const [loadingWebhookLogs, setLoadingWebhookLogs] = useState(false);
+  const [copiedWebhookUrl, setCopiedWebhookUrl] = useState(false);
   const [langError, setLangError] = useState('');
   const [newLangCode, setNewLangCode] = useState('');
   const [newPlatformLocale, setNewPlatformLocale] = useState('');
@@ -259,6 +265,21 @@ export default function StoresPage() {
       setStoreLanguagesList(Array.isArray(res?.languages) ? res.languages : []);
     } catch (e: any) {
       setLangError(e.message || 'Failed to set default language');
+    }
+  }
+
+  async function handleOpenWebhookModal(st: any) {
+    setActiveWebhookStore(st);
+    setCopiedWebhookUrl(false);
+    try {
+      setLoadingWebhookLogs(true);
+      const res = await apiClient.getStoreInboundWebhooks(st.id);
+      setWebhookLogs(Array.isArray(res?.logs) ? res.logs : []);
+    } catch (e) {
+      console.error('Failed to load webhook logs:', e);
+      setWebhookLogs([]);
+    } finally {
+      setLoadingWebhookLogs(false);
     }
   }
 
@@ -703,14 +724,25 @@ export default function StoresPage() {
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button
-                  onClick={() => openLanguagesModal(s)}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-lg transition"
-                  title="Manage destination languages for this store"
-                >
-                  <Globe className="w-3.5 h-3.5 text-slate-600" />
-                  <span>Languages</span>
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => openLanguagesModal(s)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-lg transition"
+                    title="Manage destination languages for this store"
+                  >
+                    <Globe className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Languages</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleOpenWebhookModal(s)}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-lg transition"
+                    title="View Reverse Sync Webhook URL & Inbound Logs"
+                  >
+                    <Terminal className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Webhooks</span>
+                  </button>
+                </div>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {s.platformType === 'opencart' && (
                     <a
@@ -876,6 +908,110 @@ export default function StoresPage() {
                 className="px-5 py-2.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl transition"
               >
                 Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inbound Webhooks & Reverse Sync Inspector Modal */}
+      {activeWebhookStore && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-sm text-slate-900">
+                  Reverse Sync Webhooks — {activeWebhookStore.storeName}
+                </h3>
+              </div>
+              <button
+                onClick={() => setActiveWebhookStore(null)}
+                className="text-slate-400 hover:text-slate-600 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
+              <div className="font-bold text-slate-800">Your Store Webhook Endpoint URL</div>
+              <p className="text-slate-500 text-[11px]">
+                Paste this webhook URL into your Shopify, OpenCart, or WooCommerce store settings to trigger automatic updates whenever products are modified or deleted directly in your store.
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={`http://localhost:4000/api/v1/stores/${activeWebhookStore.id}/inbound-webhook`}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-[11px] font-mono text-slate-800 select-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`http://localhost:4000/api/v1/stores/${activeWebhookStore.id}/inbound-webhook`);
+                    setCopiedWebhookUrl(true);
+                    setTimeout(() => setCopiedWebhookUrl(false), 2000);
+                  }}
+                  className="px-3 py-2 bg-[#0d2a2c] text-[#fad982] rounded-lg text-xs font-bold shrink-0 hover:bg-[#143d40] transition"
+                >
+                  {copiedWebhookUrl ? 'Copied!' : 'Copy URL'}
+                </button>
+              </div>
+              {activeWebhookStore.webhookSecret && (
+                <div className="text-[11px] text-slate-500 pt-1">
+                  Webhook Secret / Header Verification Token: <code className="bg-slate-200 px-1 py-0.5 rounded font-mono text-slate-800 font-bold">{activeWebhookStore.webhookSecret}</code>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="font-bold text-xs text-slate-800">Recent Inbound Event Logs ({webhookLogs.length})</h4>
+                <button
+                  type="button"
+                  onClick={() => handleOpenWebhookModal(activeWebhookStore)}
+                  className="text-[11px] text-emerald-700 hover:underline flex items-center gap-1 font-semibold"
+                >
+                  <RefreshCw className="w-3 h-3" /> Refresh
+                </button>
+              </div>
+
+              {loadingWebhookLogs ? (
+                <div className="p-6 text-center text-xs text-slate-400">Loading incoming events...</div>
+              ) : webhookLogs.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  No inbound webhooks received yet. When your store triggers updates, receipts and reverse-sync actions will appear here in real time.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {webhookLogs.map((log: any) => (
+                    <div key={log.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] font-mono space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-800">{log.eventType}</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          log.status === 'PROCESSED' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                        }`}>
+                          {log.status}
+                        </span>
+                      </div>
+                      <div className="text-slate-500 text-[10px]">
+                        Target External ID: <span className="text-slate-700">{log.externalId || 'N/A'}</span> • Action: <span className="text-emerald-700 font-bold">{log.actionTaken || 'N/A'}</span>
+                      </div>
+                      <div className="text-slate-400 text-[10px]">
+                        Received: {new Date(log.createdAt).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setActiveWebhookStore(null)}
+                className="px-5 py-2.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl transition"
+              >
+                Close
               </button>
             </div>
           </div>

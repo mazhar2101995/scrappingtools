@@ -162,6 +162,24 @@ export const tenantNotifications = pgTable('tenant_notifications', {
   index('idx_notifications_unread').on(table.organizationId, table.isRead),
 ]);
 
+export const storeInboundWebhooks = pgTable('store_inbound_webhooks', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  storeId: uuid('store_id').notNull().references(() => connectedStores.id, { onDelete: 'cascade' }),
+  platform: varchar('platform', { length: 50 }).notNull(),
+  eventType: varchar('event_type', { length: 100 }).notNull(),
+  externalId: varchar('external_id', { length: 255 }),
+  payload: jsonb('payload').notNull(),
+  status: varchar('status', { length: 50 }).notNull().default('PROCESSED'),
+  actionTaken: varchar('action_taken', { length: 255 }),
+  errorMessage: text('error_message'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_store_inbound_webhooks_store').on(table.storeId, table.createdAt),
+  index('idx_store_inbound_webhooks_org').on(table.organizationId, table.createdAt),
+]);
+
+
 
 
 

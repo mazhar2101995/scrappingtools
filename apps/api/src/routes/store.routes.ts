@@ -32,6 +32,44 @@ storeRouter.get('/download-module', (req: Request, res: Response) => {
   return res.status(404).json({ error: 'OpenCart module package not found' });
 });
 
+// ============================================================================
+// PUBLIC INBOUND WEBHOOK ENDPOINT (Stores send reverse updates here)
+// ============================================================================
+storeRouter.post('/:id/inbound-webhook', async (req: Request, res: Response) => {
+  try {
+    const storeId = String(req.params.id);
+    const authSecret =
+      (req.headers['x-webhook-secret'] as string) ||
+      (req.headers['x-shopify-hmac-sha256'] as string) ||
+      (req.query.secret as string) ||
+      undefined;
+
+    const topic =
+      (req.headers['x-shopify-topic'] as string) ||
+      (req.headers['x-event-type'] as string) ||
+      req.body?.event ||
+      req.body?.action ||
+      'product.update';
+
+    const { InboundStoreWebhookService } = await import('../services/inbound-store-webhook.service');
+    const result = await InboundStoreWebhookService.processStoreWebhook({
+      storeId,
+      authSecret,
+      topic,
+      payload: req.body,
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    return res.status(200).json(result);
+  } catch (err: any) {
+    console.error('[InboundWebhook Route] Error processing webhook:', err);
+    return res.status(500).json({ success: false, error: err.message || 'Webhook internal error' });
+  }
+});
+
 // Apply auth middleware to all remaining store routes
 storeRouter.use(authMiddleware);
 
@@ -58,6 +96,7 @@ storeRouter.get('/', async (req: Request, res: Response) => {
         healthStatus: connectedStores.healthStatus,
         healthDetails: connectedStores.healthDetails,
         capabilities: connectedStores.capabilities,
+        webhookSecret: connectedStores.webhookSecret,
         lastSyncAt: connectedStores.lastSyncAt,
         createdAt: connectedStores.createdAt,
       })
@@ -628,6 +667,32 @@ storeRouter.put('/:id', async (req: Request, res: Response) => {
     return res.json({ success: true, store: updated });
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Failed to update store' });
+  }
+});
+
+// GET /api/v1/stores/:id/inbound-webhooks - List recent inbound webhook receipts for a store
+storeRouter.get('/:id/inbound-webhooks', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+    const storeId = String(req.params.id);
+
+    const [store] = await db
+      .select({ id: connectedStores.id })
+      .from(connectedStores)
+      .where(and(eq(connectedStores.id, storeId), eq(connectedStores.organizationId, orgId)))
+      .limit(1);
+
+    if (!store) {
+      return res.status(404).json({ error: 'Store not found' });
+    }
+
+    const { InboundStoreWebhookService } = await import('../services/inbound-store-webhook.service');
+    const logs = await InboundStoreWebhookService.getStoreInboundLogs(storeId, 50);
+
+    return res.json({ success: true, count: logs.length, logs });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Failed to fetch inbound logs' });
   }
 });
 
