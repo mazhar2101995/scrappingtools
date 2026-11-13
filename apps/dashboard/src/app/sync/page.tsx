@@ -463,11 +463,15 @@ export default function SyncIntegrationPage() {
                     onChange={(e) => setStoreId(e.target.value)}
                     className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                   >
-                    {stores.map((st) => (
-                      <option key={st.id} value={st.id}>
-                        {st.name} ({st.platform.toUpperCase()})
-                      </option>
-                    ))}
+                    {stores.map((st) => {
+                      const platformStr = String(st.platformType || st.platform || 'STORE').toUpperCase();
+                      const storeTitle = st.storeName || st.name || 'Store';
+                      return (
+                        <option key={st.id} value={st.id}>
+                          {storeTitle} ({platformStr})
+                        </option>
+                      );
+                    })}
                   </select>
                 )}
               </div>

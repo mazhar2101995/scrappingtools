@@ -1734,11 +1734,15 @@ export default function ProductsPage() {
                         onChange={(e) => setSelectedPushStoreId(e.target.value)}
                         className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#0d2a2c]/20"
                       >
-                        {connectedStores.map((st) => (
-                          <option key={st.id} value={st.id}>
-                            {st.name} ({st.platform.toUpperCase()} - {st.storeUrl || 'Connected'})
-                          </option>
-                        ))}
+                        {connectedStores.map((st) => {
+                          const platformStr = String(st.platformType || st.platform || 'STORE').toUpperCase();
+                          const storeTitle = st.storeName || st.name || 'Store';
+                          return (
+                            <option key={st.id} value={st.id}>
+                              {storeTitle} ({platformStr} - {st.storeUrl || 'Connected'})
+                            </option>
+                          );
+                        })}
                       </select>
                     )}
                   </div>
