@@ -64,6 +64,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     title: 'Operations & Telemetry',
     items: [
+      { name: 'Proxy & Anti-Bot', href: '/settings/proxies', icon: ShieldCheck },
       { name: 'Background Jobs', href: '/jobs', icon: Activity },
       { name: 'System Analytics', href: '/health', icon: BarChart3 },
     ],

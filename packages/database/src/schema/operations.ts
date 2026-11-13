@@ -199,6 +199,28 @@ export const pricingRules = pgTable('pricing_rules', {
   index('idx_pricing_rules_org').on(table.organizationId, table.isActive, table.priority),
 ]);
 
+export const proxyConfigurations = pgTable('proxy_configurations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  protocol: varchar('protocol', { length: 20 }).notNull().default('HTTP'), // 'HTTP', 'HTTPS', 'SOCKS5'
+  host: varchar('host', { length: 255 }).notNull(),
+  port: integer('port').notNull(),
+  username: varchar('username', { length: 255 }),
+  password: varchar('password', { length: 255 }),
+  countryCode: varchar('country_code', { length: 10 }),
+  isActive: boolean('is_active').notNull().default(true),
+  healthStatus: varchar('health_status', { length: 50 }).notNull().default('HEALTHY'), // 'HEALTHY', 'DEGRADED', 'OFFLINE'
+  lastTestedAt: timestamp('last_tested_at', { withTimezone: true }),
+  latencyMs: integer('latency_ms'),
+  successCount: integer('success_count').notNull().default(0),
+  failCount: integer('fail_count').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_proxy_config_org').on(table.organizationId, table.isActive),
+]);
+
 
 
 

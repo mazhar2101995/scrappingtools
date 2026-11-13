@@ -4,6 +4,7 @@ import { db, customerProductOverrides, globalProducts, storeProductMappings, con
 import { eq, and, sql } from 'drizzle-orm';
 import { NotificationAndWebhookService } from './notification-and-webhook.service';
 import { StoreExportExecutionService } from './store-export-execution.service';
+import { AntiBotDefenseService } from './anti-bot-defense.service';
 
 export interface PriceStockCheckResult {
   productId: string;
@@ -33,9 +34,8 @@ export class PriceStockMonitoringService {
     extractedTitle?: string;
   }> {
     try {
-      const resp = await axios.get(sourceUrl, {
-        headers: { 'User-Agent': this.USER_AGENT },
-        timeout: 12000,
+      const resp = await AntiBotDefenseService.safeGet(sourceUrl, {
+        timeoutMs: 12000,
       });
 
       const $ = cheerio.load(resp.data);

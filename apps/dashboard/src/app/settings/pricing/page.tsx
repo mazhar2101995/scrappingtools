@@ -302,9 +302,8 @@ export default function PricingRulesPage() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-xs text-slate-900">{r.name}</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                      r.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${r.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                      }`}>
                       {r.isActive ? 'ACTIVE' : 'PAUSED'}
                     </span>
                     {r.brandName && (
@@ -501,3 +500,4 @@ export default function PricingRulesPage() {
     </div>
   );
 }
+

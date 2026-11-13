@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { XMLParser } from 'fast-xml-parser';
+import { AntiBotDefenseService } from './anti-bot-defense.service';
 
 export interface CrawlDiscoveryOptions {
   entryUrl: string;
@@ -47,9 +48,8 @@ export class CatalogCrawlerService {
    */
   private static async crawlSitemapXml(sitemapUrl: string, maxProducts: number): Promise<CrawlDiscoveryResult> {
     try {
-      const resp = await axios.get(sitemapUrl, {
-        headers: { 'User-Agent': this.USER_AGENT },
-        timeout: this.DEFAULT_TIMEOUT,
+      const resp = await AntiBotDefenseService.safeGet(sitemapUrl, {
+        timeoutMs: this.DEFAULT_TIMEOUT,
       });
 
       const parser = new XMLParser({
@@ -152,9 +152,8 @@ export class CatalogCrawlerService {
       pageCount++;
       try {
         console.log(`[Crawler] Scanning page ${pageCount}: ${currentUrl}`);
-        const resp = await axios.get(currentUrl, {
-          headers: { 'User-Agent': this.USER_AGENT },
-          timeout: this.DEFAULT_TIMEOUT,
+        const resp = await AntiBotDefenseService.safeGet(currentUrl, {
+          timeoutMs: this.DEFAULT_TIMEOUT,
         });
 
         const $ = cheerio.load(resp.data);

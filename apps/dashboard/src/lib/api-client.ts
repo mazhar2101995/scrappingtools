@@ -573,6 +573,39 @@ export class DashboardApiClient {
     }, 'client');
   }
 
+  // --- Anti-Bot & Residential Proxy Rotation Pool ---
+  async getProxies(): Promise<any[]> {
+    const res = await this.fetchJson<any>('/proxies', {}, 'client');
+    return Array.isArray(res.proxies) ? res.proxies : [];
+  }
+
+  async addProxy(payload: {
+    name?: string;
+    protocol: string;
+    host: string;
+    port: number;
+    username?: string;
+    password?: string;
+    countryCode?: string;
+  }): Promise<any> {
+    return this.fetchJson('/proxies', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async testProxy(id: string): Promise<any> {
+    return this.fetchJson(`/proxies/${id}/test`, {
+      method: 'POST',
+    }, 'client');
+  }
+
+  async deleteProxy(id: string): Promise<any> {
+    return this.fetchJson(`/proxies/${id}`, {
+      method: 'DELETE',
+    }, 'client');
+  }
+
   async getStoreLanguages(): Promise<{ primary: string; supported: string[] }> {
     const res = await this.fetchJson<any>('/organizations/languages', {}, 'client');
     return res.languages || { primary: 'en', supported: ['en'] };
