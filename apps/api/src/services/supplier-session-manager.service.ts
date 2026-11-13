@@ -271,3 +271,4 @@ export class SupplierSessionManagerService {
     return cookies.map(c => `${c.name}=${c.value}`).join('; ');
   }
 }
+

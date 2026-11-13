@@ -683,6 +683,49 @@ export class DashboardApiClient {
     }, 'client');
   }
 
+  // --- Supplier Feeds (FTP / SFTP / CSV / Google Sheets) ---
+  async getSupplierFeeds(): Promise<any[]> {
+    const res = await this.fetchJson<any>('/supplier-sessions/feeds/all', {}, 'client');
+    return Array.isArray(res.data) ? res.data : [];
+  }
+
+  async previewSupplierFeed(payload: {
+    feedType: 'FTP' | 'SFTP' | 'HTTP_URL' | 'GOOGLE_SHEETS';
+    connectionConfig: any;
+  }): Promise<any> {
+    const res = await this.fetchJson<any>('/supplier-sessions/feeds/preview', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+    return res.data;
+  }
+
+  async createSupplierFeed(payload: {
+    feedName: string;
+    feedType: 'FTP' | 'SFTP' | 'HTTP_URL' | 'GOOGLE_SHEETS';
+    connectionConfig: any;
+    columnMapping: { sku: string; price: string; stock?: string; title?: string };
+    syncFrequencyHours?: number;
+    autoPushToStores?: boolean;
+  }): Promise<any> {
+    return this.fetchJson('/supplier-sessions/feeds', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async syncSupplierFeedNow(id: string): Promise<any> {
+    return this.fetchJson(`/supplier-sessions/feeds/${id}/sync-now`, {
+      method: 'POST',
+    }, 'client');
+  }
+
+  async deleteSupplierFeed(id: string): Promise<any> {
+    return this.fetchJson(`/supplier-sessions/feeds/${id}`, {
+      method: 'DELETE',
+    }, 'client');
+  }
+
   async getStoreLanguages(): Promise<{ primary: string; supported: string[] }> {
     const res = await this.fetchJson<any>('/organizations/languages', {}, 'client');
     return res.languages || { primary: 'en', supported: ['en'] };

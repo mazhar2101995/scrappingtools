@@ -233,4 +233,25 @@ export const customerSupplierCredentials = pgTable('customer_supplier_credential
   index('idx_cust_supp_creds_domain').on(table.organizationId, table.supplierDomain),
 ]);
 
+export const supplierFeedSources = pgTable('supplier_feed_sources', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  feedName: varchar('feed_name', { length: 255 }).notNull(),
+  feedType: varchar('feed_type', { length: 50 }).notNull(), // 'FTP', 'SFTP', 'HTTP_URL', 'GOOGLE_SHEETS'
+  connectionConfig: jsonb('connection_config').notNull().default(sql`'{}'::jsonb`),
+  columnMapping: jsonb('column_mapping').notNull().default(sql`'{"sku":"sku","price":"price","stock":"stock","title":"title"}'::jsonb`),
+  syncFrequencyHours: integer('sync_frequency_hours').notNull().default(6),
+  autoPushToStores: boolean('auto_push_to_stores').notNull().default(true),
+  lastSyncAt: timestamp('last_sync_at', { withTimezone: true }),
+  lastSyncStatus: varchar('last_sync_status', { length: 50 }).notNull().default('PENDING'),
+  lastErrorMessage: text('last_error_message'),
+  lastItemsProcessed: integer('last_items_processed').default(0),
+  lastItemsUpdated: integer('last_items_updated').default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_sfs_org').on(table.organizationId),
+  index('idx_sfs_status').on(table.organizationId, table.lastSyncStatus),
+]);
+
 
