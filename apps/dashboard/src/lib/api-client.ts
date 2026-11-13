@@ -1204,6 +1204,25 @@ export class DashboardApiClient {
       body: JSON.stringify(payload),
     }, 'client');
   }
+
+  // --- Live Price & Stock Monitoring ---
+  async checkLiveProductPrice(productId: string): Promise<{ success: boolean; result: any }> {
+    return this.fetchJson(`/products/${productId}/monitoring/check-now`, {
+      method: 'POST',
+    }, 'client');
+  }
+
+  async scanCatalogPriceMonitoring(): Promise<{
+    success: boolean;
+    scanned: number;
+    priceChangesCount: number;
+    stockChangesCount: number;
+    results: any[];
+  }> {
+    return this.fetchJson('/products/monitoring/scan-all', {
+      method: 'POST',
+    }, 'client');
+  }
 }
 
 export const apiClient = new DashboardApiClient();

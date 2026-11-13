@@ -28,7 +28,10 @@ import {
   FileSpreadsheet,
   ShoppingBag,
   Trash2,
-  Send
+  Send,
+  Activity,
+  TrendingUp,
+  RefreshCw
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -104,6 +107,11 @@ export default function ProductsPage() {
   const [bulkPushing, setBulkPushing] = useState(false);
   const [bulkPushProgress, setBulkPushProgress] = useState<{ current: number; total: number } | null>(null);
   const [bulkPushResults, setBulkPushResults] = useState<any | null>(null);
+
+  // Live Price & Stock Audit Scanner States
+  const [scanningPrices, setScanningPrices] = useState(false);
+  const [checkingSingleId, setCheckingSingleId] = useState<string | null>(null);
+  const [priceScanSummary, setPriceScanSummary] = useState<any | null>(null);
 
   async function loadCatalog() {
     try {
@@ -664,6 +672,45 @@ export default function ProductsPage() {
     }
   }
 
+  // Handle Instant Price & Stock Verification for a single item
+  async function handleCheckSinglePrice(productId: string) {
+    try {
+      setCheckingSingleId(productId);
+      const res = await apiClient.checkLiveProductPrice(productId);
+      const r = res.result;
+      const statusMsg = r.priceChanged
+        ? `Price changed: $${r.oldPrice} ➔ $${r.newPrice} (${r.priceDelta > 0 ? `+$${r.priceDelta}` : `-$${Math.abs(r.priceDelta)}`})`
+        : `Price verified: $${r.newPrice} (No change)`;
+      const stockMsg = r.newStockStatus ? 'In Stock' : 'OUT OF STOCK';
+      alert(`[Price & Stock Check Complete]\n${statusMsg}\nStock: ${stockMsg}\nAuto-Synced Stores: ${r.syncedStoresUpdated}`);
+      loadCatalog();
+    } catch (err: any) {
+      alert(`Check failed: ${err.message}`);
+    } finally {
+      setCheckingSingleId(null);
+    }
+  }
+
+  // Handle Full Catalog Price Audit Scan
+  async function handleScanAllPrices() {
+    if (!confirm('This will scan live supplier websites for all catalog products to verify price and stock availability, and automatically synchronize delta changes to connected stores. Proceed?')) {
+      return;
+    }
+
+    try {
+      setScanningPrices(true);
+      setPriceScanSummary(null);
+      const res = await apiClient.scanCatalogPriceMonitoring();
+      setPriceScanSummary(res);
+      alert(`[Catalog Audit Complete]\nScanned: ${res.scanned} products\nPrice Changes Detected: ${res.priceChangesCount}\nStock Changes: ${res.stockChangesCount}`);
+      loadCatalog();
+    } catch (err: any) {
+      alert(`Audit scan failed: ${err.message}`);
+    } finally {
+      setScanningPrices(false);
+    }
+  }
+
   const filtered = products.filter((p) => {
     const matchesSearch =
       p.canonicalTitle?.toLowerCase().includes(search.toLowerCase()) ||
@@ -690,6 +737,17 @@ export default function ProductsPage() {
           </span>
 
           {/* Export Dropdown / Button */}
+          {/* Price & Stock Live Delta Audit Button */}
+          <button
+            onClick={handleScanAllPrices}
+            disabled={scanningPrices || products.length === 0}
+            title="Scan live supplier websites to verify prices & stock availability"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-bold text-xs rounded-xl shadow-sm transition disabled:opacity-50"
+          >
+            <Activity className={`w-3.5 h-3.5 text-emerald-600 ${scanningPrices ? 'animate-spin' : ''}`} />
+            <span>{scanningPrices ? 'Auditing Prices...' : 'Audit Live Prices'}</span>
+          </button>
+
           <button
             onClick={() => handleExportCsv('shopify')}
             disabled={exportingCsv || products.length === 0}
@@ -930,6 +988,21 @@ export default function ProductsPage() {
 
                     <td className="py-4 px-5 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {/* Instant Live Price & Stock Verification */}
+                        <button
+                          type="button"
+                          onClick={() => handleCheckSinglePrice(prod.id)}
+                          disabled={checkingSingleId === prod.id}
+                          title="Verify live supplier price & stock now"
+                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition"
+                        >
+                          {checkingSingleId === prod.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                          ) : (
+                            <TrendingUp className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+
                         <Link
                           href={`/products/${prod.id}`}
                           className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"

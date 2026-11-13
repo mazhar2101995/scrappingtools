@@ -2231,6 +2231,35 @@ productsRouter.post('/:id/monitoring', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/v1/products/:id/monitoring/check-now - Instant Live Price & Stock Check
+productsRouter.post('/:id/monitoring/check-now', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  const productId = req.params.id as string;
+  if (!orgId) return res.status(403).json({ error: 'Unauthorized' });
+
+  try {
+    const { PriceStockMonitoringService } = await import('../services/price-stock-monitoring.service');
+    const result = await PriceStockMonitoringService.executeProductCheck(orgId, productId, true);
+    return res.json({ success: true, result });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Live price check failed', details: err.message });
+  }
+});
+
+// POST /api/v1/products/monitoring/scan-all - Run Organization-Wide Price & Stock Audit
+productsRouter.post('/monitoring/scan-all', async (req: Request, res: Response) => {
+  const orgId = getOrgId(req);
+  if (!orgId) return res.status(403).json({ error: 'Unauthorized' });
+
+  try {
+    const { PriceStockMonitoringService } = await import('../services/price-stock-monitoring.service');
+    const result = await PriceStockMonitoringService.executeOrganizationScan(orgId);
+    return res.json({ success: true, ...result });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Catalog scan failed', details: err.message });
+  }
+});
+
 // Phase 9C: Reusable Product Language Versions Endpoints
 // GET /api/v1/products/:id/languages - Get all reusable language versions for a product
 productsRouter.get('/:id/languages', async (req: Request, res: Response) => {
