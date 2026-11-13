@@ -675,20 +675,38 @@ export class StoreExportExecutionService {
       }
 
       const targetLang = details.targetLanguage || 'en';
+      const customAttrs = (override?.customAttributes as any) || {};
+
       const prodImages = await db
         .select()
         .from(productImages)
         .where(eq(productImages.globalProductId, plan.globalProductId));
 
-      const imagesList = prodImages.map((img) => ({
+      let imagesList = prodImages.map((img) => ({
         url: img.originUrl || (img as any).storageUri || '',
         altText: product.canonicalTitle,
         isPrimary: img.isPrimary,
         sortOrder: img.sortOrder || 0,
       }));
 
+      // If user has enhanced/cleaned primary image via AI Image Studio, ensure it takes precedence
+      if (customAttrs.primary_image_url) {
+        let cleanUrl = String(customAttrs.primary_image_url);
+        if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+          cleanUrl = `http://localhost:4000${cleanUrl.startsWith('/') ? '' : '/'}${cleanUrl}`;
+        }
+        imagesList = [
+          {
+            url: cleanUrl,
+            altText: `${product.canonicalTitle} Studio`,
+            isPrimary: true,
+            sortOrder: 0,
+          },
+          ...imagesList.filter((img) => !img.isPrimary),
+        ];
+      }
+
       // Multilingual name, description and SEO mapping
-      const customAttrs = (override?.customAttributes as any) || {};
       const fallbackPrice = customAttrs.price ? parseFloat(String(customAttrs.price).replace(/[^0-9.]/g, '')) || 0.00 : 0.00;
       let calculatedPrice = minimalPayload.price !== undefined && minimalPayload.price !== null
         ? (parseFloat(String(minimalPayload.price)) || fallbackPrice)
