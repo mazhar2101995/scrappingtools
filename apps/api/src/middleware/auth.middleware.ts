@@ -95,3 +95,31 @@ export function adminOnlyMiddleware(req: Request, res: Response, next: NextFunct
   res.status(403).json({ error: 'Forbidden: Platform Admin access required' });
 }
 
+/**
+ * Enforce minimum role hierarchy: owner > admin > editor > viewer
+ */
+export function requireOrgRole(minimumRole: 'owner' | 'admin' | 'editor' | 'viewer') {
+  const hierarchy: Record<string, number> = {
+    viewer: 1,
+    member: 2,
+    editor: 2,
+    admin: 3,
+    owner: 4,
+    super_admin: 5,
+  };
+
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const userRole = (req.user?.role || 'viewer').toLowerCase();
+    const userLevel = hierarchy[userRole] || 1;
+    const requiredLevel = hierarchy[minimumRole] || 1;
+
+    if (userLevel >= requiredLevel) {
+      return next();
+    }
+
+    res.status(403).json({
+      error: `Forbidden: This action requires at least '${minimumRole}' permissions. Your current role is '${userRole}'.`,
+    });
+  };
+}
+

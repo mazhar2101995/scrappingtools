@@ -492,9 +492,52 @@ export class DashboardApiClient {
     return this.fetchJson('/billing/admin-revenue', {}, 'admin');
   }
 
-  async getMyTeam(): Promise<any[]> {
+  async getMyTeam(): Promise<{ members: any[]; invitations: any[] }> {
     const res = await this.fetchJson<any>('/organizations/my-team', {}, 'client');
-    return res.members || [];
+    return {
+      members: Array.isArray(res.members) ? res.members : [],
+      invitations: Array.isArray(res.invitations) ? res.invitations : [],
+    };
+  }
+
+  async inviteTeamMember(payload: { email: string; role: string }): Promise<any> {
+    return this.fetchJson('/organizations/my-team/invite', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async updateMemberRole(membershipId: string, role: string): Promise<any> {
+    return this.fetchJson(`/organizations/my-team/members/${membershipId}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }, 'client');
+  }
+
+  async removeTeamMember(membershipId: string): Promise<any> {
+    return this.fetchJson(`/organizations/my-team/members/${membershipId}`, {
+      method: 'DELETE',
+    }, 'client');
+  }
+
+  async revokeTeamInvitation(invitationId: string): Promise<any> {
+    return this.fetchJson(`/organizations/my-team/invitations/${invitationId}`, {
+      method: 'DELETE',
+    }, 'client');
+  }
+
+  async acceptInvitation(payload: { token: string; fullName?: string; password?: string }): Promise<any> {
+    const res = await this.fetchJson<any>('/auth/accept-invitation', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (res.token) {
+      localStorage.setItem('saas_token_client', res.token);
+      localStorage.setItem('saas_org_id', res.organization.id);
+      localStorage.setItem('saas_current_org_name', res.organization.name);
+      localStorage.setItem('saas_current_user', JSON.stringify(res.user));
+    }
+    return res;
   }
 
   async getStoreLanguages(): Promise<{ primary: string; supported: string[] }> {

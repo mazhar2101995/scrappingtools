@@ -33,11 +33,27 @@ export const organizationMemberships = pgTable('organization_memberships', {
   id: uuid('id').defaultRandom().primaryKey(),
   organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  role: varchar('role', { length: 50 }).notNull().default('member'),
+  role: varchar('role', { length: 50 }).notNull().default('member'), // 'owner', 'admin', 'editor', 'viewer'
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   uniqueIndex('idx_org_members_unique').on(table.organizationId, table.userId),
   index('idx_org_members_org_id').on(table.organizationId),
+]);
+
+export const organizationInvitations = pgTable('organization_invitations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  email: varchar('email', { length: 255 }).notNull(),
+  role: varchar('role', { length: 50 }).notNull().default('member'), // 'admin', 'editor', 'viewer'
+  token: varchar('token', { length: 255 }).notNull().unique(),
+  status: varchar('status', { length: 50 }).notNull().default('pending'), // 'pending', 'accepted', 'revoked', 'expired'
+  invitedBy: uuid('invited_by').references(() => users.id, { onDelete: 'set null' }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+}, (table) => [
+  index('idx_org_invitations_org').on(table.organizationId, table.status),
+  index('idx_org_invitations_token').on(table.token),
 ]);
 
 export const apiKeys = pgTable('api_keys', {

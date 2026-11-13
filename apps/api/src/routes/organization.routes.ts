@@ -4,6 +4,7 @@ import {
   db,
   organizations,
   organizationMemberships,
+  organizationInvitations,
   users,
   connectedStores,
   customerProductMappings,
@@ -12,7 +13,7 @@ import {
   tenantBrandProfiles,
 } from '@saas/database';
 import { eq, desc, sql, and } from 'drizzle-orm';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, requireOrgRole } from '../middleware/auth.middleware';
 import { config } from '../config';
 
 export const organizationRouter = Router();
@@ -237,7 +238,7 @@ organizationRouter.patch('/:id/toggle-status', async (req: Request, res: Respons
   }
 });
 
-// GET /api/v1/organizations/my-team - Get team members for the client workspace
+// GET /api/v1/organizations/my-team - Get team members & pending invitations
 organizationRouter.get('/my-team', async (req: Request, res: Response) => {
   try {
     const orgId = (req as any).user?.organizationId;
@@ -258,7 +259,149 @@ organizationRouter.get('/my-team', async (req: Request, res: Response) => {
       .innerJoin(users, eq(organizationMemberships.userId, users.id))
       .where(eq(organizationMemberships.organizationId, orgId));
 
-    return res.json({ success: true, members });
+    const invitations = await db
+      .select({
+        id: organizationInvitations.id,
+        email: organizationInvitations.email,
+        role: organizationInvitations.role,
+        status: organizationInvitations.status,
+        token: organizationInvitations.token,
+        expiresAt: organizationInvitations.expiresAt,
+        createdAt: organizationInvitations.createdAt,
+      })
+      .from(organizationInvitations)
+      .where(eq(organizationInvitations.organizationId, orgId))
+      .orderBy(desc(organizationInvitations.createdAt));
+
+    return res.json({ success: true, members, invitations });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/v1/organizations/my-team/invite - Create/Send a team invitation (Admin or Owner only)
+organizationRouter.post('/my-team/invite', requireOrgRole('admin'), async (req: Request, res: Response) => {
+  try {
+    const orgId = (req as any).user?.organizationId;
+    const currentUserId = (req as any).user?.userId;
+    const { email, role } = req.body;
+
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email address is required' });
+    }
+
+    const assignedRole = ['admin', 'editor', 'viewer'].includes(role) ? role : 'editor';
+
+    // Check if user is already a member
+    const existingMember = await db
+      .select({ id: organizationMemberships.id })
+      .from(organizationMemberships)
+      .innerJoin(users, eq(organizationMemberships.userId, users.id))
+      .where(and(eq(organizationMemberships.organizationId, orgId), eq(users.email, email.trim().toLowerCase())))
+      .limit(1);
+
+    if (existingMember.length > 0) {
+      return res.status(400).json({ error: 'User is already a member of this workspace' });
+    }
+
+    // Generate secure invite token
+    const token = 'inv_' + crypto.randomUUID().replace(/-/g, '') + Math.random().toString(36).substring(2, 8);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+    const [invite] = await db
+      .insert(organizationInvitations)
+      .values({
+        organizationId: orgId,
+        email: email.trim().toLowerCase(),
+        role: assignedRole,
+        token,
+        status: 'pending',
+        invitedBy: currentUserId,
+        expiresAt,
+      })
+      .returning();
+
+    return res.json({
+      success: true,
+      message: `Invitation generated for ${email}`,
+      invitation: invite,
+      inviteUrl: `http://localhost:3000/invite/accept?token=${token}`,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /api/v1/organizations/my-team/members/:id/role - Update team member role (Owner or Admin only)
+organizationRouter.patch('/my-team/members/:id/role', requireOrgRole('admin'), async (req: Request, res: Response) => {
+  try {
+    const orgId = String((req as any).user?.organizationId);
+    const membershipId = String(req.params.id);
+    const { role } = req.body;
+
+    if (!['owner', 'admin', 'editor', 'viewer'].includes(role)) {
+      return res.status(400).json({ error: 'Invalid role specified' });
+    }
+
+    const [updated] = await db
+      .update(organizationMemberships)
+      .set({ role })
+      .where(and(eq(organizationMemberships.id, membershipId), eq(organizationMemberships.organizationId, orgId)))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ error: 'Team member not found' });
+    }
+
+    return res.json({ success: true, message: `Member role updated to ${role}`, membership: updated });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/v1/organizations/my-team/members/:id - Remove team member (Owner or Admin only)
+organizationRouter.delete('/my-team/members/:id', requireOrgRole('admin'), async (req: Request, res: Response) => {
+  try {
+    const orgId = String((req as any).user?.organizationId);
+    const currentUserId = (req as any).user?.userId;
+    const membershipId = String(req.params.id);
+
+    // Prevent removing oneself
+    const [target] = await db
+      .select()
+      .from(organizationMemberships)
+      .where(and(eq(organizationMemberships.id, membershipId), eq(organizationMemberships.organizationId, orgId)))
+      .limit(1);
+
+    if (!target) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+
+    if (target.userId === currentUserId) {
+      return res.status(400).json({ error: 'You cannot remove yourself from the workspace' });
+    }
+
+    await db
+      .delete(organizationMemberships)
+      .where(eq(organizationMemberships.id, membershipId));
+
+    return res.json({ success: true, message: 'Member removed from organization' });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /api/v1/organizations/my-team/invitations/:id - Revoke pending invitation
+organizationRouter.delete('/my-team/invitations/:id', requireOrgRole('admin'), async (req: Request, res: Response) => {
+  try {
+    const orgId = String((req as any).user?.organizationId);
+    const invitationId = String(req.params.id);
+
+    await db
+      .delete(organizationInvitations)
+      .where(and(eq(organizationInvitations.id, invitationId), eq(organizationInvitations.organizationId, orgId)));
+
+    return res.json({ success: true, message: 'Invitation revoked successfully' });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }

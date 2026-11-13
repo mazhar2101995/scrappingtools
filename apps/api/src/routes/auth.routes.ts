@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { db, users, organizations, organizationMemberships, apiKeys } from '@saas/database';
+import { db, users, organizations, organizationMemberships, organizationInvitations, apiKeys } from '@saas/database';
 import { eq, and, desc } from 'drizzle-orm';
 import { config } from '../config';
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -295,6 +295,126 @@ authRouter.get('/session', authMiddleware, async (req: Request, res: Response) =
     authenticated: true,
     user: req.user,
   });
+});
+
+// 3.5 Accept Team Invitation
+authRouter.post('/accept-invitation', async (req: Request, res: Response) => {
+  const { token, fullName, password } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ error: 'Invitation token is required' });
+  }
+
+  // Find invitation
+  const [invitation] = await db
+    .select()
+    .from(organizationInvitations)
+    .where(eq(organizationInvitations.token, token))
+    .limit(1);
+
+  if (!invitation) {
+    return res.status(404).json({ error: 'Invalid invitation token' });
+  }
+
+  if (invitation.status !== 'pending') {
+    return res.status(400).json({ error: `This invitation has already been ${invitation.status}` });
+  }
+
+  if (new Date() > new Date(invitation.expiresAt)) {
+    await db
+      .update(organizationInvitations)
+      .set({ status: 'expired' })
+      .where(eq(organizationInvitations.id, invitation.id));
+    return res.status(400).json({ error: 'This invitation has expired. Please ask your administrator to send a new invite.' });
+  }
+
+  try {
+    const result = await db.transaction(async (tx) => {
+      // Check if user already exists
+      let [existingUser] = await tx
+        .select()
+        .from(users)
+        .where(eq(users.email, invitation.email))
+        .limit(1);
+
+      let targetUserId: string;
+
+      if (existingUser) {
+        targetUserId = existingUser.id;
+      } else {
+        // Need fullName & password to create account
+        if (!fullName || !password) {
+          throw new Error('Full name and password are required to register your new account');
+        }
+        const passwordHash = await bcrypt.hash(password, 10);
+        const [newUser] = await tx
+          .insert(users)
+          .values({
+            email: invitation.email,
+            passwordHash,
+            fullName,
+          })
+          .returning();
+        targetUserId = newUser.id;
+      }
+
+      // Add to organization_memberships with invited role
+      await tx
+        .insert(organizationMemberships)
+        .values({
+          organizationId: invitation.organizationId,
+          userId: targetUserId,
+          role: invitation.role,
+        })
+        .onConflictDoUpdate({
+          target: [organizationMemberships.organizationId, organizationMemberships.userId],
+          set: { role: invitation.role },
+        });
+
+      // Mark invitation accepted
+      await tx
+        .update(organizationInvitations)
+        .set({
+          status: 'accepted',
+          acceptedAt: new Date(),
+        })
+        .where(eq(organizationInvitations.id, invitation.id));
+
+      // Fetch organization details for session token
+      const [org] = await tx
+        .select()
+        .from(organizations)
+        .where(eq(organizations.id, invitation.organizationId))
+        .limit(1);
+
+      return {
+        user: { id: targetUserId, email: invitation.email, fullName: existingUser ? existingUser.fullName : fullName },
+        organization: org,
+        role: invitation.role,
+      };
+    });
+
+    const accessToken = jwt.sign(
+      {
+        userId: result.user.id,
+        email: result.user.email,
+        organizationId: result.organization.id,
+        role: result.role,
+      },
+      config.jwtSecret,
+      { expiresIn: config.jwtExpiresIn } as jwt.SignOptions
+    );
+
+    return res.json({
+      success: true,
+      message: `Welcome to ${result.organization.name}! Your invite was accepted successfully.`,
+      token: accessToken,
+      user: result.user,
+      organization: { id: result.organization.id, name: result.organization.name, role: result.role },
+    });
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message || 'Failed to accept invitation' });
+  }
 });
 
 // 4. API Key Generation for Tenant
