@@ -61,3 +61,4 @@ imageStudioRouter.post('/transform', requireOrgRole('editor'), async (req: Reque
     return res.status(500).json({ error: err.message || 'Failed to process image in studio' });
   }
 });
+

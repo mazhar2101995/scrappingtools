@@ -69,6 +69,12 @@ export default function ImageStudioPage() {
     }
   };
 
+  const getFullImageUrl = (url: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    // Prepend API server port if relative uploads path
+    return `http://localhost:4000${url.startsWith('/') ? '' : '/'}${url}`;
+  };
   const selectProductForStudio = async (prod: ProductItem) => {
     setSelectedProduct(prod);
     setCleanedImageUrl(null);
@@ -310,7 +316,7 @@ export default function ImageStudioPage() {
                 <>
                   {/* Background Cleaned Image */}
                   <img
-                    src={cleanedImageUrl}
+                    src={getFullImageUrl(cleanedImageUrl)}
                     alt="Cleaned Studio Shot"
                     className="absolute inset-0 w-full h-full object-contain bg-white"
                   />
@@ -321,7 +327,7 @@ export default function ImageStudioPage() {
                     style={{ width: `${sliderPos}%` }}
                   >
                     <img
-                      src={selectedProduct.primaryImageUrl}
+                      src={getFullImageUrl(selectedProduct.primaryImageUrl)}
                       alt="Original Raw Shot"
                       className="absolute inset-0 w-full h-full object-contain max-w-none"
                       style={{ width: '100%', height: '100%' }}
