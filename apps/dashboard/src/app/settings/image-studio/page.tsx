@@ -154,11 +154,10 @@ export default function ImageStudioPage() {
 
       {statusMsg && (
         <div
-          className={`p-3.5 rounded-xl text-xs font-semibold flex items-center justify-between border ${
-            statusMsg.type === 'success'
+          className={`p-3.5 rounded-xl text-xs font-semibold flex items-center justify-between border ${statusMsg.type === 'success'
               ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
               : 'bg-rose-50 border-rose-200 text-rose-800'
-          }`}
+            }`}
         >
           <div className="flex items-center gap-2">
             {statusMsg.type === 'success' ? (
@@ -199,9 +198,8 @@ export default function ImageStudioPage() {
                 <div
                   key={p.id}
                   onClick={() => selectProductForStudio(p)}
-                  className={`p-3 flex items-center gap-3 cursor-pointer transition ${
-                    isSelected ? 'bg-amber-50/70 border-l-4 border-[#fad982]' : 'hover:bg-slate-50'
-                  }`}
+                  className={`p-3 flex items-center gap-3 cursor-pointer transition ${isSelected ? 'bg-amber-50/70 border-l-4 border-[#fad982]' : 'hover:bg-slate-50'
+                    }`}
                 >
                   <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 shrink-0 overflow-hidden flex items-center justify-center">
                     {p.primaryImageUrl ? (
