@@ -540,6 +540,39 @@ export class DashboardApiClient {
     return res;
   }
 
+  // --- Pricing Rules Engine ---
+  async getPricingRules(): Promise<any[]> {
+    const res = await this.fetchJson<any>('/pricing/rules', {}, 'client');
+    return Array.isArray(res.rules) ? res.rules : [];
+  }
+
+  async createPricingRule(payload: any): Promise<any> {
+    return this.fetchJson('/pricing/rules', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async updatePricingRule(id: string, payload: any): Promise<any> {
+    return this.fetchJson(`/pricing/rules/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async deletePricingRule(id: string): Promise<any> {
+    return this.fetchJson(`/pricing/rules/${id}`, {
+      method: 'DELETE',
+    }, 'client');
+  }
+
+  async simulatePricingRule(payload: { supplierPrice: number; brandId?: string }): Promise<any> {
+    return this.fetchJson('/pricing/simulate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
   async getStoreLanguages(): Promise<{ primary: string; supported: string[] }> {
     const res = await this.fetchJson<any>('/organizations/languages', {}, 'client');
     return res.languages || { primary: 'en', supported: ['en'] };

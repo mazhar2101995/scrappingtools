@@ -179,6 +179,26 @@ export const storeInboundWebhooks = pgTable('store_inbound_webhooks', {
   index('idx_store_inbound_webhooks_org').on(table.organizationId, table.createdAt),
 ]);
 
+export const pricingRules = pgTable('pricing_rules', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  markupType: varchar('markup_type', { length: 50 }).notNull().default('PERCENTAGE'), // 'PERCENTAGE', 'FIXED', 'MULTIPLIER'
+  markupValue: varchar('markup_value', { length: 50 }).notNull().default('0.00'),
+  fixedShippingFee: varchar('fixed_shipping_fee', { length: 50 }).notNull().default('0.00'),
+  minMarginAmount: varchar('min_margin_amount', { length: 50 }),
+  roundingMode: varchar('rounding_mode', { length: 50 }).notNull().default('PSYCHOLOGICAL_99'), // 'NONE', 'PSYCHOLOGICAL_99', 'PSYCHOLOGICAL_95', 'NEAREST_WHOLE'
+  minSupplierPrice: varchar('min_supplier_price', { length: 50 }),
+  maxSupplierPrice: varchar('max_supplier_price', { length: 50 }),
+  brandId: uuid('brand_id').references(() => brands.id, { onDelete: 'cascade' }),
+  isActive: boolean('is_active').notNull().default(true),
+  priority: integer('priority').notNull().default(10),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_pricing_rules_org').on(table.organizationId, table.isActive, table.priority),
+]);
+
 
 
 

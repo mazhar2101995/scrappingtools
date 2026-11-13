@@ -27,7 +27,8 @@ import {
   X,
   ArrowRight,
   ChevronRight,
-  Layers
+  Layers,
+  DollarSign
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -56,6 +57,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { name: 'Connected Stores', href: '/stores', icon: Store },
       { name: 'Sync & Integration', href: '/sync', icon: FolderSync },
+      { name: 'Pricing & Margins', href: '/settings/pricing', icon: DollarSign },
       { name: 'AI Normalization', href: '/settings/ai', icon: Cpu, badge: 'AI' },
     ],
   },

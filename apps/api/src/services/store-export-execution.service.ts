@@ -686,9 +686,26 @@ export class StoreExportExecutionService {
       // Multilingual name, description and SEO mapping
       const customAttrs = (override?.customAttributes as any) || {};
       const fallbackPrice = customAttrs.price ? parseFloat(String(customAttrs.price).replace(/[^0-9.]/g, '')) || 0.00 : 0.00;
-      const finalPrice = minimalPayload.price !== undefined && minimalPayload.price !== null
+      let calculatedPrice = minimalPayload.price !== undefined && minimalPayload.price !== null
         ? (parseFloat(String(minimalPayload.price)) || fallbackPrice)
         : fallbackPrice;
+
+      // Apply dynamic tenant pricing markup rules if price is greater than 0
+      try {
+        const { PricingEngineService } = await import('./pricing-engine.service');
+        const priceCalc = await PricingEngineService.calculatePrice({
+          organizationId: store.organizationId,
+          supplierPrice: calculatedPrice,
+          brandId: product.brandId,
+        });
+        if (priceCalc.calculatedPrice > 0) {
+          calculatedPrice = priceCalc.calculatedPrice;
+        }
+      } catch (pErr) {
+        console.warn('[StoreExport] Failed to apply pricing rule markup, using base price:', pErr);
+      }
+
+      const finalPrice = calculatedPrice;
 
       const nameMap: Record<string, string> = {};
       const descMap: Record<string, string> = {};

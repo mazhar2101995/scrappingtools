@@ -21,6 +21,7 @@ import { storageRouter } from './routes/storage.routes';
 import { scheduleRouter } from './routes/schedule.routes';
 import { notificationRouter } from './routes/notification.routes';
 import { aiTrainingRouter } from './routes/ai-training.routes';
+import { pricingRouter } from './routes/pricing.routes';
 import { ServiceHealth } from '@saas/shared-types';
 
 const app = express();
@@ -76,6 +77,7 @@ app.use('/api/v1/storage', storageRouter);
 app.use('/api/v1/schedules', scheduleRouter);
 app.use('/api/v1/notifications', notificationRouter);
 app.use('/api/v1/ai-training', aiTrainingRouter);
+app.use('/api/v1/pricing', pricingRouter);
 
 // 4. Start Server & Background Storage Garbage Collection Worker
 if (process.env.NODE_ENV !== 'test') {
