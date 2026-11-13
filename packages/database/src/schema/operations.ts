@@ -221,6 +221,40 @@ export const proxyConfigurations = pgTable('proxy_configurations', {
   index('idx_proxy_config_org').on(table.organizationId, table.isActive),
 ]);
 
+export const competitorMonitors = pgTable('competitor_monitors', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  globalProductId: uuid('global_product_id').notNull().references(() => globalProducts.id, { onDelete: 'cascade' }),
+  competitorName: varchar('competitor_name', { length: 255 }).notNull(),
+  competitorUrl: text('competitor_url').notNull(),
+  strategy: varchar('strategy', { length: 50 }).notNull().default('UNDERCUT_BY_AMOUNT'), // 'UNDERCUT_BY_AMOUNT', 'UNDERCUT_BY_PERCENT', 'MATCH_PRICE'
+  strategyValue: varchar('strategy_value', { length: 50 }).notNull().default('1.00'),
+  floorPrice: varchar('floor_price', { length: 50 }).notNull(),
+  latestCompetitorPrice: varchar('latest_competitor_price', { length: 50 }),
+  latestCalculatedPrice: varchar('latest_calculated_price', { length: 50 }),
+  isInStock: boolean('is_in_stock').notNull().default(true),
+  lastCheckedAt: timestamp('last_checked_at', { withTimezone: true }),
+  autoPushToStores: boolean('auto_push_to_stores').notNull().default(true),
+  status: varchar('status', { length: 50 }).notNull().default('ACTIVE'), // 'ACTIVE', 'PAUSED', 'ERROR'
+  lastError: text('last_error'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_comp_monitors_org').on(table.organizationId, table.status),
+  index('idx_comp_monitors_product').on(table.globalProductId),
+]);
+
+export const competitorPriceHistory = pgTable('competitor_price_history', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  monitorId: uuid('monitor_id').notNull().references(() => competitorMonitors.id, { onDelete: 'cascade' }),
+  competitorPrice: varchar('competitor_price', { length: 50 }).notNull(),
+  ourCalculatedPrice: varchar('our_calculated_price', { length: 50 }).notNull(),
+  isInStock: boolean('is_in_stock').notNull().default(true),
+  recordedAt: timestamp('recorded_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_comp_hist_monitor').on(table.monitorId, table.recordedAt),
+]);
+
 
 
 

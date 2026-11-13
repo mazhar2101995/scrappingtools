@@ -606,6 +606,51 @@ export class DashboardApiClient {
     }, 'client');
   }
 
+  // --- Competitor Price Spy & Auto-Undercut Methods ---
+  async getCompetitorMonitors(productId?: string): Promise<any[]> {
+    const qs = productId ? `?productId=${productId}` : '';
+    const res = await this.fetchJson<any>(`/competitors${qs}`, {}, 'client');
+    return Array.isArray(res.monitors) ? res.monitors : [];
+  }
+
+  async addCompetitorMonitor(payload: {
+    globalProductId: string;
+    competitorName?: string;
+    competitorUrl: string;
+    strategy?: string;
+    strategyValue?: number;
+    floorPrice: number;
+    autoPushToStores?: boolean;
+  }): Promise<any> {
+    return this.fetchJson('/competitors', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'client');
+  }
+
+  async checkCompetitorNow(id: string): Promise<any> {
+    return this.fetchJson(`/competitors/${id}/check-now`, {
+      method: 'POST',
+    }, 'client');
+  }
+
+  async getCompetitorPriceHistory(id: string): Promise<any[]> {
+    const res = await this.fetchJson<any>(`/competitors/${id}/history`, {}, 'client');
+    return Array.isArray(res.history) ? res.history : [];
+  }
+
+  async scanAllCompetitors(): Promise<any> {
+    return this.fetchJson('/competitors/scan-all', {
+      method: 'POST',
+    }, 'client');
+  }
+
+  async deleteCompetitorMonitor(id: string): Promise<any> {
+    return this.fetchJson(`/competitors/${id}`, {
+      method: 'DELETE',
+    }, 'client');
+  }
+
   async getStoreLanguages(): Promise<{ primary: string; supported: string[] }> {
     const res = await this.fetchJson<any>('/organizations/languages', {}, 'client');
     return res.languages || { primary: 'en', supported: ['en'] };

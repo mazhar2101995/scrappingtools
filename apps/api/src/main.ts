@@ -23,6 +23,7 @@ import { notificationRouter } from './routes/notification.routes';
 import { aiTrainingRouter } from './routes/ai-training.routes';
 import { pricingRouter } from './routes/pricing.routes';
 import { proxyRouter } from './routes/proxy.routes';
+import { competitorRouter } from './routes/competitor.routes';
 import { ServiceHealth } from '@saas/shared-types';
 
 const app = express();
@@ -80,6 +81,7 @@ app.use('/api/v1/notifications', notificationRouter);
 app.use('/api/v1/ai-training', aiTrainingRouter);
 app.use('/api/v1/pricing', pricingRouter);
 app.use('/api/v1/proxies', proxyRouter);
+app.use('/api/v1/competitors', competitorRouter);
 
 // 4. Start Server & Background Storage Garbage Collection Worker
 if (process.env.NODE_ENV !== 'test') {
