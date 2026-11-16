@@ -15,6 +15,7 @@ import {
   scrapingJobs,
   storeProductMappings,
   connectedStores,
+  auditLogs,
 } from '@saas/database';
 import { eq, ilike, and, sql, inArray, or, desc } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
@@ -1037,6 +1038,18 @@ productsRouter.delete('/:id', async (req: Request, res: Response) => {
       await db.delete(productImages).where(eq(productImages.globalProductId, targetGlobalId));
       await db.delete(productAttributes).where(eq(productAttributes.globalProductId, targetGlobalId));
       await db.delete(globalProducts).where(eq(globalProducts.id, targetGlobalId));
+    }
+
+    try {
+      await db.insert(auditLogs).values({
+        organizationId: orgId,
+        action: 'PRODUCT_DELETED',
+        entityType: 'product',
+        entityId: paramId,
+        oldState: { canonicalTitle: cpm.customerInternalSku || targetGlobalId },
+      });
+    } catch (auditErr) {
+      console.warn('[ProductDelete] Failed to record audit log:', auditErr);
     }
 
     return res.json({

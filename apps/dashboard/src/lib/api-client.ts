@@ -30,6 +30,35 @@ export interface ClientWorkspaceData {
       enrichedWithAi: number;
       duplicateMergesPrevented: number;
     };
+    lifecycle?: {
+      totalScraped: number;
+      deletedProducts: number;
+      activeInPortal: number;
+    };
+    imageStudio?: {
+      originalImages: number;
+      improvedImages: number;
+      improvementRatio: number;
+    };
+    services?: Array<{
+      id: string;
+      title: string;
+      desc: string;
+      status: 'operational' | 'ready' | 'offline';
+      kpiLabel: string;
+      kpiValue: number | string;
+      secondaryLabel: string;
+      secondaryValue: number | string;
+      route: string;
+      badge: string;
+    }>;
+    chartData?: Array<{
+      label: string;
+      full_date: string;
+      sync_count: number;
+      prod_count: number;
+      img_count: number;
+    }>;
   };
   needsAttention: Array<{
     id: string;

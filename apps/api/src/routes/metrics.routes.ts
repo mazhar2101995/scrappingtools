@@ -23,8 +23,16 @@ import {
   apiKeys,
   webhookSubscriptions,
   webhookEvents,
+  productImages,
+  productImageTransformations,
+  competitorMonitors,
+  competitorPriceHistory,
+  customerSupplierCredentials,
+  supplierFeedSources,
+  auditLogs,
+  tenantBrandProfiles,
 } from '@saas/database';
-import { eq, and, sql, desc, inArray } from 'drizzle-orm';
+import { eq, and, sql, desc, inArray, or } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
 
 export const metricsRouter = Router();
@@ -331,6 +339,113 @@ metricsRouter.get('/client-overview', async (req: Request, res: Response) => {
       ? Math.round((verifiedCount / recentMappings.length) * 100)
       : 100;
 
+    // 12. Dynamic Product Lifecycle & Deletion Metrics
+    const [deletedLogsRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(auditLogs)
+      .where(and(eq(auditLogs.organizationId, orgId), eq(auditLogs.action, 'PRODUCT_DELETED')));
+    const loggedDeletedCount = deletedLogsRes?.count || 0;
+
+    const [totalGlobalRes] = await db.select({ count: sql<number>`count(*)::int` }).from(globalProducts);
+    const totalGlobal = totalGlobalRes?.count || totalMyProducts;
+    const deletedProductsCount = Math.max(loggedDeletedCount, Math.max(0, totalGlobal - totalMyProducts));
+    const totalScrapedProducts = totalMyProducts + deletedProductsCount;
+
+    // 13. Dynamic Image Studio Metrics (Original vs AI Improved)
+    const [origImgRes] = await db
+      .select({ count: sql<number>`count(distinct ${productImages.id})::int` })
+      .from(productImages)
+      .innerJoin(customerProductMappings, eq(customerProductMappings.globalProductId, productImages.globalProductId))
+      .where(eq(customerProductMappings.organizationId, orgId));
+    const originalImagesCount = origImgRes?.count || 0;
+
+    const [impImgRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(productImageTransformations)
+      .where(eq(productImageTransformations.organizationId, orgId));
+    const improvedImagesCount = impImgRes?.count || 0;
+    const imageImprovementRatio = originalImagesCount > 0
+      ? Math.round((improvedImagesCount / originalImagesCount) * 100)
+      : 0;
+
+    // 14. Dynamic Client Services Operational Stats
+    const [compMonRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(competitorMonitors)
+      .where(eq(competitorMonitors.organizationId, orgId));
+    const competitorMonitorsCount = compMonRes?.count || 0;
+
+    const [compChecksRes] = await db
+      .select({ count: sql<number>`count(distinct ${competitorPriceHistory.id})::int` })
+      .from(competitorPriceHistory)
+      .innerJoin(competitorMonitors, eq(competitorMonitors.id, competitorPriceHistory.monitorId))
+      .where(eq(competitorMonitors.organizationId, orgId));
+    const competitorPriceChecksCount = compChecksRes?.count || 0;
+
+    const [suppCredRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(customerSupplierCredentials)
+      .where(eq(customerSupplierCredentials.organizationId, orgId));
+    const supplierAccountsCount = suppCredRes?.count || 0;
+
+    const [suppFeedRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(supplierFeedSources)
+      .where(eq(supplierFeedSources.organizationId, orgId));
+    const supplierFeedsCount = suppFeedRes?.count || 0;
+
+    const [brandCountRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(brands)
+      .where(or(eq(brands.organizationId, orgId), sql`${brands.organizationId} IS NULL`));
+    const brandsCount = brandCountRes?.count || 0;
+
+    let successfulSyncsCount = 0;
+    let totalSyncsCount = 0;
+    if (storeIds.length > 0) {
+      const [syncHistoryRes] = await db
+        .select({
+          total: sql<number>`count(*)::int`,
+          successful: sql<number>`count(*) filter (where ${storeSyncHistory.status} in ('completed', 'success'))::int`,
+        })
+        .from(storeSyncHistory)
+        .where(inArray(storeSyncHistory.connectedStoreId, storeIds));
+      totalSyncsCount = syncHistoryRes?.total || 0;
+      successfulSyncsCount = syncHistoryRes?.successful || 0;
+    }
+
+    // 15. Dynamic 7-day Activity Timeseries
+    const weeklyTrend = await db.execute(sql`
+      SELECT 
+        to_char(d::date, 'Dy') as label,
+        to_char(d::date, 'YYYY-MM-DD') as full_date,
+        COALESCE(s.sync_count, 0)::int as sync_count,
+        COALESCE(p.prod_count, 0)::int as prod_count,
+        COALESCE(i.img_count, 0)::int as img_count
+      FROM generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, '1 day'::interval) d
+      LEFT JOIN (
+        SELECT cast(ssh.created_at as date) as day, count(*)::int as sync_count
+        FROM store_sync_history ssh
+        INNER JOIN connected_stores cs ON cs.id = ssh.connected_store_id
+        WHERE cs.organization_id = ${orgId}
+        GROUP BY 1
+      ) s ON s.day = d::date
+      LEFT JOIN (
+        SELECT cast(imported_at as date) as day, count(*)::int as prod_count
+        FROM customer_product_mappings
+        WHERE organization_id = ${orgId}
+        GROUP BY 1
+      ) p ON p.day = d::date
+      LEFT JOIN (
+        SELECT cast(created_at as date) as day, count(*)::int as img_count
+        FROM product_image_transformations
+        WHERE organization_id = ${orgId}
+        GROUP BY 1
+      ) i ON i.day = d::date
+      ORDER BY d::date ASC;
+    `);
+    const chartData = (weeklyTrend as any).rows || weeklyTrend || [];
+
     return res.json({
       success: true,
       data: {
@@ -356,6 +471,91 @@ metricsRouter.get('/client-overview', async (req: Request, res: Response) => {
             enrichedWithAi: totalAiEnriched,
             duplicateMergesPrevented: Math.max(0, pendingConflicts.length),
           },
+          lifecycle: {
+            totalScraped: totalScrapedProducts,
+            deletedProducts: deletedProductsCount,
+            activeInPortal: totalMyProducts,
+          },
+          imageStudio: {
+            originalImages: originalImagesCount,
+            improvedImages: improvedImagesCount,
+            improvementRatio: imageImprovementRatio,
+          },
+          services: [
+            {
+              id: 'scraping',
+              title: 'Multi-Source Product Scraper',
+              desc: 'Autonomous brand catalog extraction, domain scraping, and MPN auto-discovery.',
+              status: 'operational',
+              kpiLabel: 'Brand Profiles',
+              kpiValue: brandsCount,
+              secondaryLabel: 'Scraped Entities',
+              secondaryValue: totalScrapedProducts,
+              route: '/products',
+              badge: 'Core Engine',
+            },
+            {
+              id: 'ai_studio',
+              title: 'AI Product Enrichment & SEO',
+              desc: 'LLM taxonomy standardization, SEO copywriting, and GTIN checksum validation.',
+              status: 'operational',
+              kpiLabel: 'Enriched Entities',
+              kpiValue: totalAiEnriched,
+              secondaryLabel: 'Quality Index',
+              secondaryValue: `${dataQualityScore}%`,
+              route: '/settings/ai',
+              badge: 'AI Active',
+            },
+            {
+              id: 'image_studio',
+              title: 'AI Product Image Studio',
+              desc: 'Auto-masking background removal, watermark scrubbing, and 1:1 Canvas WebP.',
+              status: 'operational',
+              kpiLabel: 'Improved Images',
+              kpiValue: improvedImagesCount,
+              secondaryLabel: 'Raw Originals',
+              secondaryValue: originalImagesCount,
+              route: '/settings/image-studio',
+              badge: 'Sharp Studio',
+            },
+            {
+              id: 'competitor_radar',
+              title: 'Competitor Price Spy & Radar',
+              desc: 'Autonomous market URL tracking, price undercut alerts, and historical logs.',
+              status: competitorMonitorsCount > 0 ? 'operational' : 'ready',
+              kpiLabel: 'Tracked URLs',
+              kpiValue: competitorMonitorsCount,
+              secondaryLabel: 'Live Radar Scans',
+              secondaryValue: competitorPriceChecksCount,
+              route: '/settings/competitors',
+              badge: 'Real-time',
+            },
+            {
+              id: 'wholesale_vault',
+              title: 'B2B Wholesale Suppliers & Feeds',
+              desc: 'AES-256 encrypted wholesale logins, FTP/SFTP feeds, and smart column auto-mapper.',
+              status: supplierAccountsCount > 0 || supplierFeedsCount > 0 ? 'operational' : 'ready',
+              kpiLabel: 'Feed Pipelines',
+              kpiValue: supplierFeedsCount,
+              secondaryLabel: 'Vault Logins',
+              secondaryValue: supplierAccountsCount,
+              route: '/settings/suppliers',
+              badge: 'B2B Secure',
+            },
+            {
+              id: 'store_sync',
+              title: 'Store Multichannel Sync (OCMOD / Shopify)',
+              desc: 'Autonomous delta sync, scheduled background exports, and catalog publishing.',
+              status: myStores.length > 0 ? 'operational' : 'ready',
+              kpiLabel: 'Connected Stores',
+              kpiValue: myStores.length,
+              secondaryLabel: 'Sync Deliveries',
+              secondaryValue: successfulSyncsCount,
+              route: '/stores',
+              badge: 'Zero-Touch',
+            },
+          ],
+          chartData,
         },
         needsAttention,
         activeJobs: myJobs.filter(j => j.status === 'active' || j.status === 'queued'),
