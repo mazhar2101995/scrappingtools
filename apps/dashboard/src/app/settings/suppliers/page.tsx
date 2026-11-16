@@ -25,7 +25,9 @@ import {
   ArrowRight,
   Database,
   Layers,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  X,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -73,6 +75,28 @@ export default function SupplierSessionsAndFeedsPage() {
   const [loadingFeeds, setLoadingFeeds] = useState(false);
   const [feedModalOpen, setFeedModalOpen] = useState(false);
   const [syncingFeedId, setSyncingFeedId] = useState<string | null>(null);
+
+  // Saved Feed Preview Modal State
+  const [activePreviewFeed, setActivePreviewFeed] = useState<any | null>(null);
+  const [loadingFeedPreview, setLoadingFeedPreview] = useState(false);
+  const [feedSampleData, setFeedSampleData] = useState<any | null>(null);
+
+  async function handleOpenSavedFeedPreview(feed: any) {
+    setActivePreviewFeed(feed);
+    setFeedSampleData(null);
+    setLoadingFeedPreview(true);
+    try {
+      const res = await apiClient.previewSupplierFeed({
+        feedType: feed.feedType,
+        connectionConfig: feed.connectionConfig,
+      });
+      setFeedSampleData(res);
+    } catch (e: any) {
+      alert(`Failed to load feed preview: ${e.message || 'Unknown error'}`);
+    } finally {
+      setLoadingFeedPreview(false);
+    }
+  }
 
   // Status notification banner
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -505,6 +529,16 @@ export default function SupplierSessionsAndFeedsPage() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenSavedFeedPreview(feed)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f8f7fa] hover:bg-slate-100 text-slate-700 text-xs font-bold border border-[#dbdade] transition shadow-2xs"
+                          title="Inspect first 5 sample rows of this remote feed"
+                        >
+                          <Eye className="w-3.5 h-3.5 text-teal-700" />
+                          <span>Preview Data</span>
+                        </button>
+
                         <button
                           onClick={() => handleSyncFeedNow(feed)}
                           disabled={isSyncing}
@@ -1089,6 +1123,94 @@ export default function SupplierSessionsAndFeedsPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* SAVED FEED SAMPLE PREVIEW MODAL */}
+      {activePreviewFeed && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-xl border border-[#dbdade] shadow-2xl max-w-3xl w-full p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5 text-teal-700" />
+                <div>
+                  <h3 className="font-bold text-slate-900 text-sm">
+                    Live Feed Data Preview — {activePreviewFeed.feedName}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-mono">
+                    Protocol: {activePreviewFeed.feedType} | SKU: {activePreviewFeed.columnMapping?.sku} | Price: {activePreviewFeed.columnMapping?.price}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActivePreviewFeed(null)}
+                className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {loadingFeedPreview ? (
+              <div className="py-12 text-center text-xs text-slate-500">
+                <div className="inline-block w-5 h-5 border-2 border-slate-300 border-t-teal-700 rounded-full animate-spin mb-2"></div>
+                <p>Connecting to remote feed and reading sample records...</p>
+              </div>
+            ) : feedSampleData?.sampleRows?.length > 0 ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-xs text-slate-600">
+                  <span>
+                    Detected <strong>{feedSampleData.availableColumns?.length} columns</strong> ({feedSampleData.totalRows} total records in feed)
+                  </span>
+                  <span className="text-emerald-700 font-bold text-[11px] bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                    ✓ Feed Reachable
+                  </span>
+                </div>
+                <div className="overflow-x-auto rounded-xl border border-[#dbdade] bg-white max-h-60 shadow-2xs">
+                  <table className="w-full text-[11px] text-left">
+                    <thead className="bg-[#f8f7fa] text-slate-600 uppercase font-mono text-[9px] border-b border-[#dbdade]">
+                      <tr>
+                        {feedSampleData.availableColumns?.slice(0, 8).map((c: string) => (
+                          <th key={c} className="p-2 border-r border-[#dbdade] whitespace-nowrap">
+                            {c}
+                            {c === activePreviewFeed.columnMapping?.sku && (
+                              <span className="ml-1 text-[8px] bg-amber-100 text-amber-900 px-1 rounded">SKU</span>
+                            )}
+                            {c === activePreviewFeed.columnMapping?.price && (
+                              <span className="ml-1 text-[8px] bg-emerald-100 text-emerald-900 px-1 rounded">PRICE</span>
+                            )}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 font-mono text-slate-700">
+                      {feedSampleData.sampleRows.map((row: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-[#f8f7fa]/60">
+                          {feedSampleData.availableColumns?.slice(0, 8).map((c: string) => (
+                            <td key={c} className="p-2 truncate max-w-[150px] border-r border-slate-100">
+                              {String(row[c] || '—')}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="py-8 text-center text-xs text-slate-400">
+                No sample rows could be read from this remote source.
+              </div>
+            )}
+
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setActivePreviewFeed(null)}
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+              >
+                Close Preview
+              </button>
+            </div>
           </div>
         </div>
       )}

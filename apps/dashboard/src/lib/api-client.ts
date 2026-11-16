@@ -832,6 +832,12 @@ export class DashboardApiClient {
     }, 'client');
   }
 
+  async testStoreConnection(storeId: string): Promise<any> {
+    return this.fetchJson(`/stores/${storeId}/test`, {
+      method: 'POST',
+    }, 'client');
+  }
+
   async getProducts(params?: { q?: string; limit?: number; offset?: number }): Promise<any> {
     const qs = new URLSearchParams();
     if (params?.q) qs.set('q', params.q);

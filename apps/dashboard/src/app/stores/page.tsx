@@ -26,7 +26,9 @@ import {
   Terminal,
   UploadCloud,
   Edit,
-  Trash2
+  Trash2,
+  Activity,
+  Zap,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -34,6 +36,8 @@ export default function StoresPage() {
   const [stores, setStores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState<string | null>(null);
+  const [pingingStoreId, setPingingStoreId] = useState<string | null>(null);
+  const [pingResults, setPingResults] = useState<Record<string, { success: boolean; latencyMs?: number; error?: string; message?: string }>>({});
   const [showAddModal, setShowAddModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -292,6 +296,46 @@ export default function StoresPage() {
       console.error(e);
     } finally {
       setIsSyncing(null);
+    }
+  };
+
+  const handleTestStore = async (storeId: string) => {
+    try {
+      setPingingStoreId(storeId);
+      const startTime = performance.now();
+      const res = await apiClient.testStoreConnection(storeId);
+      const latencyMs = Math.round(performance.now() - startTime);
+
+      if (res?.success || res?.testResult?.success) {
+        setPingResults((prev) => ({
+          ...prev,
+          [storeId]: {
+            success: true,
+            latencyMs,
+            message: res?.testResult?.version ? `Connected (${res.testResult.version})` : 'Connected',
+          },
+        }));
+      } else {
+        setPingResults((prev) => ({
+          ...prev,
+          [storeId]: {
+            success: false,
+            latencyMs,
+            error: res?.error || res?.testResult?.error || 'Store connection failed or timed out',
+          },
+        }));
+      }
+      await loadStores();
+    } catch (err: any) {
+      setPingResults((prev) => ({
+        ...prev,
+        [storeId]: {
+          success: false,
+          error: err.message || 'Connection ping failed',
+        },
+      }));
+    } finally {
+      setPingingStoreId(null);
     }
   };
 
@@ -721,10 +765,49 @@ export default function StoresPage() {
                     </span>
                   </div>
                 </div>
+
+                {/* Live Ping Health Banner */}
+                {pingResults[s.id] && (
+                  <div
+                    className={`p-2.5 rounded-lg text-xs font-semibold flex items-center justify-between border ${
+                      pingResults[s.id].success
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                        : 'bg-rose-50 border-rose-200 text-rose-800'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {pingResults[s.id].success ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                      )}
+                      <span className="truncate">
+                        {pingResults[s.id].success
+                          ? `Live & Healthy (${pingResults[s.id].latencyMs}ms)`
+                          : `Failed: ${pingResults[s.id].error}`}
+                      </span>
+                    </div>
+                    {pingResults[s.id].success && (
+                      <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100/70 px-1.5 py-0.2 rounded font-bold shrink-0">
+                        200 OK
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5">
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => handleTestStore(s.id)}
+                    disabled={pingingStoreId === s.id}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#f8f7fa] hover:bg-slate-200/70 text-slate-800 font-semibold text-xs rounded-lg border border-[#dbdade] transition disabled:opacity-50"
+                    title="Ping store live to test connection latency"
+                  >
+                    <Activity className={`w-3.5 h-3.5 text-teal-700 ${pingingStoreId === s.id ? 'animate-spin' : ''}`} />
+                    <span>{pingingStoreId === s.id ? 'Testing...' : 'Test Ping'}</span>
+                  </button>
+
                   <button
                     onClick={() => openLanguagesModal(s)}
                     className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-lg transition"
