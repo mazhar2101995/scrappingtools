@@ -33,6 +33,11 @@ import {
   TrendingUp,
   RefreshCw,
   Eye,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  AlertTriangle,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -42,6 +47,17 @@ export default function ProductsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'VERIFIED' | 'NEEDS_REVIEW'>('ALL');
+  const [syncFilter, setSyncFilter] = useState<'ALL' | 'SYNCED' | 'NOT_PUSHED'>('ALL');
+
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Bulk Delete Modal States
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [bulkDeleteProgress, setBulkDeleteProgress] = useState<{ current: number; total: number } | null>(null);
 
   // Add Product Workflow Modal States
   const [showAddModal, setShowAddModal] = useState(false);
@@ -158,10 +174,47 @@ export default function ProductsPage() {
       setDeletingId(id);
       await apiClient.deleteProduct(id);
       setProducts((prev) => prev.filter((p) => p.id !== id && p.mappingId !== id));
+      setSelectedProductIds((prev) => prev.filter((pid) => pid !== id));
     } catch (err: any) {
       alert(`Failed to delete product: ${err.message || 'Unknown error'}`);
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  // Reset pagination to page 1 whenever any filter or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, brandFilter, statusFilter, syncFilter, pageSize]);
+
+  // Execute Bulk Delete of selected products
+  async function handleExecuteBulkDelete() {
+    if (selectedProductIds.length === 0) return;
+
+    try {
+      setBulkDeleting(true);
+      setBulkDeleteProgress({ current: 0, total: selectedProductIds.length });
+
+      let deletedCount = 0;
+      for (const id of selectedProductIds) {
+        try {
+          await apiClient.deleteProduct(id);
+          deletedCount++;
+          setBulkDeleteProgress({ current: deletedCount, total: selectedProductIds.length });
+        } catch (err) {
+          console.error(`Failed to delete product ${id}:`, err);
+        }
+      }
+
+      setProducts((prev) => prev.filter((p) => !selectedProductIds.includes(p.id) && !selectedProductIds.includes(p.mappingId)));
+      setSelectedProductIds([]);
+      setShowBulkDeleteModal(false);
+      loadCatalog();
+    } catch (err: any) {
+      alert(`Bulk delete failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setBulkDeleting(false);
+      setBulkDeleteProgress(null);
     }
   }
 
@@ -718,8 +771,15 @@ export default function ProductsPage() {
       p.modelNumber?.toLowerCase().includes(search.toLowerCase()) ||
       p.gtinEan?.toLowerCase().includes(search.toLowerCase());
     const matchesBrand = brandFilter === 'ALL' || p.brand?.toLowerCase() === brandFilter.toLowerCase();
-    return matchesSearch && matchesBrand;
+    const status = p.verificationStatus || 'NEEDS_REVIEW';
+    const matchesStatus = statusFilter === 'ALL' || status === statusFilter;
+    const isSynced = Array.isArray(p.syncedStores) && p.syncedStores.length > 0;
+    const matchesSync = syncFilter === 'ALL' || (syncFilter === 'SYNCED' ? isSynced : !isSynced);
+    return matchesSearch && matchesBrand && matchesStatus && matchesSync;
   });
+
+  const totalPages = Math.ceil(filtered.length / pageSize) || 1;
+  const paginatedProducts = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="space-y-6 w-full font-sans text-[#4b465c]">
@@ -771,11 +831,30 @@ export default function ProductsPage() {
             disabled={selectedProductIds.length === 0}
             className={`flex items-center gap-1.5 px-3.5 py-2 font-semibold text-xs rounded-xl transition ${selectedProductIds.length > 0
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                : 'bg-slate-100 text-[#82808b] border border-[#dbdade] cursor-not-allowed'
+                : 'bg-slate-100 text-[#82808b] border border-[#dbdade] cursor-not-allowed opacity-60'
               }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             <span>Bulk Push to Store ({selectedProductIds.length})</span>
+          </button>
+
+          {/* Bulk Delete Button */}
+          <button
+            onClick={() => {
+              if (selectedProductIds.length === 0) {
+                alert('Please select at least 1 product using the table checkboxes first.');
+                return;
+              }
+              setShowBulkDeleteModal(true);
+            }}
+            disabled={selectedProductIds.length === 0 || bulkDeleting}
+            className={`flex items-center gap-1.5 px-3.5 py-2 font-semibold text-xs rounded-xl transition ${selectedProductIds.length > 0
+                ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs'
+                : 'bg-slate-100 text-[#82808b] border border-[#dbdade] cursor-not-allowed opacity-60'
+              }`}
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+            <span>Bulk Delete ({selectedProductIds.length})</span>
           </button>
 
           {/* Bulk Import Button */}
@@ -798,20 +877,44 @@ export default function ProductsPage() {
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-[#dbdade] shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative flex-1 w-full sm:max-w-md">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#82808b]" />
-          <input
-            type="text"
-            placeholder="Search by Title, GTIN/EAN, or MPN..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-[#f8f7fa] border border-[#dbdade] rounded-xl text-xs text-[#4b465c] placeholder-[#82808b] focus:outline-none focus:border-teal-700 focus:bg-white transition"
-          />
+      <div className="bg-white p-4 rounded-xl border border-[#dbdade] shadow-2xs flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full">
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#82808b]" />
+            <input
+              type="text"
+              placeholder="Search by Title, GTIN/EAN, or MPN..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-[#f8f7fa] border border-[#dbdade] rounded-xl text-xs text-[#4b465c] placeholder-[#82808b] focus:outline-none focus:border-teal-700 focus:bg-white transition"
+            />
+          </div>
+
+          {/* Quality Status Dropdown Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            className="w-full sm:w-auto px-3 py-2 bg-[#f8f7fa] border border-[#dbdade] rounded-xl text-xs font-semibold text-[#4b465c] focus:outline-none focus:border-teal-700 focus:bg-white transition cursor-pointer"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="NEEDS_REVIEW">Needs Review</option>
+            <option value="VERIFIED">Verified</option>
+          </select>
+
+          {/* Store Sync Dropdown Filter */}
+          <select
+            value={syncFilter}
+            onChange={(e) => setSyncFilter(e.target.value as any)}
+            className="w-full sm:w-auto px-3 py-2 bg-[#f8f7fa] border border-[#dbdade] rounded-xl text-xs font-semibold text-[#4b465c] focus:outline-none focus:border-teal-700 focus:bg-white transition cursor-pointer"
+          >
+            <option value="ALL">All Sync States</option>
+            <option value="SYNCED">Synced to Store</option>
+            <option value="NOT_PUSHED">Not Pushed</option>
+          </select>
         </div>
 
         {/* Dynamic Brand Filter Pills */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto justify-start md:justify-end">
           <button
             onClick={() => setBrandFilter('ALL')}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${brandFilter === 'ALL' ? 'bg-[#0d2a2c] text-white shadow-2xs' : 'bg-[#f8f7fa] text-[#82808b] border border-[#dbdade] hover:bg-slate-100'
@@ -842,9 +945,17 @@ export default function ProductsPage() {
               <th className="py-3 px-3 w-10 text-center">
                 <input
                   type="checkbox"
-                  checked={filtered.length > 0 && selectedProductIds.length === filtered.length}
-                  onChange={() => handleSelectAll(filtered)}
-                  title="Select All Products"
+                  checked={paginatedProducts.length > 0 && paginatedProducts.every((p) => selectedProductIds.includes(p.id))}
+                  onChange={() => {
+                    const pageIds = paginatedProducts.map((p) => p.id);
+                    const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedProductIds.includes(id));
+                    if (allPageSelected) {
+                      setSelectedProductIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+                    } else {
+                      setSelectedProductIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+                    }
+                  }}
+                  title="Select all on this page"
                   className="w-4 h-4 rounded border-[#dbdade] text-[#0d2a2c] focus:ring-teal-700 cursor-pointer"
                 />
               </th>
@@ -872,22 +983,27 @@ export default function ProductsPage() {
                     <div className="w-12 h-12 rounded-xl bg-[#f8f7fa] border border-[#dbdade] flex items-center justify-center mx-auto text-[#82808b]">
                       <Package className="w-6 h-6" />
                     </div>
-                    <h3 className="text-sm font-bold text-[#4b465c]">No products in your catalog yet</h3>
+                    <h3 className="text-sm font-bold text-[#4b465c]">No products match your criteria</h3>
                     <p className="text-xs text-[#82808b] leading-relaxed">
-                      You haven&apos;t added or scraped any products for this organization yet. Click below to add your first product using your configured Brand Profiles.
+                      Try clearing or adjusting your search keyword, brand pill, or status filters.
                     </p>
                     <button
-                      onClick={handleOpenAddModal}
+                      onClick={() => {
+                        setSearch('');
+                        setBrandFilter('ALL');
+                        setStatusFilter('ALL');
+                        setSyncFilter('ALL');
+                      }}
                       className="px-4 py-2 bg-[#0d2a2c] text-white text-xs font-semibold rounded-xl hover:bg-[#143d40] transition shadow-xs inline-flex items-center gap-1.5"
                     >
-                      <Plus className="w-4 h-4 text-[#fad982]" />
-                      <span>+ Add Product</span>
+                      <RefreshCw className="w-4 h-4 text-[#fad982]" />
+                      <span>Reset Filters</span>
                     </button>
                   </div>
                 </td>
               </tr>
             ) : (
-              filtered.map((prod) => {
+              paginatedProducts.map((prod) => {
                 const isSelected = selectedProductIds.includes(prod.id);
                 return (
                   <tr key={prod.id} className={`transition ${isSelected ? 'bg-teal-50/40' : 'hover:bg-[#f8f7fa]/60'}`}>
@@ -1040,7 +1156,168 @@ export default function ProductsPage() {
             )}
           </tbody>
         </table>
+
+        {/* Vuexy-Bordered Table Pagination Footer */}
+        <div className="px-5 py-3.5 bg-white border-t border-[#dbdade] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4 text-xs text-[#82808b] flex-wrap justify-center sm:justify-start">
+            <span>
+              Showing <strong className="text-[#4b465c] font-semibold">{filtered.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong> to{' '}
+              <strong className="text-[#4b465c] font-semibold">{Math.min(currentPage * pageSize, filtered.length)}</strong> of{' '}
+              <strong className="text-[#4b465c] font-semibold">{filtered.length}</strong> entries
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span>Rows per page:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="px-2 py-1 bg-[#f8f7fa] border border-[#dbdade] rounded-lg text-xs font-semibold text-[#4b465c] focus:outline-none focus:border-teal-700 cursor-pointer"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              title="First Page"
+              className="p-1.5 rounded-lg border border-[#dbdade] bg-[#f8f7fa] hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-[#4b465c] transition"
+            >
+              <ChevronsLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              title="Previous Page"
+              className="p-1.5 rounded-lg border border-[#dbdade] bg-[#f8f7fa] hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-[#4b465c] transition"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            {/* Page Numbers */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((page) => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+              .map((page, idx, arr) => {
+                const prev = arr[idx - 1];
+                const showEllipsis = prev && page - prev > 1;
+                return (
+                  <React.Fragment key={page}>
+                    {showEllipsis && <span className="px-1 text-xs text-[#82808b]">...</span>}
+                    <button
+                      onClick={() => setCurrentPage(page)}
+                      className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-bold transition ${
+                        currentPage === page
+                          ? 'bg-[#0d2a2c] text-[#fad982] shadow-2xs'
+                          : 'bg-white border border-[#dbdade] text-[#4b465c] hover:bg-[#f8f7fa]'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages || totalPages === 0}
+              title="Next Page"
+              className="p-1.5 rounded-lg border border-[#dbdade] bg-[#f8f7fa] hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-[#4b465c] transition"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages || totalPages === 0}
+              title="Last Page"
+              className="p-1.5 rounded-lg border border-[#dbdade] bg-[#f8f7fa] hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-[#4b465c] transition"
+            >
+              <ChevronsRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* BULK DELETE CONFIRMATION MODAL                                            */}
+      {/* ========================================================================= */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full shadow-2xl border border-[#dbdade] overflow-hidden animate-scaleUp">
+            <div className="px-6 py-4 bg-rose-600 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Trash2 className="w-5 h-5" />
+                <h3 className="font-bold text-sm text-white">Bulk Delete Products</h3>
+              </div>
+              <button
+                onClick={() => !bulkDeleting && setShowBulkDeleteModal(false)}
+                disabled={bulkDeleting}
+                className="p-1 rounded-lg hover:bg-white/10 text-white/80 hover:text-white transition disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  Are you sure you want to delete {selectedProductIds.length} products?
+                </p>
+                <p className="text-[11px] text-rose-700">
+                  These items will be unmapped from your organization catalog and removed from active store distribution. This action is recorded in audit logs.
+                </p>
+              </div>
+
+              {bulkDeleting && bulkDeleteProgress && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs text-[#82808b]">
+                    <span>Deleting products...</span>
+                    <span className="font-semibold text-[#4b465c]">
+                      {bulkDeleteProgress.current} / {bulkDeleteProgress.total}
+                    </span>
+                  </div>
+                  <div className="w-full bg-[#f8f7fa] border border-[#dbdade] h-2 rounded-full overflow-hidden">
+                    <div
+                      className="bg-rose-600 h-full transition-all duration-200"
+                      style={{
+                        width: `${Math.round((bulkDeleteProgress.current / bulkDeleteProgress.total) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkDeleteModal(false)}
+                  disabled={bulkDeleting}
+                  className="px-4 py-2 border border-[#dbdade] hover:bg-[#f8f7fa] text-[#4b465c] font-semibold text-xs rounded-xl transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteBulkDelete}
+                  disabled={bulkDeleting}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl transition flex items-center gap-1.5 disabled:opacity-50 shadow-2xs"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{bulkDeleting ? 'Deleting...' : `Confirm Delete (${selectedProductIds.length})`}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* BRAND-DRIVEN ADD PRODUCT MODAL (Clean, Non-Technical Client Workflow)      */}
