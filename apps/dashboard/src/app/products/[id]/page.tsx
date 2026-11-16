@@ -544,6 +544,20 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 </div>
               </div>
             )}
+
+            {/* Direct Deep-link to AI Image Studio */}
+            <div className="pt-2">
+              <Link
+                href={`/settings/image-studio?productId=${product.id}${selectedImage ? `&imageUrl=${encodeURIComponent(selectedImage)}` : ''}`}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0d2a2c] hover:bg-[#143d40] text-white text-xs font-semibold rounded-xl shadow-2xs transition group"
+              >
+                <Sparkles className="w-4 h-4 text-[#fad982] group-hover:rotate-12 transition-transform" />
+                <span>Clean &amp; Enhance in AI Image Studio</span>
+              </Link>
+              <p className="text-[10px] text-center text-[#82808b] mt-1.5 font-medium">
+                Pure white background (#FFFFFF) &amp; WebP optimization
+              </p>
+            </div>
           </div>
 
           {/* Details Section (Right 7 cols) */}
