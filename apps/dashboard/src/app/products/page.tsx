@@ -31,7 +31,8 @@ import {
   Send,
   Activity,
   TrendingUp,
-  RefreshCw
+  RefreshCw,
+  Eye,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -916,32 +917,38 @@ export default function ProductsPage() {
                       </span>
                     </td>
 
-                    <td className="py-4 px-4 font-mono text-[11px] text-[#4b465c] space-y-0.5">
-                      {/* Phase 6 Quality Status Badge */}
-                      <div className="mb-1">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase font-mono border ${prod.verificationStatus === 'verified'
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                              : prod.verificationStatus === 'conflict'
-                                ? 'bg-rose-50 text-rose-800 border-rose-200'
-                                : 'bg-amber-50 text-amber-800 border-amber-200'
-                            }`}
-                        >
-                          <ShieldCheck className="w-3 h-3" />
-                          <span>{prod.verificationStatus || 'NEEDS_REVIEW'}</span>
-                        </span>
+                    {/* Quality Status */}
+                    <td className="py-4 px-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-semibold uppercase font-mono border ${
+                          prod.verificationStatus === 'verified'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : prod.verificationStatus === 'conflict'
+                              ? 'bg-rose-50 text-rose-800 border-rose-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                        }`}
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>{prod.verificationStatus || 'NEEDS_REVIEW'}</span>
+                      </span>
+                    </td>
+
+                    {/* Identifiers */}
+                    <td className="py-4 px-4 font-mono text-[11px] text-[#4b465c] space-y-0.5 whitespace-nowrap">
+                      <div>
+                        <span className="text-[#82808b] text-[10px]">EAN: </span>
+                        <span className="text-[#4b465c] font-bold">{prod.gtinEan || '—'}</span>
                       </div>
                       <div>
-                        EAN: <span className="text-[#4b465c] font-bold">{prod.gtinEan || '—'}</span>
-                      </div>
-                      <div>
-                        MPN: <span className="text-[#82808b]">{prod.modelNumber || '—'}</span>
+                        <span className="text-[#82808b] text-[10px]">MPN: </span>
+                        <span className="text-[#82808b]">{prod.modelNumber || '—'}</span>
                       </div>
                     </td>
 
-                    <td className="py-4 px-4 text-[11px] text-[#4b465c]">
-                      <div>{prod.sourcesCount || 1} domains</div>
-                      <div className="text-[#82808b] font-medium">{prod.variantsCount || 1} variants</div>
+                    {/* Sources / Variants */}
+                    <td className="py-4 px-4 text-[11px] text-[#4b465c] whitespace-nowrap">
+                      <div className="font-medium text-[#4b465c]">{prod.sourcesCount || 1} domains</div>
+                      <div className="text-[#82808b] text-[10px]">{prod.variantsCount || 1} variants</div>
                     </td>
 
                     {/* Store Sync Status Badge (Single consolidated badge on listing) */}
@@ -984,17 +991,19 @@ export default function ProductsPage() {
                       )}
                     </td>
 
-                    <td className="py-4 px-4 font-bold text-slate-900">{prod.priceEstimate || '—'}</td>
+                    {/* Price Est. */}
+                    <td className="py-4 px-4 font-bold text-[#4b465c] font-mono whitespace-nowrap">{prod.priceEstimate || '—'}</td>
 
-                    <td className="py-4 px-5 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    {/* Actions (View & Delete) */}
+                    <td className="py-4 px-5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
                         {/* Instant Live Price & Stock Verification */}
                         <button
                           type="button"
                           onClick={() => handleCheckSinglePrice(prod.id)}
                           disabled={checkingSingleId === prod.id}
                           title="Verify live supplier price & stock now"
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition"
+                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-[#82808b] hover:text-emerald-700 hover:bg-emerald-50 border border-transparent hover:border-emerald-200 transition"
                         >
                           {checkingSingleId === prod.id ? (
                             <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
@@ -1003,19 +1012,23 @@ export default function ProductsPage() {
                           )}
                         </button>
 
+                        {/* View Product Details Button with Eye Icon */}
                         <Link
                           href={`/products/${prod.id}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
+                          title="View Product Details"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-[#4b465c] hover:text-teal-900 bg-[#f8f7fa] hover:bg-teal-50 border border-[#dbdade] hover:border-teal-300 transition shadow-2xs"
                         >
-                          <span>Inspect</span>
-                          <span>›</span>
+                          <Eye className="w-3.5 h-3.5 text-teal-700" />
+                          <span>View</span>
                         </Link>
+
+                        {/* Delete Product Button with Trash Icon */}
                         <button
                           type="button"
                           onClick={() => handleDeleteProduct(prod.id, prod.canonicalTitle)}
                           disabled={deletingId === prod.id}
                           title="Delete product from catalog"
-                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition disabled:opacity-50"
+                          className="inline-flex items-center justify-center p-1.5 rounded-lg text-[#82808b] hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition disabled:opacity-50"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
