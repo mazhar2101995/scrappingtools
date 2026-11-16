@@ -891,7 +891,7 @@ export default function BrandProfileDetailPage() {
 
       setExportStatusMsg({
         type: 'success',
-        text: 'Store export profile saved and validated successfully! Note: Store products will NOT be modified until Phase 9B.',
+        text: 'Store export profile saved and validated successfully! Note: Store products will not be updated until manually confirmed.',
       });
     } catch (err: any) {
       setExportStatusMsg({ type: 'error', text: err.message || 'Failed to save store export profile' });
@@ -1188,7 +1188,7 @@ export default function BrandProfileDetailPage() {
           {[
             { key: 'visual', label: 'Visual Auto Mapping', icon: MousePointerClick, badge: 'NEW' },
             { key: 'mappings', label: 'Manual Field Mapping', icon: SlidersHorizontal, count: fieldMappings.length },
-            { key: 'image_rules', label: 'Source Content Images', icon: ImageIcon, badge: 'Phase 9D' },
+            { key: 'image_rules', label: 'Source Content Images', icon: ImageIcon },
             { key: 'groups', label: 'Groups & Product Tabs', icon: FolderKanban, count: fieldGroups.length },
             { key: 'sources', label: 'Product Sources', icon: Layers, count: sourceConfigs.length },
           ].map((tab) => {
@@ -1225,7 +1225,7 @@ export default function BrandProfileDetailPage() {
 
           <div className="px-3 pt-3 pb-1 border-t border-slate-100 mt-2 mb-1">
             <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-              Presentation & Business Rules (9D)
+              Presentation & Business Rules
             </span>
           </div>
 
@@ -1272,7 +1272,7 @@ export default function BrandProfileDetailPage() {
           </div>
 
           {[
-            { key: 'store_export', label: 'Store Export Mapping', icon: ShoppingBag, badge: 'Phase 9A' },
+            { key: 'store_export', label: 'Store Export Mapping', icon: ShoppingBag },
             { key: 'custom', label: 'Custom Client Fields', icon: ListPlus, count: customFields.length },
             { key: 'model_rules', label: 'Model Normalization', icon: Sliders, badge: modelPatternEnabled ? 'ON' : undefined },
             { key: 'seo', label: 'AI SEO Settings', icon: Globe, badge: seoEnabled ? 'ON' : undefined },
@@ -2761,7 +2761,6 @@ export default function BrandProfileDetailPage() {
                 <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
                   Scraping &amp; Media Rules
                 </span>
-                <span className="text-xs text-slate-400 font-mono">Phase 9D</span>
               </div>
               <h2 className="text-lg font-black tracking-tight text-slate-900">
                 Source Content &amp; Media Extraction Control
@@ -2863,7 +2862,6 @@ export default function BrandProfileDetailPage() {
                 <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
                   Field Presentation Control
                 </span>
-                <span className="text-xs text-slate-400 font-mono">Phase 9D</span>
               </div>
               <h2 className="text-lg font-black tracking-tight text-slate-900">
                 Field Control, Data Source &amp; Display Visibility
@@ -2984,7 +2982,6 @@ export default function BrandProfileDetailPage() {
                 <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
                   Brand Presentation Engine
                 </span>
-                <span className="text-xs text-slate-400 font-mono">Phase 9D</span>
               </div>
               <h2 className="text-lg font-black tracking-tight text-slate-900">
                 Content Templates &amp; Presentation Rules
@@ -3427,7 +3424,6 @@ export default function BrandProfileDetailPage() {
                 <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
                   Data Governance
                 </span>
-                <span className="text-xs text-slate-400 font-mono">Phase 9D</span>
               </div>
               <h2 className="text-lg font-black tracking-tight text-slate-900">
                 Missing Data Rules &amp; Fallback Handlers
@@ -3516,7 +3512,6 @@ export default function BrandProfileDetailPage() {
                 <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-[#0d2a2c]/10 text-[#0d2a2c] uppercase tracking-wider">
                   Margin &amp; Pricing Engine
                 </span>
-                <span className="text-xs text-slate-400 font-mono">Phase 9D</span>
               </div>
               <h2 className="text-lg font-black tracking-tight text-slate-900">
                 Brand Margin &amp; Price Adjustment Rules

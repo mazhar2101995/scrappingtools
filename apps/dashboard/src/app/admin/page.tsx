@@ -107,7 +107,7 @@ export default function PlatformAdminControlCenter() {
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-[#fad982]/50 text-[#7a5e12] border border-[#ebd085] uppercase tracking-wider font-mono">
               GLOBAL PLATFORM TELEMETRY
             </span>
-            <span className="text-xs text-slate-500 font-mono">Phase 1 to Phase 7 Live Engine</span>
+            <span className="text-xs text-slate-500 font-mono">Real-time Platform Engine</span>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">
             Platform Operations &amp; Intelligence Gateway
@@ -293,7 +293,7 @@ export default function PlatformAdminControlCenter() {
             </div>
             <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-100">
               <span>Identity &amp; Checksum Issues</span>
-              <span className="text-amber-700 font-bold">Phase 6 Active</span>
+              <span className="text-amber-700 font-bold">Queue Active</span>
             </div>
           </div>
         </Link>
@@ -417,7 +417,7 @@ export default function PlatformAdminControlCenter() {
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-900">Human Review Center</span>
               <span className="text-xs font-mono font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                Phase 6 Verified
+                Quality Verified
               </span>
             </div>
             <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
@@ -436,7 +436,7 @@ export default function PlatformAdminControlCenter() {
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-900">Integration Traffic Gateway</span>
               <span className="text-xs font-mono font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-200">
-                Phase 7 Active
+                Gateway Active
               </span>
             </div>
             <p className="text-[11px] text-slate-500 leading-relaxed font-medium">

@@ -1115,7 +1115,7 @@ export default function ProductsPage() {
                       <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-teal-500/10 to-transparent border border-amber-200/60 space-y-1">
                         <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
                           <Sparkles className="w-4 h-4 text-amber-600" />
-                          <span>Phase 5 Multi-Source Discovery Engine</span>
+                          <span>Multi-Source Discovery Engine</span>
                         </span>
                         <p className="text-[11px] text-slate-600">
                           Enter any Barcode (EAN-13, GTIN-14, UPC-A) or Model Number. The platform will query existing verified intelligence and ranked distributor sources.

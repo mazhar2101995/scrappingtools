@@ -2124,9 +2124,6 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 <div>
                   <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
                     <span>Store Change Preview &amp; Verification Plan</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 font-bold text-slate-700">
-                      Phase 9B
-                    </span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Server-side dry run verifying field-level permissions and latest store baseline.
@@ -2350,9 +2347,6 @@ export default function ProductDetailPage({ params }: { params: { id: string } }
                 <div>
                   <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
                     <span>Multi-Store Product Distribution Matrix</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-100 text-teal-900 font-bold">
-                      Phase 9C
-                    </span>
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Live distribution status across all connected stores and configured destination languages.
