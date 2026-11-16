@@ -31,7 +31,8 @@ import {
   DollarSign,
   Crosshair,
   KeyRound,
-  Wand2
+  Wand2,
+  Menu,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 import CommandPalette from './CommandPalette';
@@ -102,6 +103,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [notificationsList, setNotificationsList] = useState<any[]>([]);
   const [helpModalOpen, setHelpModalOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const [quotaUsage, setQuotaUsage] = useState<{
     planName: string;
@@ -193,7 +195,45 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setProfileDropdownOpen(false);
     setNotificationsOpen(false);
+    setMobileMenuOpen(false);
   }, [pathname]);
+
+  // Dynamic Breadcrumb Builder
+  const getBreadcrumbs = () => {
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts.length === 0) return [{ label: 'Overview', href: '/' }];
+
+    const breadcrumbs = [{ label: 'Home', href: '/' }];
+    let currentPath = '';
+
+    parts.forEach((part) => {
+      currentPath += `/${part}`;
+      let label = part;
+      if (part === 'products') label = 'Products';
+      else if (part === 'brands') label = 'Brand Profiles';
+      else if (part === 'stores') label = 'Connected Stores';
+      else if (part === 'sync') label = 'Sync & Integration';
+      else if (part === 'settings') label = 'Settings';
+      else if (part === 'image-studio') label = 'AI Image Studio';
+      else if (part === 'competitors') label = 'Competitor Price Spy';
+      else if (part === 'suppliers') label = 'Wholesale Accounts';
+      else if (part === 'pricing') label = 'Pricing & Margins';
+      else if (part === 'ai') label = 'AI Normalization';
+      else if (part === 'proxies') label = 'Proxies & Anti-Bot';
+      else if (part === 'billing') label = 'Plan & Billing';
+      else if (part === 'team') label = 'Team & Permissions';
+      else if (part === 'workspace') label = 'Workspace Settings';
+      else if (part === 'intelligence') label = 'Intelligence Engine';
+      else if (part === 'jobs') label = 'Background Jobs';
+      else if (part === 'health') label = 'System Analytics';
+      else if (part.length > 20) label = 'Detail';
+      else label = part.charAt(0).toUpperCase() + part.slice(1);
+
+      breadcrumbs.push({ label, href: currentPath });
+    });
+
+    return breadcrumbs;
+  };
 
   // Global Keyboard Listener for Cmd+K / Ctrl+K
   useEffect(() => {
@@ -228,8 +268,146 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen bg-[#f8f7fa] text-[#4b465c] font-sans antialiased overflow-hidden select-none">
-      {/* 1. VUEXY BORDERED CLEAN WHITE SIDEBAR */}
-      <aside className="w-64 flex flex-col bg-white text-[#5d596c] shrink-0 border-r border-[#dbdade] relative z-30">
+      {/* MOBILE DRAWER OVERLAY (SCREENS < 1024px) */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+
+          {/* Drawer Sidebar */}
+          <div className="relative w-72 max-w-[85vw] bg-white h-full shadow-2xl flex flex-col z-50 border-r border-[#dbdade] animate-in slide-in-from-left duration-200">
+            {/* Header with Close Button */}
+            <div className="h-16 flex items-center justify-between px-5 border-b border-[#dbdade]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-[#0d2a2c] text-[#fad982] flex items-center justify-center font-black text-xs shadow-2xs">
+                  <span>PI</span>
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-bold text-sm tracking-tight text-[#4b465c]">
+                    Product Intelligence
+                  </span>
+                  <span className="text-[9px] text-teal-800 font-mono tracking-wider uppercase font-bold">
+                    ENTERPRISE BORDERED
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Active Workspace Selector Card */}
+            <div className="px-3.5 py-3">
+              <div className="p-2.5 rounded-xl bg-[#f8f7fa] border border-[#dbdade] flex items-center justify-between">
+                <div className="min-w-0 pr-2">
+                  <div className="text-[9px] font-bold uppercase tracking-wider text-[#a5a3ae]">Active Workspace</div>
+                  <div className="text-xs font-bold text-[#4b465c] truncate mt-0.5">{workspaceName}</div>
+                </div>
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-300 text-[9px] font-mono font-bold text-emerald-700 shrink-0">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span>LIVE</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Nav Hierarchy */}
+            <nav className="flex-1 px-3 py-2 space-y-4 overflow-y-auto">
+              {NAV_SECTIONS.map((section) => (
+                <div key={section.title} className="space-y-1">
+                  <div className="px-3 text-[10px] font-bold text-[#a5a3ae] uppercase tracking-wider font-mono">
+                    {section.title}
+                  </div>
+                  <div className="space-y-0.5">
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname === item.href;
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`group flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                            isActive
+                              ? 'bg-[#0d2a2c] text-white shadow-xs font-bold'
+                              : 'text-[#6f6b7d] hover:text-[#4b465c] hover:bg-[#f8f7fa]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <Icon className={`w-4 h-4 shrink-0 ${
+                              isActive ? 'text-[#fad982]' : 'text-[#82808b]'
+                            }`} />
+                            <span className="truncate">{item.name}</span>
+                          </div>
+                          {item.badge && (
+                            <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase ${
+                              isActive
+                                ? 'bg-[#194c50] text-[#fad982]'
+                                : 'bg-slate-100 text-[#5d596c] border border-[#dbdade]'
+                            }`}>
+                              {item.badge}
+                            </span>
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </nav>
+
+            {/* Quota Card */}
+            {quotaUsage && (
+              <div className="px-3.5 py-2.5 border-t border-[#dbdade] bg-[#fafafb]">
+                <div className="p-3 rounded-xl bg-white border border-[#dbdade] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-[#4b465c] truncate">{quotaUsage.planName}</span>
+                    <Link
+                      href="/settings/billing"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="text-[10px] font-bold text-teal-700 hover:underline"
+                    >
+                      Upgrade
+                    </Link>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] text-[#82808b] font-medium">
+                      <span>Catalog</span>
+                      <span className="font-mono text-[#4b465c] font-semibold">{quotaUsage.productUsed} / {quotaUsage.productLimit}</span>
+                    </div>
+                    <div className="w-full bg-[#f8f7fa] h-1.5 rounded-full overflow-hidden border border-[#dbdade]">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          quotaUsage.productPercent > 90 ? 'bg-rose-500' : 'bg-teal-700'
+                        }`}
+                        style={{ width: `${Math.min(100, quotaUsage.productPercent)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Footer */}
+            <div className="p-3 border-t border-[#dbdade] bg-white text-[10px] text-[#a5a3ae] flex items-center justify-between px-4">
+              <span className="font-mono font-medium">OCMOD v1.4.0</span>
+              <span className="flex items-center gap-1.5 text-emerald-600 font-bold">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Sync Ready
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 1. VUEXY BORDERED CLEAN WHITE SIDEBAR (DESKTOP >= 1024px) */}
+      <aside className="hidden lg:flex w-64 flex-col bg-white text-[#5d596c] shrink-0 border-r border-[#dbdade] relative z-30">
         {/* Brand Header */}
         <div className="h-16 flex items-center px-5 gap-3 border-b border-[#dbdade]">
           <div className="w-8 h-8 rounded-xl bg-[#0d2a2c] text-[#fad982] flex items-center justify-center font-black text-xs shadow-2xs">
@@ -349,26 +527,56 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* 2. VUEXY MAIN VIEWPORT WITH FLOATING BORDERED NAVBAR */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[#f8f7fa] relative">
         {/* Floating Topbar (Vuexy Bordered Navbar Standard) */}
-        <div className="px-6 pt-4 pb-2 shrink-0 z-20">
-          <header className="h-14 bg-white/95 backdrop-blur-md border border-[#dbdade] rounded-xl px-4 flex items-center justify-between shadow-2xs">
-            {/* Quick Command Search Trigger */}
-            <button
-              onClick={() => setCommandPaletteOpen(true)}
-              className="relative w-72 md:w-96 text-left group"
-            >
-              <div className="w-full pl-9 pr-12 py-1.5 bg-[#f8f7fa] hover:bg-[#f1f0f4] border border-[#dbdade] rounded-lg text-xs text-[#82808b] transition flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Search className="w-3.5 h-3.5 text-[#82808b] group-hover:text-[#4b465c] transition" />
-                  <span>Search commands, items (Ctrl+K)...</span>
-                </span>
-                <kbd className="font-mono text-[10px] text-[#82808b] bg-white border border-[#dbdade] rounded px-1.5 py-0.5 shadow-2xs font-semibold">
-                  ⌘K
-                </kbd>
-              </div>
-            </button>
+        <div className="px-3 sm:px-6 pt-3 sm:pt-4 pb-2 shrink-0 z-20">
+          <header className="h-14 bg-white/95 backdrop-blur-md border border-[#dbdade] rounded-xl px-3 sm:px-4 flex items-center justify-between shadow-2xs gap-2 sm:gap-4">
+            {/* Left Area: Mobile Hamburger Button & Breadcrumb Trail / Command Search */}
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              {/* Mobile Hamburger Drawer Trigger (<1024px) */}
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                className="lg:hidden p-2 rounded-lg text-[#6f6b7d] hover:text-[#4b465c] hover:bg-[#f8f7fa] border border-[#dbdade] shrink-0 transition"
+                title="Open Navigation Menu"
+              >
+                <Menu className="w-4 h-4" />
+              </button>
+
+              {/* Dynamic Breadcrumbs */}
+              <nav aria-label="Breadcrumbs" className="hidden md:flex items-center gap-1.5 text-xs text-[#82808b] truncate">
+                {getBreadcrumbs().map((crumb, idx, arr) => (
+                  <React.Fragment key={crumb.href}>
+                    {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-[#dbdade] shrink-0" />}
+                    {idx === arr.length - 1 ? (
+                      <span className="text-[#4b465c] font-bold truncate max-w-[140px] lg:max-w-[180px]">
+                        {crumb.label}
+                      </span>
+                    ) : (
+                      <Link href={crumb.href} className="hover:text-teal-800 transition truncate">
+                        {crumb.label}
+                      </Link>
+                    )}
+                  </React.Fragment>
+                ))}
+              </nav>
+
+              {/* Quick Command Search Trigger */}
+              <button
+                onClick={() => setCommandPaletteOpen(true)}
+                className="relative text-left group"
+              >
+                <div className="pl-8 sm:pl-9 pr-3 sm:pr-8 py-1.5 bg-[#f8f7fa] hover:bg-[#f1f0f4] border border-[#dbdade] rounded-lg text-xs text-[#82808b] transition flex items-center gap-2">
+                  <Search className="w-3.5 h-3.5 text-[#82808b] group-hover:text-[#4b465c] transition shrink-0" />
+                  <span className="hidden sm:inline">Search commands (Ctrl+K)...</span>
+                  <span className="sm:hidden">Search...</span>
+                  <kbd className="hidden lg:inline font-mono text-[9px] text-[#82808b] bg-white border border-[#dbdade] rounded px-1.5 py-0.5 shadow-2xs font-semibold ml-2">
+                    ⌘K
+                  </kbd>
+                </div>
+              </button>
+            </div>
 
             {/* Action Tools & User Profile */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
               {/* Notification Dropdown */}
               <div className="relative" ref={notificationRef}>
                 <button
