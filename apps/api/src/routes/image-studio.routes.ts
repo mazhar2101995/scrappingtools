@@ -62,6 +62,9 @@ imageStudioRouter.post('/transform', requireOrgRole('editor'), quotaMiddleware('
       data: result,
     });
   } catch (err: any) {
+    if (err.message && err.message.includes('STORAGE_QUOTA_EXCEEDED')) {
+      return res.status(403).json({ error: err.message, code: 'STORAGE_QUOTA_EXCEEDED' });
+    }
     return res.status(500).json({ error: err.message || 'Failed to process image in studio' });
   }
 });

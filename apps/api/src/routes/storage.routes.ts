@@ -1,16 +1,132 @@
 import { Router, Request, Response } from 'express';
-import { authMiddleware, adminOnlyMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, adminOnlyMiddleware, requireOrgRole } from '../middleware/auth.middleware';
 import { GarbageCollectionService } from '../services/garbage-collection.service';
+import { StorageAccountingService } from '../services/storage-accounting.service';
 import { SourceHealthService } from '../services/source-health.service';
 import { BrowserIsolationManager } from '../services/browser-isolation.service';
 import { NetworkRouteManager } from '../services/network-route-manager.service';
 import { createRedisConnection, getQueueMetrics, scrapingQueue, browserScrapingQueue } from '@saas/queue';
+import { db, tenantMediaAssets } from '@saas/database';
+import { eq, and, desc } from 'drizzle-orm';
 
 export const storageRouter = Router();
 
-// Protect all storage management endpoints for Super Admin / Admin
+// 1. All storage endpoints require authentication
 storageRouter.use(authMiddleware);
+
+function getOrgId(req: Request): string | null {
+  return (req as any).user?.organizationId || (req as any).apiKey?.organizationId || null;
+}
+
+/**
+ * GET /api/v1/storage/usage
+ * Authoritative Per-Tenant Storage Accounting (Available to Tenant Members)
+ */
+storageRouter.get('/usage', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+
+    const usage = await StorageAccountingService.getTenantStorageUsage(orgId);
+    return res.json({ success: true, data: usage });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to retrieve tenant storage usage', details: err.message });
+  }
+});
+
+/**
+ * GET /api/v1/storage/assets
+ * List Tenant-Scoped Media Assets
+ */
+storageRouter.get('/assets', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+
+    const statusFilter = (req.query.status as string) || 'active';
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 50));
+
+    const assets = await db
+      .select()
+      .from(tenantMediaAssets)
+      .where(
+        and(
+          eq(tenantMediaAssets.organizationId, orgId),
+          statusFilter === 'all' ? undefined : eq(tenantMediaAssets.status, statusFilter)
+        )
+      )
+      .orderBy(desc(tenantMediaAssets.createdAt))
+      .limit(limit);
+
+    return res.json({ success: true, data: assets, count: assets.length });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to list tenant assets', details: err.message });
+  }
+});
+
+/**
+ * DELETE /api/v1/storage/assets/:id
+ * Soft-Delete Asset (Starts 7-day retention grace period)
+ */
+storageRouter.delete('/assets/:id', requireOrgRole('editor'), async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+
+    const assetId = req.params.id as string;
+    const deleted = await StorageAccountingService.softDeleteAsset(orgId, assetId);
+
+    return res.json({
+      success: true,
+      message: 'Asset soft-deleted successfully and entered 7-day retention grace period.',
+      data: deleted,
+    });
+  } catch (err: any) {
+    const status = err.message && err.message.includes('not found') ? 404 : 400;
+    return res.status(status).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /api/v1/storage/assets/:id/restore
+ * Restore Soft-Deleted Asset (Within grace period)
+ */
+storageRouter.post('/assets/:id/restore', requireOrgRole('editor'), async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
+
+    const assetId = req.params.id as string;
+    const restored = await StorageAccountingService.restoreAsset(orgId, assetId);
+
+    return res.json({
+      success: true,
+      message: 'Asset successfully restored to active storage.',
+      data: restored,
+    });
+  } catch (err: any) {
+    const status = err.message && err.message.includes('not found') ? 404 : err.message.includes('STORAGE_QUOTA_EXCEEDED') ? 403 : 400;
+    return res.status(status).json({ error: err.message });
+  }
+});
+
+// ==============================================================================
+// 2. Platform Admin Storage Management Endpoints (Super Admin / Admin Only)
+// ==============================================================================
 storageRouter.use(adminOnlyMiddleware);
+
+/**
+ * GET /api/v1/storage/admin/tenants-overview
+ * Platform Admin Overview of All Tenant Storage Consumption & Quotas
+ */
+storageRouter.get('/admin/tenants-overview', async (req: Request, res: Response) => {
+  try {
+    const telemetry = await StorageAccountingService.getPlatformStorageTelemetry();
+    return res.json({ success: true, data: telemetry });
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Failed to fetch platform storage telemetry', details: err.message });
+  }
+});
 
 /**
  * GET /api/v1/storage/telemetry

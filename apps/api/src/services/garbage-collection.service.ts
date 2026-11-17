@@ -15,6 +15,7 @@ import {
   garbageCollectionLogs,
 } from '@saas/database';
 import { eq, sql, lt, and, inArray, desc, or, ne } from 'drizzle-orm';
+import { StorageAccountingService } from './storage-accounting.service';
 
 export interface GcReport {
   id: string;
@@ -299,6 +300,16 @@ export class GarbageCollectionService {
       // Delete from globalMediaAssets registry
       await db.delete(globalMediaAssets).where(eq(globalMediaAssets.id, orphan.id));
       dbRecordsPruned++;
+    }
+
+    // --- PHASE 2B: Hard Purge Expired Soft-Deleted Tenant Media Assets ---
+    try {
+      const tenantReclamation = await StorageAccountingService.hardPurgeExpiredAssets(settings.orphanAssetGracePeriodDays);
+      bytesReclaimed += tenantReclamation.bytesReclaimed;
+      filesDeleted += tenantReclamation.filesDeleted;
+      dbRecordsPruned += tenantReclamation.recordsPurged;
+    } catch (tErr) {
+      console.warn('[GC] Tenant storage reclamation warning:', tErr);
     }
 
     // --- PHASE 3: Prune Completed and Failed Scraping Jobs ---

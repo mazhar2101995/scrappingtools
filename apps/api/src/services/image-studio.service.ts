@@ -5,6 +5,7 @@ import sharp from 'sharp';
 import crypto from 'crypto';
 import { db, productImageTransformations, globalProducts, customerProductOverrides } from '@saas/database';
 import { eq, and, desc } from 'drizzle-orm';
+import { StorageAccountingService } from './storage-accounting.service';
 
 export interface ImageProcessingOptions {
   removeBackground?: boolean;
@@ -179,6 +180,8 @@ export class ImageStudioService {
   }): Promise<{
     cleanedUrl: string;
     transformationId: string;
+    fileSizeBytes: number;
+    contentHash: string;
   }> {
     this.ensureUploadDir();
 
@@ -201,6 +204,13 @@ export class ImageStudioService {
 
     const inputBuffer = await this.fetchImageBuffer(sourceImageUrl);
     const cleanedBuffer = await this.cleanBackgroundAndStudioShot(inputBuffer, options);
+    const fileSizeBytes = cleanedBuffer.length;
+
+    // Enforce Storage Quota check before persisting to disk and database
+    const quotaCheck = await StorageAccountingService.checkStorageQuota(organizationId, fileSizeBytes);
+    if (!quotaCheck.allowed) {
+      throw new Error(quotaCheck.reason || 'STORAGE_QUOTA_EXCEEDED');
+    }
 
     const ext = options.outputFormat || 'webp';
     const filename = `studio_${globalProductId.slice(0, 8)}_${Date.now()}.${ext}`;
@@ -208,8 +218,9 @@ export class ImageStudioService {
 
     fs.writeFileSync(filePath, cleanedBuffer);
     const publicUrl = `/uploads/studio/${filename}`;
+    const contentHash = crypto.createHash('sha256').update(cleanedBuffer).digest('hex');
 
-    // 1. Log transformation
+    // 1. Log transformation with authoritative byte measurement
     const [rec] = await db
       .insert(productImageTransformations)
       .values({
@@ -220,10 +231,23 @@ export class ImageStudioService {
         transformationType,
         parameters: options,
         status: 'COMPLETED',
+        fileSizeBytes,
+        outputFormat: ext,
       })
       .returning();
 
-    // 2. Update product override so connected OpenCart & Shopify stores receive clean studio image
+    // 2. Authoritatively record asset in tenant storage ledger
+    await StorageAccountingService.recordAsset({
+      organizationId,
+      assetType: 'studio_transformation',
+      storagePath: publicUrl,
+      mimeType: ext === 'png' ? 'image/png' : 'image/webp',
+      fileSizeBytes,
+      contentHash,
+      transformationId: rec.id,
+    });
+
+    // 3. Update product override so connected OpenCart & Shopify stores receive clean studio image
     const [existingOverride] = await db
       .select()
       .from(customerProductOverrides)
@@ -258,6 +282,8 @@ export class ImageStudioService {
     return {
       cleanedUrl: publicUrl,
       transformationId: rec.id,
+      fileSizeBytes,
+      contentHash,
     };
   }
 

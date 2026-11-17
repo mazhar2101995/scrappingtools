@@ -1,5 +1,6 @@
 import { pgTable, uuid, varchar, text, integer, timestamp, boolean, bigint, jsonb, index, uniqueIndex } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+import { organizations } from './tenants';
 
 /**
  * Global Media Assets - Content-Addressable Image Storage & Deduplication Registry
@@ -71,8 +72,38 @@ export const productImageTransformations = pgTable('product_image_transformation
   parameters: jsonb('parameters').notNull().default(sql`'{}'::jsonb`),
   status: varchar('status', { length: 50 }).notNull().default('COMPLETED'),
   errorMessage: text('error_message'),
+  fileSizeBytes: bigint('file_size_bytes', { mode: 'number' }).notNull().default(0),
+  outputFormat: varchar('output_format', { length: 20 }).notNull().default('webp'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index('idx_img_trans_org_prod').on(table.organizationId, table.globalProductId),
+]);
+
+/**
+ * Tenant Media Assets - Authoritative Per-Tenant Storage Accounting & Reference Ledger
+ *
+ * Tracks every billable media asset (original catalog image, studio transformation,
+ * or custom upload) associated with an organization. Enforces storage quotas and supports
+ * safe garbage collection with retention grace periods without deleting shared global assets.
+ */
+export const tenantMediaAssets = pgTable('tenant_media_assets', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  assetType: varchar('asset_type', { length: 50 }).notNull().default('catalog_image'), // 'catalog_image' | 'studio_transformation' | 'custom_upload'
+  globalMediaAssetId: uuid('global_media_asset_id').references(() => globalMediaAssets.id, { onDelete: 'cascade' }),
+  transformationId: uuid('transformation_id').references(() => productImageTransformations.id, { onDelete: 'cascade' }),
+  storagePath: text('storage_path').notNull(),
+  mimeType: varchar('mime_type', { length: 64 }).notNull().default('image/webp'),
+  fileSizeBytes: bigint('file_size_bytes', { mode: 'number' }).notNull().default(0),
+  contentHash: varchar('content_hash', { length: 64 }).notNull(),
+  status: varchar('status', { length: 30 }).notNull().default('active'), // 'active' | 'soft_deleted' | 'purged'
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('idx_tma_org_hash_type').on(table.organizationId, table.contentHash, table.assetType),
+  index('idx_tma_org_status').on(table.organizationId, table.status),
+  index('idx_tma_gma').on(table.globalMediaAssetId),
+  index('idx_tma_deleted').on(table.deletedAt),
 ]);
