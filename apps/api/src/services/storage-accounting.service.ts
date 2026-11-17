@@ -143,7 +143,7 @@ export class StorageAccountingService {
       };
     }
 
-    const effectiveLimitBytes = usage.limitBytes || 100 * 1024 * 1024;
+    const effectiveLimitBytes = typeof usage.limitBytes === 'number' ? usage.limitBytes : 100 * 1024 * 1024;
     const projectedBytes = usage.activeBytes + incomingBytes;
     if (projectedBytes > effectiveLimitBytes) {
       const neededMb = (incomingBytes / (1024 * 1024)).toFixed(2);
