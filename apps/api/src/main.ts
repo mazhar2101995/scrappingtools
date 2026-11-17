@@ -31,7 +31,17 @@ import { ServiceHealth } from '@saas/shared-types';
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+
+// Mount raw body buffer specifically for Stripe Webhook signature verification before global JSON parser
+app.use('/api/v1/billing/webhook', express.raw({ type: 'application/json' }));
+
+app.use(
+  express.json({
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 
 // Static uploads directory for deduplicated product media
 app.use('/uploads', express.static(path.resolve(process.cwd(), 'public', 'uploads')));
@@ -110,16 +120,14 @@ if (process.env.NODE_ENV !== 'test') {
     }
   }, GC_INTERVAL_MS);
 
-  // Background Schedule Engine Runner (checks every 60 seconds)
-  const SCHEDULE_INTERVAL_MS = 60 * 1000;
-  setInterval(async () => {
-    try {
-      const { BackgroundSyncSchedulerService } = await import('./services/background-sync-scheduler.service');
-      await BackgroundSyncSchedulerService.processDueSchedules();
-    } catch (schedErr) {
-      console.error('[SyncScheduler Runner] Error checking due schedules:', schedErr);
-    }
-  }, SCHEDULE_INTERVAL_MS);
+  // Start Persistent Background Cron Scheduler Runner (60-second interval with distributed locking)
+  import('./workers/cron-scheduler')
+    .then(({ CronScheduler }) => {
+      CronScheduler.getInstance().start(60000);
+    })
+    .catch((schedErr) => {
+      console.error('[SyncScheduler Runner] Failed to start cron scheduler:', schedErr);
+    });
 }
 
 export default app;

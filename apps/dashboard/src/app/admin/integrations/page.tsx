@@ -18,6 +18,7 @@ import { apiClient } from '@/lib/api-client';
 export default function AdminIntegrationsPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -25,11 +26,13 @@ export default function AdminIntegrationsPage() {
 
   async function loadData() {
     setLoading(true);
+    setError(null);
     try {
       const res = await (apiClient as any).fetchJson('/metrics/admin/integrations');
       setData(res);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      setError(e.message || 'Failed to load integration metrics');
     } finally {
       setLoading(false);
     }
@@ -77,6 +80,22 @@ export default function AdminIntegrationsPage() {
           </button>
         </div>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={loadData}
+            className="px-2.5 py-1 bg-white border border-rose-300 hover:bg-rose-100 rounded-lg font-bold text-rose-700 transition"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Global Integration KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">

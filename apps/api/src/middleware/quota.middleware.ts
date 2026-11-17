@@ -1,15 +1,34 @@
 import { Request, Response, NextFunction } from 'express';
-import { db, organizations, customerProductMappings, connectedStores, subscriptions } from '@saas/database';
-import { eq, sql } from 'drizzle-orm';
-import { SAAS_PLANS } from '../routes/billing.routes';
+import { EntitlementService } from '../services/entitlement.service';
 
-export async function quotaMiddleware(feature: 'product' | 'store' | 'ai') {
+/**
+ * Maps legacy shorthand identifiers to dynamic service codes
+ */
+const FEATURE_SERVICE_MAP: Record<string, string> = {
+  product: 'product_scraping',
+  store: 'store_integration',
+  ai: 'ai_intelligence',
+  image: 'image_processing',
+  brand: 'brand_profiles',
+  schedule: 'automated_sync',
+  competitor: 'competitor_spy',
+  supplier: 'supplier_feed_sync',
+};
+
+/**
+ * Dynamic Quota & Entitlement Middleware:
+ * Authoritatively verifies global service status, plan entitlement, and usage limits against PostgreSQL
+ */
+export function quotaMiddleware(serviceOrFeature: string, requestedUnits: number = 1) {
+  const serviceCode = FEATURE_SERVICE_MAP[serviceOrFeature] || serviceOrFeature;
+
   return async (req: Request, res: Response, next: NextFunction) => {
     const orgId = (req as any).user?.organizationId || (req.headers['x-organization-id'] as string);
     const userRole = (req as any).user?.role || 'viewer';
+    const isSuperadmin = Boolean((req as any).user?.isSuperadmin || userRole === 'super_admin');
 
     // Platform Super Admins bypass quotas
-    if (['super_admin', 'platform_admin'].includes(userRole)) {
+    if (isSuperadmin) {
       return next();
     }
 
@@ -18,50 +37,30 @@ export async function quotaMiddleware(feature: 'product' | 'store' | 'ai') {
     }
 
     try {
-      const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId)).limit(1);
-      const planTier = org?.planTier || 'starter';
-      const planConfig = SAAS_PLANS[planTier] || SAAS_PLANS.starter;
+      const check = await EntitlementService.checkServiceEntitlement(orgId, serviceCode, requestedUnits);
 
-      if (feature === 'product') {
-        const [prodCount] = await db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(customerProductMappings)
-          .where(eq(customerProductMappings.organizationId, orgId));
-
-        const currentCount = prodCount?.count || 0;
-        if (currentCount >= planConfig.productLimit) {
-          return res.status(403).json({
-            error: 'Quota Exceeded: Product Catalog Limit Reached',
-            message: `Your current ${planConfig.name} allows a maximum of ${planConfig.productLimit} products. Please upgrade to continue scraping or creating products.`,
-            upgradeUrl: '/settings/billing',
-            current: currentCount,
-            limit: planConfig.productLimit,
-          });
-        }
+      if (!check.allowed) {
+        return res.status(check.statusCode || 403).json({
+          error: check.reason,
+          code: 'PLAN_QUOTA_EXCEEDED',
+          serviceCode,
+          serviceName: check.serviceName,
+          planId: check.planId,
+          planName: check.planName,
+          current: check.currentUsage,
+          limit: check.usageLimit,
+          remaining: check.remaining,
+          isUnlimited: check.isUnlimited,
+          upgradeUrl: '/settings/billing',
+        });
       }
 
-      if (feature === 'store') {
-        const [storeCount] = await db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(connectedStores)
-          .where(eq(connectedStores.organizationId, orgId));
-
-        const currentCount = storeCount?.count || 0;
-        if (currentCount >= planConfig.storeLimit) {
-          return res.status(403).json({
-            error: 'Quota Exceeded: Store Limit Reached',
-            message: `Your current ${planConfig.name} allows a maximum of ${planConfig.storeLimit} connected store(s). Please upgrade to connect additional stores.`,
-            upgradeUrl: '/settings/billing',
-            current: currentCount,
-            limit: planConfig.storeLimit,
-          });
-        }
-      }
-
+      // Attach entitlement check info to request for downstream handlers
+      (req as any).entitlement = check;
       next();
     } catch (err: any) {
-      console.error('Quota check failed:', err);
-      next(); // Don't block requests if quota check has an internal error
+      console.error(`[QuotaMiddleware] Check failed for service '${serviceCode}':`, err);
+      next(); // Don't crash requests on unexpected internal error
     }
   };
 }

@@ -13,7 +13,7 @@ import {
   users,
 } from '@saas/database';
 import { eq, desc, and, sql, or } from 'drizzle-orm';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, adminOnlyMiddleware } from '../middleware/auth.middleware';
 import { ProductIdentityService } from '../services/product-identity.service';
 import { ProductDataQualityService } from '../services/product-quality.service';
 
@@ -183,8 +183,8 @@ reviewRouter.get('/metrics', async (req: Request, res: Response) => {
   }
 });
 
-// 2. GET /api/v1/review/queue - Full Side-by-Side Comparison for Human Review
-reviewRouter.get('/queue', async (req: Request, res: Response) => {
+// 2. GET /api/v1/review/queue - Full Side-by-Side Comparison for Human Review (Platform Admin only)
+reviewRouter.get('/queue', adminOnlyMiddleware, async (req: Request, res: Response) => {
   const status = (req.query.status as string) || 'pending';
 
   try {
@@ -316,8 +316,8 @@ reviewRouter.get('/queue', async (req: Request, res: Response) => {
   }
 });
 
-// 3. POST /api/v1/review/queue/:id/resolve - Apply Human Review Decision
-reviewRouter.post('/queue/:id/resolve', async (req: Request, res: Response) => {
+// 3. POST /api/v1/review/queue/:id/resolve - Apply Human Review Decision (Platform Admin only)
+reviewRouter.post('/queue/:id/resolve', adminOnlyMiddleware, async (req: Request, res: Response) => {
   const reviewId = req.params.id as string;
   let { action, note } = req.body; // 'APPROVE_MERGE', 'REJECT_MERGE', 'CREATE_SEPARATE', 'approve', 'reject', 'separate'
 

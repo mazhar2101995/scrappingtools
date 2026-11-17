@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { db, competitorMonitors, competitorPriceHistory, globalProducts } from '@saas/database';
 import { eq, and, desc } from 'drizzle-orm';
 import { authMiddleware, requireOrgRole } from '../middleware/auth.middleware';
+import { quotaMiddleware } from '../middleware/quota.middleware';
+import { EntitlementService } from '../services/entitlement.service';
 import { CompetitorSpyService } from '../services/competitor-spy.service';
 
 export const competitorRouter = Router();
@@ -55,7 +57,7 @@ competitorRouter.get('/', async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/competitors - Create a new competitor spy monitor
-competitorRouter.post('/', requireOrgRole('editor'), async (req: Request, res: Response) => {
+competitorRouter.post('/', requireOrgRole('editor'), quotaMiddleware('competitor_spy'), async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
@@ -90,6 +92,8 @@ competitorRouter.post('/', requireOrgRole('editor'), async (req: Request, res: R
         status: 'ACTIVE',
       })
       .returning();
+
+    await EntitlementService.recordUsage(orgId, 'competitor_spy', 1).catch(() => {});
 
     // Immediately trigger initial scrape & reprice in background
     CompetitorSpyService.executeMonitorCheck(monitor.id).catch((e) =>

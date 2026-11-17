@@ -1,6 +1,7 @@
 import { db, automatedSyncSchedules, connectedStores, brands, globalProducts, storeProductMappings } from '@saas/database';
-import { eq, and, sql, lte } from 'drizzle-orm';
+import { eq, and, sql, lte, desc } from 'drizzle-orm';
 import { StoreExportExecutionService } from './store-export-execution.service';
+import { storeSyncQueue, createRedisConnection } from '@saas/queue';
 
 export interface CreateScheduleInput {
   organizationId: string;
@@ -15,25 +16,105 @@ export interface CreateScheduleInput {
 
 export class BackgroundSyncSchedulerService {
   /**
-   * Calculate next run timestamp from frequency
+   * Calculate next run timestamp from frequency with missed schedule recovery
+   * and server-timezone-independent UTC / local timezone DST awareness.
    */
-  public static calculateNextRun(frequency: string, fromDate = new Date()): Date {
-    const next = new Date(fromDate);
-    switch (frequency) {
-      case 'HOURLY':
-        next.setHours(next.getHours() + 1);
-        break;
-      case 'EVERY_6_HOURS':
-        next.setHours(next.getHours() + 6);
-        break;
-      case 'WEEKLY':
-        next.setDate(next.getDate() + 7);
-        break;
-      case 'DAILY':
-      default:
-        next.setDate(next.getDate() + 1);
-        break;
+  public static calculateNextRun(
+    frequency: string,
+    fromDate = new Date(),
+    ensureFuture = true,
+    timeZone: string = 'UTC'
+  ): Date {
+    let next = new Date(fromDate);
+
+    const step = () => {
+      if (!timeZone || timeZone === 'UTC') {
+        switch (frequency) {
+          case 'HOURLY':
+            next.setUTCHours(next.getUTCHours() + 1);
+            break;
+          case 'EVERY_6_HOURS':
+            next.setUTCHours(next.getUTCHours() + 6);
+            break;
+          case 'WEEKLY':
+            next.setUTCDate(next.getUTCDate() + 7);
+            break;
+          case 'DAILY':
+          default:
+            next.setUTCDate(next.getUTCDate() + 1);
+            break;
+        }
+      } else {
+        // Timezone-aware stepping preserving local wall-clock time in target timeZone
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        });
+
+        const parts = formatter.formatToParts(next).reduce((acc: any, p) => {
+          acc[p.type] = p.value;
+          return acc;
+        }, {});
+
+        let y = parseInt(parts.year, 10);
+        let m = parseInt(parts.month, 10) - 1;
+        let d = parseInt(parts.day, 10);
+        let h = parseInt(parts.hour, 10);
+        let min = parseInt(parts.minute, 10);
+        let s = parseInt(parts.second, 10);
+
+        switch (frequency) {
+          case 'HOURLY':
+            h += 1;
+            break;
+          case 'EVERY_6_HOURS':
+            h += 6;
+            break;
+          case 'WEEKLY':
+            d += 7;
+            break;
+          case 'DAILY':
+          default:
+            d += 1;
+            break;
+        }
+
+        const candidateUtc = new Date(Date.UTC(y, m, d, h, min, s));
+        const candParts = formatter.formatToParts(candidateUtc).reduce((acc: any, p) => {
+          acc[p.type] = p.value;
+          return acc;
+        }, {});
+        const candLocalAsUtc = Date.UTC(
+          parseInt(candParts.year, 10),
+          parseInt(candParts.month, 10) - 1,
+          parseInt(candParts.day, 10),
+          parseInt(candParts.hour, 10),
+          parseInt(candParts.minute, 10),
+          parseInt(candParts.second, 10)
+        );
+        const targetLocalAsUtc = Date.UTC(y, m, d, h, min, s);
+        const diff = candLocalAsUtc - targetLocalAsUtc;
+        next = new Date(candidateUtc.getTime() - diff);
+      }
+    };
+
+    step();
+
+    if (ensureFuture) {
+      const now = new Date();
+      let safetyCounter = 0;
+      while (next <= now && safetyCounter < 500) {
+        step();
+        safetyCounter++;
+      }
     }
+
     return next;
   }
 
@@ -245,35 +326,238 @@ export class BackgroundSyncSchedulerService {
   }
 
   /**
-   * Background runner: checks due schedules across all tenants and triggers execution
+   * Primary Scheduler Runner: Scans due schedules across all active tenants,
+   * claims distributed locks, advances recurrence timestamps, and dispatches jobs to BullMQ.
    */
-  public static async processDueSchedules() {
+  public static async runDueSchedules(): Promise<{
+    scanned: number;
+    dispatched: number;
+    skipped: number;
+    errors: number;
+  }> {
     const now = new Date();
-    const dueSchedules = await db
-      .select()
+    const redis = createRedisConnection();
+
+    try {
+      // 1. Fetch active schedules whose nextRunAt has arrived
+      const dueSchedules = await db
+        .select()
+        .from(automatedSyncSchedules)
+        .where(
+          and(
+            eq(automatedSyncSchedules.status, 'ACTIVE'),
+            lte(automatedSyncSchedules.nextRunAt, now)
+          )
+        )
+        .limit(50);
+
+      if (dueSchedules.length === 0) {
+        return { scanned: 0, dispatched: 0, skipped: 0, errors: 0 };
+      }
+
+      console.log(`[SyncScheduler] Found ${dueSchedules.length} due schedules to process.`);
+      let dispatched = 0;
+      let skipped = 0;
+      let errors = 0;
+
+      for (const sched of dueSchedules) {
+        try {
+          // 2. Validate connected store
+          if (!sched.storeId) {
+            console.warn(`[SyncScheduler] Schedule ${sched.id} has no store configured, marking failed.`);
+            const nextRun = this.calculateNextRun(sched.frequency, sched.nextRunAt || now);
+            await db
+              .update(automatedSyncSchedules)
+              .set({
+                lastRunAt: now,
+                lastRunStatus: 'FAILED',
+                lastRunSummary: 'Execution skipped: Target store is not configured for this schedule.',
+                nextRunAt: nextRun,
+                updatedAt: now,
+              })
+              .where(eq(automatedSyncSchedules.id, sched.id));
+            skipped++;
+            continue;
+          }
+
+          const [store] = await db
+            .select({ id: connectedStores.id, status: connectedStores.status })
+            .from(connectedStores)
+            .where(
+              and(
+                eq(connectedStores.id, sched.storeId),
+                eq(connectedStores.organizationId, sched.organizationId)
+              )
+            )
+            .limit(1);
+
+          const isStoreActive = store && (store.status === 'active' || store.status === 'connected');
+          if (!isStoreActive) {
+            console.warn(`[SyncScheduler] Store ${sched.storeId} is inactive or missing for schedule ${sched.id}`);
+            const nextRun = this.calculateNextRun(sched.frequency, sched.nextRunAt || now);
+            await db
+              .update(automatedSyncSchedules)
+              .set({
+                lastRunAt: now,
+                lastRunStatus: 'FAILED',
+                lastRunSummary: `Execution skipped: Target store is not active (status: ${store?.status || 'NOT_FOUND'}).`,
+                nextRunAt: nextRun,
+                updatedAt: now,
+              })
+              .where(eq(automatedSyncSchedules.id, sched.id));
+            skipped++;
+            continue;
+          }
+
+          // 3. Distributed Lock & Deduplication per Occurrence Slot
+          const occurrenceSlot = sched.nextRunAt
+            ? Math.floor(sched.nextRunAt.getTime() / 60000) * 60000
+            : Math.floor(now.getTime() / 60000) * 60000;
+          const scheduleLockKey = `lock:schedule:${sched.id}:${occurrenceSlot}`;
+          const deterministicJobId = `sync_${sched.id}_${occurrenceSlot}`;
+
+          const acquired = await redis.set(scheduleLockKey, 'claimed', 'PX', 300000, 'NX'); // 5-minute TTL
+          if (!acquired) {
+            console.log(`[SyncScheduler] Occurrence for schedule ${sched.id} slot ${occurrenceSlot} is already claimed. Skipping.`);
+            skipped++;
+            continue;
+          }
+
+          // 4. Enqueue synchronization task to BullMQ storeSyncQueue first
+          try {
+            await storeSyncQueue.add(
+              'execute-store-sync',
+              {
+                scheduleId: sched.id,
+                organizationId: sched.organizationId,
+                storeId: sched.storeId,
+                brandId: sched.brandId,
+                targetLanguage: sched.targetLanguage || 'en',
+                autoTranslate: sched.autoTranslate ?? true,
+                scheduleType: (sched.scheduleType as any) || 'STORE_PUSH',
+                occurrenceTimestamp: sched.nextRunAt ? sched.nextRunAt.toISOString() : now.toISOString(),
+              },
+              {
+                jobId: deterministicJobId,
+                attempts: 3,
+                backoff: { type: 'exponential', delay: 5000 },
+              }
+            );
+          } catch (queueErr: any) {
+            console.error(`[SyncScheduler] Failed to submit job to BullMQ for schedule ${sched.id}:`, queueErr.message);
+            // Release occurrence slot lock so it can be retried on next scan tick
+            await redis.del(scheduleLockKey).catch(() => {});
+            // Do NOT advance nextRunAt; record failure diagnostic so schedule is not lost
+            await db
+              .update(automatedSyncSchedules)
+              .set({
+                lastRunAt: now,
+                lastRunStatus: 'FAILED',
+                lastRunSummary: `Queue submission failed: ${queueErr.message}. Schedule retained for retry on next scan tick.`,
+                updatedAt: now,
+              })
+              .where(eq(automatedSyncSchedules.id, sched.id));
+            errors++;
+            continue;
+          }
+
+          // 5. Advance nextRunAt in database only after confirmed queue submission
+          const nextRun = this.calculateNextRun(sched.frequency, sched.nextRunAt || now);
+          await db
+            .update(automatedSyncSchedules)
+            .set({
+              lastRunAt: now,
+              lastRunStatus: 'DISPATCHED',
+              lastRunSummary: `Dispatched job ${deterministicJobId} to BullMQ queue.`,
+              nextRunAt: nextRun,
+              updatedAt: now,
+            })
+            .where(eq(automatedSyncSchedules.id, sched.id));
+
+          dispatched++;
+          console.log(`[SyncScheduler] Successfully dispatched schedule "${sched.name}" (${sched.id}) as job ${deterministicJobId}. Next run: ${nextRun.toISOString()}`);
+        } catch (itemErr: any) {
+          errors++;
+          console.error(`[SyncScheduler] Error dispatching schedule ${sched.id}:`, itemErr);
+        }
+      }
+
+      return {
+        scanned: dueSchedules.length,
+        dispatched,
+        skipped,
+        errors,
+      };
+    } finally {
+      await redis.quit().catch(() => {});
+    }
+  }
+
+  /**
+   * Backward-compatible runner method
+   */
+  public static async processDueSchedules(): Promise<number> {
+    const res = await this.runDueSchedules();
+    return res.dispatched;
+  }
+
+  /**
+   * Platform Admin Observability: Return live schedule metrics across all tenants
+   */
+  public static async getSchedulerMetrics() {
+    const now = new Date();
+    const [totalRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(automatedSyncSchedules);
+
+    const [activeRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(automatedSyncSchedules)
+      .where(eq(automatedSyncSchedules.status, 'ACTIVE'));
+
+    const [dueRes] = await db
+      .select({ count: sql<number>`count(*)::int` })
       .from(automatedSyncSchedules)
       .where(
         and(
           eq(automatedSyncSchedules.status, 'ACTIVE'),
           lte(automatedSyncSchedules.nextRunAt, now)
         )
+      );
+
+    const [nextUpcoming] = await db
+      .select({ nextRunAt: automatedSyncSchedules.nextRunAt })
+      .from(automatedSyncSchedules)
+      .where(
+        and(
+          eq(automatedSyncSchedules.status, 'ACTIVE'),
+          sql`${automatedSyncSchedules.nextRunAt} > ${now.toISOString()}::timestamptz`
+        )
       )
+      .orderBy(automatedSyncSchedules.nextRunAt)
+      .limit(1);
+
+    const recentRuns = await db
+      .select({
+        id: automatedSyncSchedules.id,
+        name: automatedSyncSchedules.name,
+        organizationId: automatedSyncSchedules.organizationId,
+        storeId: automatedSyncSchedules.storeId,
+        lastRunAt: automatedSyncSchedules.lastRunAt,
+        lastRunStatus: automatedSyncSchedules.lastRunStatus,
+        lastRunSummary: automatedSyncSchedules.lastRunSummary,
+      })
+      .from(automatedSyncSchedules)
+      .where(sql`${automatedSyncSchedules.lastRunAt} IS NOT NULL`)
+      .orderBy(desc(automatedSyncSchedules.lastRunAt))
       .limit(10);
 
-    if (dueSchedules.length === 0) {
-      return 0;
-    }
-
-    console.log(`[SyncScheduler] Found ${dueSchedules.length} due schedules to process.`);
-
-    for (const sched of dueSchedules) {
-      try {
-        await this.executeScheduleNow(sched.id);
-      } catch (err) {
-        console.error(`[SyncScheduler] Failed to process due schedule ${sched.id}:`, err);
-      }
-    }
-
-    return dueSchedules.length;
+    return {
+      totalSchedules: totalRes?.count || 0,
+      activeSchedules: activeRes?.count || 0,
+      dueSchedules: dueRes?.count || 0,
+      nextUpcomingExecution: nextUpcoming?.nextRunAt || null,
+      recentRuns,
+    };
   }
 }

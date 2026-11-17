@@ -5,5 +5,6 @@ export * from './workers/scraping.worker';
 export * from './workers/normalization.worker';
 export * from './workers/matching.worker';
 export * from './workers/persistence.worker';
+export * from './workers/store-sync.worker';
 export * from './monitoring/health';
 

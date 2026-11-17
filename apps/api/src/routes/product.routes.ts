@@ -42,7 +42,7 @@ function getOrgId(req: Request): string | null {
 productsRouter.use(authMiddleware);
 
 // --- Phase 5: Advanced Product Discovery & Source Ranking Endpoint ---
-productsRouter.post('/discover', async (req: Request, res: Response) => {
+productsRouter.post('/discover', quotaMiddleware('product_scraping'), async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
   if (!orgId) {
     return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
@@ -1574,7 +1574,7 @@ productsRouter.patch('/:id/manual-fields', async (req: Request, res: Response) =
 });
 
 // 7.5 CRAWLER & SITEMAP AUTO-DISCOVERY ENDPOINT
-productsRouter.post('/crawl-discover', async (req: Request, res: Response) => {
+productsRouter.post('/crawl-discover', quotaMiddleware('product_scraping'), async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
   if (!orgId) {
     return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
@@ -2287,7 +2287,7 @@ productsRouter.get('/:id/languages', async (req: Request, res: Response) => {
 
 // Phase 10: Product Language Intelligence & Translation Workflow Endpoints
 // POST /api/v1/products/:id/languages/:lang/generate - Generate or Transform Language Version
-productsRouter.post('/:id/languages/:lang/generate', async (req: Request, res: Response) => {
+productsRouter.post('/:id/languages/:lang/generate', quotaMiddleware('ai_intelligence'), async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Tenant context required' });

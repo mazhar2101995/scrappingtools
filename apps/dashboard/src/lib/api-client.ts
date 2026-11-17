@@ -521,6 +521,75 @@ export class DashboardApiClient {
     return this.fetchJson('/billing/admin-revenue', {}, 'admin');
   }
 
+  // --- Dynamic Admin Services & Plan Management ---
+  async getAdminServices(): Promise<any> {
+    return this.fetchJson('/billing/admin/services', {}, 'admin');
+  }
+
+  async createAdminService(payload: any): Promise<any> {
+    return this.fetchJson('/billing/admin/services', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'admin');
+  }
+
+  async updateAdminService(id: string, payload: any): Promise<any> {
+    return this.fetchJson(`/billing/admin/services/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }, 'admin');
+  }
+
+  async getAdminPlans(): Promise<any> {
+    return this.fetchJson('/billing/admin/plans', {}, 'admin');
+  }
+
+  async createAdminPlan(payload: any): Promise<any> {
+    return this.fetchJson('/billing/admin/plans', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }, 'admin');
+  }
+
+  async updateAdminPlan(id: string, payload: any): Promise<any> {
+    return this.fetchJson(`/billing/admin/plans/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }, 'admin');
+  }
+
+  async getAdminSubscriptions(): Promise<any> {
+    return this.fetchJson('/billing/admin/subscriptions', {}, 'admin');
+  }
+
+  async assignAdminPlan(orgId: string, payload: { planId: string; reason?: string }): Promise<any> {
+    return this.fetchJson(`/billing/admin/subscriptions/${orgId}/assign-plan`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }, 'admin');
+  }
+
+  async getAdminPaymentGateways(): Promise<any> {
+    return this.fetchJson('/billing/admin/payment-gateways', {}, 'admin');
+  }
+
+  async updateAdminPaymentGateway(id: string, payload: any): Promise<any> {
+    return this.fetchJson(`/billing/admin/payment-gateways/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }, 'admin');
+  }
+
+  async testAdminPaymentGateway(id: string): Promise<any> {
+    return this.fetchJson(`/billing/admin/payment-gateways/${id}/test`, {
+      method: 'POST',
+    }, 'admin');
+  }
+
+  async getAdminBillingAuditLogs(): Promise<any> {
+    return this.fetchJson('/billing/admin/audit-logs', {}, 'admin');
+  }
+
   async getMyTeam(): Promise<{ members: any[]; invitations: any[] }> {
     const res = await this.fetchJson<any>('/organizations/my-team', {}, 'client');
     return {

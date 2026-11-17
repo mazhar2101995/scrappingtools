@@ -33,7 +33,7 @@ import {
   tenantBrandProfiles,
 } from '@saas/database';
 import { eq, and, sql, desc, inArray, or } from 'drizzle-orm';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, adminOnlyMiddleware } from '../middleware/auth.middleware';
 
 export const metricsRouter = Router();
 
@@ -730,7 +730,7 @@ metricsRouter.get('/admin-overview', async (req: Request, res: Response) => {
 });
 
 // --- Platform Admin: Integration Traffic & Webhook Activity ---
-metricsRouter.get('/admin/integrations', async (req: Request, res: Response) => {
+metricsRouter.get('/admin/integrations', adminOnlyMiddleware, async (req: Request, res: Response) => {
   try {
     const [allKeysCount] = await db
       .select({ count: sql<number>`count(*)::int` })

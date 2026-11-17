@@ -45,4 +45,7 @@ playwright/.cache/
 # Docker volumes / scratch data
 infrastructure/**/data/
 infrastructure/**/storage/
+scratch/
+backup_before_phase1.sql
+
 

@@ -49,3 +49,14 @@ export interface PersistenceResult {
   persistedAttributesCount: number;
 }
 
+export interface StoreSyncJobPayload {
+  scheduleId: string;
+  organizationId: string;
+  storeId: string;
+  brandId?: string | null;
+  targetLanguage?: string;
+  autoTranslate?: boolean;
+  scheduleType?: 'STORE_PUSH' | 'SCRAPE_REFRESH' | 'BIDIRECTIONAL';
+  occurrenceTimestamp: string;
+}
+

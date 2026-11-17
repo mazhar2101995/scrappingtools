@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { db, tenantBrandProfiles, brands, brandScrapingProfiles, sourceWebsites } from '@saas/database';
 import { eq, and, desc } from 'drizzle-orm';
 import { authMiddleware } from '../middleware/auth.middleware';
+import { quotaMiddleware } from '../middleware/quota.middleware';
+import { EntitlementService } from '../services/entitlement.service';
 import { SourceAccessService } from '../services/source-access.service';
 import { BrandStoreExportService } from '../services/brand-store-export.service';
 import axios from 'axios';
@@ -23,6 +25,10 @@ brandsRouter.get('/', async (req: Request, res: Response) => {
   const userRole = (req as any).user?.role || 'viewer';
   const isPlatformAdmin = ['super_admin', 'platform_admin'].includes(userRole);
   const queryAll = req.query.scope === 'global';
+
+  if (queryAll && !isPlatformAdmin) {
+    return res.status(403).json({ error: 'Forbidden: Platform Super Admin access required for global brand scope' });
+  }
 
   if (!orgId && !isPlatformAdmin) {
     return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
@@ -80,7 +86,7 @@ brandsRouter.get('/:id', async (req: Request, res: Response) => {
 });
 
 // 3. Create Brand Profile (Client-Controlled)
-brandsRouter.post('/', async (req: Request, res: Response) => {
+brandsRouter.post('/', quotaMiddleware('brand_profiles'), async (req: Request, res: Response) => {
   const orgId = getOrgId(req);
   if (!orgId) {
     return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
@@ -144,6 +150,8 @@ brandsRouter.post('/', async (req: Request, res: Response) => {
         pricingRules: req.body.pricingRules || { strategy: 'none', value: 0, applyMargin: false },
       })
       .returning();
+
+    await EntitlementService.recordUsage(orgId, 'brand_profiles', 1).catch(() => {});
 
     return res.status(201).json({
       success: true,

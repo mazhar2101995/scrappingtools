@@ -44,6 +44,7 @@ export async function integrationAuthMiddleware(req: Request, res: Response, nex
           email: decoded.email,
           organizationId: decoded.organizationId,
           role: decoded.role,
+          isSuperadmin: Boolean(decoded.isSuperadmin || decoded.role === 'super_admin'),
           authType: 'jwt',
         };
         req.integration = {
@@ -169,6 +170,7 @@ export async function integrationAuthMiddleware(req: Request, res: Response, nex
       email: `integration@${keyRecord.organizationId}.tenant`,
       organizationId: keyRecord.organizationId,
       role: 'integration_client',
+      isSuperadmin: false,
       authType: 'api_key',
     };
 

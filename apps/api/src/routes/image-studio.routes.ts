@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { authMiddleware, requireOrgRole } from '../middleware/auth.middleware';
 import { ImageStudioService } from '../services/image-studio.service';
+import { quotaMiddleware } from '../middleware/quota.middleware';
+import { EntitlementService } from '../services/entitlement.service';
 
 export const imageStudioRouter = Router();
 
@@ -32,7 +34,7 @@ imageStudioRouter.get('/:productId/history', requireOrgRole('viewer'), async (re
  * POST /api/v1/image-studio/transform
  * Clean background, remove watermark, or auto-enhance product image
  */
-imageStudioRouter.post('/transform', requireOrgRole('editor'), async (req: Request, res: Response) => {
+imageStudioRouter.post('/transform', requireOrgRole('editor'), quotaMiddleware('image_processing'), async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
@@ -52,6 +54,8 @@ imageStudioRouter.post('/transform', requireOrgRole('editor'), async (req: Reque
       transformationType,
       options,
     });
+
+    await EntitlementService.recordUsage(orgId, 'image_processing', 1).catch(() => {});
 
     return res.json({
       message: 'Product image successfully processed and updated in catalog',

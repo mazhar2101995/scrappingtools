@@ -8,7 +8,9 @@ import {
   tenantBrandProfiles,
 } from '@saas/database';
 import { eq, desc, sql, and } from 'drizzle-orm';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authMiddleware, adminOnlyMiddleware } from '../middleware/auth.middleware';
+import { quotaMiddleware } from '../middleware/quota.middleware';
+import { EntitlementService } from '../services/entitlement.service';
 import { AiIntelligenceService } from '../services/ai-intelligence.service';
 import axios from 'axios';
 
@@ -29,8 +31,8 @@ aiRouter.post('/check-eligibility', async (req: Request, res: Response) => {
   return res.json({ success: true, eligibility: result });
 });
 
-// GET /api/v1/ai/metrics - Aggregate AI tokens, estimated costs, and task breakdown
-aiRouter.get('/metrics', async (req: Request, res: Response) => {
+// GET /api/v1/ai/metrics - Aggregate AI tokens, estimated costs, and task breakdown (Platform Admin only)
+aiRouter.get('/metrics', adminOnlyMiddleware, async (req: Request, res: Response) => {
   try {
     const [tokenSummary] = await db
       .select({
@@ -66,8 +68,8 @@ aiRouter.get('/metrics', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/v1/ai/prompts - List all database-backed versioned prompt templates
-aiRouter.get('/prompts', async (req: Request, res: Response) => {
+// GET /api/v1/ai/prompts - List all database-backed versioned prompt templates (Platform Admin only)
+aiRouter.get('/prompts', adminOnlyMiddleware, async (req: Request, res: Response) => {
   try {
     const prompts = await db
       .select()
@@ -140,7 +142,7 @@ aiRouter.get('/history', async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/ai/enrich-product - Centralized AI Enrichment Service with Provenance (Phase 4)
-aiRouter.post('/enrich-product', async (req: Request, res: Response) => {
+aiRouter.post('/enrich-product', quotaMiddleware('ai_intelligence'), async (req: Request, res: Response) => {
   const orgId = (req as any).user?.organizationId;
   if (!orgId) {
     return res.status(403).json({ error: 'Unauthorized: Missing organization context' });
@@ -179,6 +181,10 @@ aiRouter.post('/enrich-product', async (req: Request, res: Response) => {
       customFields,
       isExplicitRequest,
     });
+
+    if (result.provenance?.tokensUsed) {
+      await EntitlementService.recordUsage(orgId, 'ai_intelligence', result.provenance.tokensUsed).catch(() => {});
+    }
 
     return res.json({
       success: result.success,

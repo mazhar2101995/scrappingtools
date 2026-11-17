@@ -10,6 +10,7 @@ export interface AuthenticatedUser {
   email: string;
   organizationId: string;
   role: string;
+  isSuperadmin: boolean;
   authType: 'jwt' | 'api_key';
 }
 
@@ -30,11 +31,13 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     const token = authHeader.substring(7);
     try {
       const decoded = jwt.verify(token, config.jwtSecret) as any;
+      const isSuper = Boolean(decoded.isSuperadmin || decoded.role === 'super_admin');
       req.user = {
         userId: decoded.userId,
         email: decoded.email,
         organizationId: decoded.organizationId,
         role: decoded.role,
+        isSuperadmin: isSuper,
         authType: 'jwt',
       };
       return next();
@@ -76,6 +79,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       email: 'api-key@system.local',
       organizationId: keyRecord.organizationId,
       role: 'admin',
+      isSuperadmin: false,
       authType: 'api_key',
     };
 
@@ -87,13 +91,19 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   res.status(401).json({ error: 'Unauthorized: Missing Authorization Bearer token or X-API-Key' });
 }
 
+/**
+ * Platform-level authorization: Strictly requires verified Super Admin.
+ * Organization owners, organization admins, editors, and viewers are rejected with 403 Forbidden.
+ */
 export function adminOnlyMiddleware(req: Request, res: Response, next: NextFunction): void {
-  const role = req.user?.role;
-  if (role === 'admin' || role === 'super_admin' || role === 'owner') {
+  const isSuper = req.user?.isSuperadmin === true || req.user?.role === 'super_admin';
+  if (isSuper) {
     return next();
   }
-  res.status(403).json({ error: 'Forbidden: Platform Admin access required' });
+  res.status(403).json({ error: 'Forbidden: Platform Super Admin access required' });
 }
+
+export const superAdminOnlyMiddleware = adminOnlyMiddleware;
 
 /**
  * Enforce minimum role hierarchy: owner > admin > editor > viewer

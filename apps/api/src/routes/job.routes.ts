@@ -8,11 +8,21 @@ import crypto from 'crypto';
 export const jobsRouter = Router();
 jobsRouter.use(authMiddleware);
 
-// 0. List all scraping jobs for tenant organization
+// 0. List all scraping jobs for tenant organization (or global for platform admin)
 jobsRouter.get('/', async (req: Request, res: Response) => {
   const organizationId = req.user!.organizationId;
+  const isPlatformAdmin = ['super_admin', 'platform_admin'].includes(req.user?.role || '');
+  const queryAll = req.query.scope === 'global' || req.query.all === 'true';
+
+  if (queryAll && !isPlatformAdmin) {
+    return res.status(403).json({ error: 'Forbidden: Platform Super Admin access required for global jobs queue' });
+  }
 
   try {
+    const whereClause = isPlatformAdmin && queryAll
+      ? undefined
+      : (organizationId ? eq(scrapingJobs.organizationId, organizationId) : undefined);
+
     const jobs = await db
       .select({
         id: scrapingJobs.id,
@@ -26,7 +36,7 @@ jobsRouter.get('/', async (req: Request, res: Response) => {
         createdAt: scrapingJobs.createdAt,
       })
       .from(scrapingJobs)
-      .where(organizationId ? eq(scrapingJobs.organizationId, organizationId) : undefined)
+      .where(whereClause)
       .orderBy(desc(scrapingJobs.createdAt))
       .limit(100);
 

@@ -23,8 +23,8 @@ organizationRouter.use(authMiddleware);
 // GET /api/v1/organizations - List organizations with member and store counts (Platform Admin only)
 organizationRouter.get('/', async (req: Request, res: Response) => {
   try {
-    const userRole = (req as any).user?.role || 'viewer';
-    if (!['super_admin', 'platform_admin'].includes(userRole)) {
+    const isSuper = (req as any).user?.isSuperadmin === true || ['super_admin', 'platform_admin'].includes((req as any).user?.role);
+    if (!isSuper) {
       return res.status(403).json({ error: 'Platform admin permission required' });
     }
 
@@ -76,8 +76,8 @@ organizationRouter.get('/', async (req: Request, res: Response) => {
 // GET /api/v1/organizations/:id/inspect - Deep inspection of a specific tenant
 organizationRouter.get('/:id/inspect', async (req: Request, res: Response) => {
   try {
-    const userRole = (req as any).user?.role || 'viewer';
-    if (!['super_admin', 'platform_admin'].includes(userRole)) {
+    const isSuper = (req as any).user?.isSuperadmin === true || ['super_admin', 'platform_admin'].includes((req as any).user?.role);
+    if (!isSuper) {
       return res.status(403).json({ error: 'Platform admin permission required' });
     }
 
@@ -153,8 +153,8 @@ organizationRouter.get('/:id/inspect', async (req: Request, res: Response) => {
 // POST /api/v1/organizations/:id/impersonate - Impersonate tenant (Get tenant JWT)
 organizationRouter.post('/:id/impersonate', async (req: Request, res: Response) => {
   try {
-    const userRole = (req as any).user?.role || 'viewer';
-    if (!['super_admin', 'platform_admin'].includes(userRole)) {
+    const isSuper = (req as any).user?.isSuperadmin === true || ['super_admin', 'platform_admin'].includes((req as any).user?.role);
+    if (!isSuper) {
       return res.status(403).json({ error: 'Platform admin permission required' });
     }
 
@@ -208,8 +208,8 @@ organizationRouter.post('/:id/impersonate', async (req: Request, res: Response) 
 // PATCH /api/v1/organizations/:id/toggle-status - Suspend or Activate tenant
 organizationRouter.patch('/:id/toggle-status', async (req: Request, res: Response) => {
   try {
-    const userRole = (req as any).user?.role || 'viewer';
-    if (!['super_admin', 'platform_admin'].includes(userRole)) {
+    const isSuper = (req as any).user?.isSuperadmin === true || ['super_admin', 'platform_admin'].includes((req as any).user?.role);
+    if (!isSuper) {
       return res.status(403).json({ error: 'Platform admin permission required' });
     }
 

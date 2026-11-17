@@ -5,6 +5,7 @@ import {
   ExtractedProductPayload,
   NormalizedProductPayload,
   MatchedProductPayload,
+  StoreSyncJobPayload,
 } from '../types/jobs';
 
 const defaultQueueOptions: QueueOptions = {
@@ -31,6 +32,7 @@ export const QUEUE_NAMES = {
   NORMALIZATION: 'product-normalization',
   MATCHING: 'identity-matching',
   PERSISTENCE: 'product-persistence',
+  STORE_SYNC: 'store-synchronization',
 } as const;
 
 export const scrapingQueue = new Queue<ScrapeJobPayload>(QUEUE_NAMES.SCRAPING, {
@@ -59,6 +61,15 @@ export const persistenceQueue = new Queue<MatchedProductPayload>(QUEUE_NAMES.PER
     ...defaultQueueOptions.defaultJobOptions,
     attempts: 5,
     backoff: { type: 'exponential', delay: 1000 },
+  },
+});
+
+export const storeSyncQueue = new Queue<StoreSyncJobPayload>(QUEUE_NAMES.STORE_SYNC, {
+  ...defaultQueueOptions,
+  defaultJobOptions: {
+    ...defaultQueueOptions.defaultJobOptions,
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 5000 },
   },
 });
 

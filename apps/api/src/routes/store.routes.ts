@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { db, connectedStores, storeSyncHistory, storeProductMappings, storeConflictLogs, globalProducts, customerProductOverrides, productImages, tenantBrandProfiles } from '@saas/database';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { SynchronizationEngine, CredentialSecurity, OpenCartConnector, ShopifyConnector, WooCommerceConnector } from '@saas/connectors';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { quotaMiddleware } from '../middleware/quota.middleware';
@@ -96,7 +96,7 @@ storeRouter.get('/', async (req: Request, res: Response) => {
         healthStatus: connectedStores.healthStatus,
         healthDetails: connectedStores.healthDetails,
         capabilities: connectedStores.capabilities,
-        webhookSecret: connectedStores.webhookSecret,
+        hasWebhookConfigured: sql<boolean>`CASE WHEN ${connectedStores.webhookSecret} IS NOT NULL THEN true ELSE false END`,
         lastSyncAt: connectedStores.lastSyncAt,
         createdAt: connectedStores.createdAt,
       })
@@ -257,7 +257,7 @@ storeRouter.get('/:id/history', async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/stores/push-product - 1-Click Push Single Product to Connected Store
-storeRouter.post('/push-product', async (req: Request, res: Response) => {
+storeRouter.post('/push-product', quotaMiddleware('store_integration'), async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
     if (!orgId) {
@@ -461,7 +461,7 @@ storeRouter.post('/change-plan', async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/stores/controlled-push - Explicit Client Confirmation & Controlled Minimal Push
-storeRouter.post('/controlled-push', async (req: Request, res: Response) => {
+storeRouter.post('/controlled-push', quotaMiddleware('store_integration'), async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
     if (!orgId) {
@@ -490,7 +490,7 @@ storeRouter.post('/controlled-push', async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/stores/bulk-controlled-push - Batch Export Multiple Products to a Connected Store
-storeRouter.post('/bulk-controlled-push', async (req: Request, res: Response) => {
+storeRouter.post('/bulk-controlled-push', quotaMiddleware('store_integration'), async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
     if (!orgId) {

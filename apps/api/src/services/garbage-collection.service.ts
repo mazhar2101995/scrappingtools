@@ -4,6 +4,8 @@ import {
   db,
   globalMediaAssets,
   productImages,
+  productImageTransformations,
+  customerProductMappings,
   scrapingJobs,
   scrapingJobLogs,
   aiProcessingHistory,
@@ -12,7 +14,7 @@ import {
   systemStorageSettings,
   garbageCollectionLogs,
 } from '@saas/database';
-import { eq, sql, lt, and, inArray, desc } from 'drizzle-orm';
+import { eq, sql, lt, and, inArray, desc, or, ne } from 'drizzle-orm';
 
 export interface GcReport {
   id: string;
@@ -33,6 +35,29 @@ export interface GcReport {
 
 export class GarbageCollectionService {
   private static UPLOADS_DIR = path.resolve(process.cwd(), 'public', 'uploads', 'products');
+
+  /**
+   * Resolve all active physical uploads directories across workspace roots
+   */
+  private static getUploadDirs(): string[] {
+    const cwd = process.cwd();
+    const dirs = [
+      path.resolve(cwd, 'public', 'uploads', 'products'),
+      path.resolve(cwd, 'apps', 'api', 'public', 'uploads', 'products'),
+    ];
+    return [...new Set(dirs)].filter((d) => fs.existsSync(d));
+  }
+
+  /**
+   * Safely locate a physical file across known uploads paths
+   */
+  private static findPhysicalFilePath(filename: string): string | null {
+    for (const dir of this.getUploadDirs()) {
+      const p = path.join(dir, filename);
+      if (fs.existsSync(p)) return p;
+    }
+    return null;
+  }
 
   /**
    * Get Current Platform Retention Settings
@@ -100,9 +125,10 @@ export class GarbageCollectionService {
   /**
    * Safe Orphan Asset Detection & Mark Process (Step 1 of 2)
    * Scans globalMediaAssets for assets that are NO LONGER referenced by any product_images
+   * OR active AI Image Studio transformations (product_image_transformations).
    */
   public static async detectAndMarkOrphans(): Promise<number> {
-    // 1. Recalculate reference counts by checking actual product_images table
+    // 1. Recalculate reference counts from product_images table
     const referencedHashesRes = await db
       .select({
         imageHash: productImages.imageHash,
@@ -116,14 +142,45 @@ export class GarbageCollectionService {
       if (row.imageHash) refMap.set(row.imageHash, row.count);
     }
 
-    // 2. Fetch all active assets in global registry
+    // 2. Fetch all active Studio transformations (status != 'FAILED')
+    const activeTransformations = await db
+      .select({
+        originalUrl: productImageTransformations.originalUrl,
+        cleanedUrl: productImageTransformations.cleanedUrl,
+      })
+      .from(productImageTransformations)
+      .where(ne(productImageTransformations.status, 'FAILED'));
+
+    const transformationUrlCounts = new Map<string, number>();
+    for (const t of activeTransformations) {
+      if (t.originalUrl) {
+        const u = t.originalUrl.toLowerCase().trim();
+        transformationUrlCounts.set(u, (transformationUrlCounts.get(u) || 0) + 1);
+      }
+      if (t.cleanedUrl) {
+        const c = t.cleanedUrl.toLowerCase().trim();
+        transformationUrlCounts.set(c, (transformationUrlCounts.get(c) || 0) + 1);
+      }
+    }
+
+    // 3. Fetch all assets in global registry
     const allAssets = await db.select().from(globalMediaAssets);
     let newlyMarkedCount = 0;
 
     for (const asset of allAssets) {
-      const activeCount = refMap.get(asset.contentHash) || 0;
+      const hashCount = refMap.get(asset.contentHash) || 0;
+      const origUrl = (asset.originalUrl || '').toLowerCase().trim();
+      const canonUrl = (asset.canonicalUrl || '').toLowerCase().trim();
+      const storageUri = (asset.storageUri || '').toLowerCase().trim();
 
-      if (activeCount === 0) {
+      const transCount =
+        (origUrl ? transformationUrlCounts.get(origUrl) || 0 : 0) +
+        (canonUrl && canonUrl !== origUrl ? transformationUrlCounts.get(canonUrl) || 0 : 0) +
+        (storageUri ? transformationUrlCounts.get(storageUri) || 0 : 0);
+
+      const totalActiveReferences = hashCount + transCount;
+
+      if (totalActiveReferences === 0) {
         // Unreferenced! If not already marked as orphan, mark it with timestamp
         if (asset.status !== 'orphan_candidate') {
           await db
@@ -140,11 +197,11 @@ export class GarbageCollectionService {
         }
       } else {
         // Referenced! If previously marked as orphan candidate, restore to active
-        if (asset.status === 'orphan_candidate' || asset.referenceCount !== activeCount) {
+        if (asset.status === 'orphan_candidate' || asset.referenceCount !== totalActiveReferences) {
           await db
             .update(globalMediaAssets)
             .set({
-              referenceCount: activeCount,
+              referenceCount: totalActiveReferences,
               status: 'active',
               orphanMarkedAt: null,
               updatedAt: new Date(),
@@ -187,34 +244,61 @@ export class GarbageCollectionService {
       );
 
     for (const orphan of expiredOrphans) {
-      // Final Safety Check: Verify once more in product_images before unlinking
-      const [stillRef] = await db
+      // Final Safety Check: Verify once more across ALL reference sources before unlinking
+      const [stillRefImage] = await db
         .select({ id: productImages.id })
         .from(productImages)
         .where(eq(productImages.imageHash, orphan.contentHash))
         .limit(1);
 
-      if (!stillRef) {
-        // Safely unlink physical file from disk
-        const filename = path.basename(orphan.storageUri);
-        const physicalPath = path.join(this.UPLOADS_DIR, filename);
+      const [stillRefTrans] = await db
+        .select({ id: productImageTransformations.id })
+        .from(productImageTransformations)
+        .where(
+          and(
+            ne(productImageTransformations.status, 'FAILED'),
+            or(
+              eq(productImageTransformations.originalUrl, orphan.originalUrl),
+              eq(productImageTransformations.originalUrl, orphan.canonicalUrl),
+              eq(productImageTransformations.cleanedUrl, orphan.storageUri)
+            )
+          )
+        )
+        .limit(1);
 
-        if (fs.existsSync(physicalPath)) {
-          try {
-            const stats = fs.statSync(physicalPath);
-            bytesReclaimed += stats.size;
-            fs.unlinkSync(physicalPath);
-            filesDeleted++;
-            deletedFileNames.push(filename);
-          } catch (unlinkErr) {
-            console.warn(`[GC] Could not unlink ${physicalPath}:`, unlinkErr);
-          }
-        }
-
-        // Delete from globalMediaAssets registry
-        await db.delete(globalMediaAssets).where(eq(globalMediaAssets.id, orphan.id));
-        dbRecordsPruned++;
+      if (stillRefImage || stillRefTrans) {
+        // Rescued! A reference is active in catalog or studio transformations. Restore to active!
+        await db
+          .update(globalMediaAssets)
+          .set({
+            referenceCount: (stillRefImage ? 1 : 0) + (stillRefTrans ? 1 : 0),
+            status: 'active',
+            orphanMarkedAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(globalMediaAssets.id, orphan.id));
+        continue;
       }
+
+      // Safely unlink physical file from disk
+      const filename = path.basename(orphan.storageUri);
+      const physicalPath = this.findPhysicalFilePath(filename);
+
+      if (physicalPath && fs.existsSync(physicalPath)) {
+        try {
+          const stats = fs.statSync(physicalPath);
+          bytesReclaimed += stats.size;
+          fs.unlinkSync(physicalPath);
+          filesDeleted++;
+          deletedFileNames.push(filename);
+        } catch (unlinkErr) {
+          console.warn(`[GC] Could not unlink ${physicalPath}:`, unlinkErr);
+        }
+      }
+
+      // Delete from globalMediaAssets registry
+      await db.delete(globalMediaAssets).where(eq(globalMediaAssets.id, orphan.id));
+      dbRecordsPruned++;
     }
 
     // --- PHASE 3: Prune Completed and Failed Scraping Jobs ---
@@ -338,18 +422,24 @@ export class GarbageCollectionService {
    * Live Storage Telemetry & Metrics Aggregator for Admin Monitoring
    */
   public static async getStorageTelemetry() {
-    // 1. Filesystem physical media usage
+    // 1. Filesystem physical media usage (deduplicated across known physical directories)
     let physicalMediaBytes = 0;
     let physicalMediaFilesCount = 0;
+    const seenFilenames = new Set<string>();
 
-    if (fs.existsSync(this.UPLOADS_DIR)) {
+    for (const dir of this.getUploadDirs()) {
       try {
-        const files = fs.readdirSync(this.UPLOADS_DIR);
-        physicalMediaFilesCount = files.length;
+        const files = fs.readdirSync(dir);
         for (const f of files) {
-          const fp = path.join(this.UPLOADS_DIR, f);
-          const stat = fs.statSync(fp);
-          physicalMediaBytes += stat.size;
+          if (!seenFilenames.has(f)) {
+            seenFilenames.add(f);
+            const fp = path.join(dir, f);
+            const stat = fs.statSync(fp);
+            if (!stat.isDirectory()) {
+              physicalMediaFilesCount++;
+              physicalMediaBytes += stat.size;
+            }
+          }
         }
       } catch (_) {}
     }

@@ -66,7 +66,7 @@ authRouter.post('/register', async (req: Request, res: Response) => {
     });
 
     const accessToken = jwt.sign(
-      { userId: result.user.id, email: result.user.email, organizationId: result.organization.id, role: 'owner' },
+      { userId: result.user.id, email: result.user.email, organizationId: result.organization.id, role: 'owner', isSuperadmin: false },
       config.jwtSecret,
       { expiresIn: '24h' }
     );
@@ -127,9 +127,10 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 
   const organizationId = membership ? membership.organizationId : 'unassigned';
   const role = membership ? membership.role : 'member';
+  const isSuperadmin = Boolean(user.isSuperadmin || role === 'super_admin');
 
   const accessToken = jwt.sign(
-    { userId: user.id, email: user.email, organizationId, role },
+    { userId: user.id, email: user.email, organizationId, role, isSuperadmin },
     config.jwtSecret,
     { expiresIn: '24h' }
   );
@@ -176,9 +177,10 @@ authRouter.post('/refresh', async (req: Request, res: Response) => {
 
     const organizationId = membership ? membership.organizationId : 'unassigned';
     const role = membership ? membership.role : 'member';
+    const isSuperadmin = Boolean(user.isSuperadmin || role === 'super_admin');
 
     const newAccessToken = jwt.sign(
-      { userId: user.id, email: user.email, organizationId, role },
+      { userId: user.id, email: user.email, organizationId, role, isSuperadmin },
       config.jwtSecret,
       { expiresIn: '24h' }
     );
@@ -400,6 +402,7 @@ authRouter.post('/accept-invitation', async (req: Request, res: Response) => {
         email: result.user.email,
         organizationId: result.organization.id,
         role: result.role,
+        isSuperadmin: false,
       },
       config.jwtSecret,
       { expiresIn: config.jwtExpiresIn } as jwt.SignOptions

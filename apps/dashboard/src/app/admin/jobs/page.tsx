@@ -28,7 +28,7 @@ export default function AdminBullMqJobsPage() {
   async function loadJobs() {
     try {
       setLoading(true);
-      const res = await apiClient.getJobs();
+      const res = await (apiClient as any).fetchJson('/jobs?scope=global');
       setJobs(Array.isArray(res) ? res : []);
     } catch (e) {
       console.error('Failed to load jobs in admin:', e);

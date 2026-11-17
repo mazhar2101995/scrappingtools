@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import { db, customerSupplierCredentials, supplierFeedSources } from '@saas/database';
 import { eq, and, desc } from 'drizzle-orm';
 import { authMiddleware, requireOrgRole } from '../middleware/auth.middleware';
+import { quotaMiddleware } from '../middleware/quota.middleware';
+import { EntitlementService } from '../services/entitlement.service';
 import { SupplierSessionManagerService } from '../services/supplier-session-manager.service';
 import { SupplierFeedSyncService } from '../services/supplier-feed-sync.service';
 
@@ -56,7 +58,7 @@ supplierSessionRouter.get('/', requireOrgRole('viewer'), async (req: Request, re
  * POST /api/v1/supplier-sessions
  * Create or update supplier login credentials
  */
-supplierSessionRouter.post('/', requireOrgRole('editor'), async (req: Request, res: Response) => {
+supplierSessionRouter.post('/', requireOrgRole('editor'), quotaMiddleware('supplier_feed_sync'), async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
@@ -76,6 +78,8 @@ supplierSessionRouter.post('/', requireOrgRole('editor'), async (req: Request, r
       password,
       autoRefreshHours: autoRefreshHours ? parseInt(autoRefreshHours, 10) : 12,
     });
+
+    await EntitlementService.recordUsage(orgId, 'supplier_feed_sync', 1).catch(() => {});
 
     return res.status(201).json({
       message: 'Supplier credentials securely saved',
@@ -195,7 +199,7 @@ supplierSessionRouter.post('/feeds/preview', requireOrgRole('editor'), async (re
  * POST /api/v1/supplier-sessions/feeds
  * Save a new supplier feed configuration
  */
-supplierSessionRouter.post('/feeds', requireOrgRole('editor'), async (req: Request, res: Response) => {
+supplierSessionRouter.post('/feeds', requireOrgRole('editor'), quotaMiddleware('supplier_feed_sync'), async (req: Request, res: Response) => {
   try {
     const orgId = getOrgId(req);
     if (!orgId) return res.status(401).json({ error: 'Tenant context required' });
