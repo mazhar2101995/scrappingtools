@@ -19,8 +19,8 @@ export interface StorageQuotaCheckResult {
   reason?: string;
   currentUsageBytes: number;
   currentUsageMb: number;
-  limitBytes: number;
-  limitMb: number;
+  limitBytes: number | null;
+  limitMb: number | null;
   incomingBytes: number;
   projectedBytes: number;
   isUnlimited: boolean;
@@ -41,8 +41,8 @@ export interface TenantStorageUsage {
     studioTransformation: { bytes: number; count: number };
     customUpload: { bytes: number; count: number };
   };
-  limitMb: number;
-  limitBytes: number;
+  limitMb: number | null;
+  limitBytes: number | null;
   isUnlimited: boolean;
   remainingBytes: number | 'unlimited';
   usagePercentage: number;
@@ -97,10 +97,10 @@ export class StorageAccountingService {
     // Resolve tenant storage entitlement
     const entitlement = await EntitlementService.checkServiceEntitlement(organizationId, 'storage_megabytes', 0);
     const isUnlimited = entitlement.isUnlimited === true;
-    const limitMb = isUnlimited ? 999999 : (typeof entitlement.usageLimit === 'number' ? entitlement.usageLimit : 100);
-    const limitBytes = limitMb * 1024 * 1024;
-    const remainingBytes = isUnlimited ? 'unlimited' : Math.max(0, limitBytes - activeBytes);
-    const usagePercentage = isUnlimited ? 0 : limitBytes === 0 ? 100 : Math.min(100, Math.round((activeBytes / limitBytes) * 1000) / 10);
+    const limitMb = isUnlimited ? null : (typeof entitlement.usageLimit === 'number' ? entitlement.usageLimit : 100);
+    const limitBytes = isUnlimited ? null : (limitMb !== null ? limitMb * 1024 * 1024 : 100 * 1024 * 1024);
+    const remainingBytes = isUnlimited ? 'unlimited' : (limitBytes !== null ? Math.max(0, limitBytes - activeBytes) : 0);
+    const usagePercentage = isUnlimited ? 0 : (!limitBytes ? 100 : Math.min(100, Math.round((activeBytes / limitBytes) * 1000) / 10));
 
     return {
       organizationId,
@@ -134,8 +134,8 @@ export class StorageAccountingService {
         allowed: true,
         currentUsageBytes: usage.activeBytes,
         currentUsageMb: usage.activeMb,
-        limitBytes: usage.limitBytes,
-        limitMb: usage.limitMb,
+        limitBytes: null,
+        limitMb: null,
         incomingBytes,
         projectedBytes: usage.activeBytes + incomingBytes,
         isUnlimited: true,
@@ -143,10 +143,11 @@ export class StorageAccountingService {
       };
     }
 
+    const effectiveLimitBytes = usage.limitBytes || 100 * 1024 * 1024;
     const projectedBytes = usage.activeBytes + incomingBytes;
-    if (projectedBytes > usage.limitBytes) {
+    if (projectedBytes > effectiveLimitBytes) {
       const neededMb = (incomingBytes / (1024 * 1024)).toFixed(2);
-      const availMb = (Math.max(0, usage.limitBytes - usage.activeBytes) / (1024 * 1024)).toFixed(2);
+      const availMb = (Math.max(0, effectiveLimitBytes - usage.activeBytes) / (1024 * 1024)).toFixed(2);
       return {
         allowed: false,
         statusCode: 403,
@@ -158,7 +159,7 @@ export class StorageAccountingService {
         incomingBytes,
         projectedBytes,
         isUnlimited: false,
-        remainingBytes: Math.max(0, usage.limitBytes - usage.activeBytes),
+        remainingBytes: Math.max(0, effectiveLimitBytes - usage.activeBytes),
       };
     }
 
@@ -171,7 +172,7 @@ export class StorageAccountingService {
       incomingBytes,
       projectedBytes,
       isUnlimited: false,
-      remainingBytes: usage.limitBytes - projectedBytes,
+      remainingBytes: (usage.limitBytes || 0) - projectedBytes,
     };
   }
 
