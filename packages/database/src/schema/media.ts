@@ -91,8 +91,8 @@ export const tenantMediaAssets = pgTable('tenant_media_assets', {
   id: uuid('id').defaultRandom().primaryKey(),
   organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
   assetType: varchar('asset_type', { length: 50 }).notNull().default('catalog_image'), // 'catalog_image' | 'studio_transformation' | 'custom_upload'
-  globalMediaAssetId: uuid('global_media_asset_id').references(() => globalMediaAssets.id, { onDelete: 'cascade' }),
-  transformationId: uuid('transformation_id').references(() => productImageTransformations.id, { onDelete: 'cascade' }),
+  globalMediaAssetId: uuid('global_media_asset_id').references(() => globalMediaAssets.id, { onDelete: 'set null' }),
+  transformationId: uuid('transformation_id').references(() => productImageTransformations.id, { onDelete: 'set null' }),
   storagePath: text('storage_path').notNull(),
   mimeType: varchar('mime_type', { length: 64 }).notNull().default('image/webp'),
   fileSizeBytes: bigint('file_size_bytes', { mode: 'number' }).notNull().default(0),

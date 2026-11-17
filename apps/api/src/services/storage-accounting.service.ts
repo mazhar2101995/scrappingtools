@@ -379,10 +379,13 @@ export class StorageAccountingService {
       // No other tenant references this asset. Safely delete physical file from disk if local!
       const localRel = asset.storagePath.replace(/^\/+/, '');
       const possiblePaths = [
+        ...(path.isAbsolute(asset.storagePath) ? [asset.storagePath] : []),
         path.resolve(process.cwd(), 'public', localRel),
         path.resolve(process.cwd(), 'apps', 'api', 'public', localRel),
+        path.resolve(__dirname, '../../public', localRel),
       ];
 
+      let fileUnlinked = false;
       for (const p of possiblePaths) {
         if (fs.existsSync(p)) {
           try {
@@ -390,11 +393,16 @@ export class StorageAccountingService {
             fs.unlinkSync(p);
             filesDeleted++;
             bytesReclaimed += stat.size;
+            fileUnlinked = true;
             break;
           } catch (e) {
             console.warn(`[StorageAccounting] Could not unlink ${p}:`, e);
           }
         }
+      }
+
+      if (!fileUnlinked) {
+        bytesReclaimed += Number(asset.fileSizeBytes) || 0;
       }
 
       // Mark tenant asset as purged

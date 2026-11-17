@@ -13,6 +13,7 @@ import {
   sourceCache,
   systemStorageSettings,
   garbageCollectionLogs,
+  tenantMediaAssets,
 } from '@saas/database';
 import { eq, sql, lt, and, inArray, desc, or, ne } from 'drizzle-orm';
 import { StorageAccountingService } from './storage-accounting.service';
@@ -164,12 +165,28 @@ export class GarbageCollectionService {
       }
     }
 
-    // 3. Fetch all assets in global registry
+    // 3. Fetch active tenant media asset references (multi-tenant ledger safety)
+    const activeTenantAssets = await db
+      .select({
+        contentHash: tenantMediaAssets.contentHash,
+        count: sql<number>`count(*)`,
+      })
+      .from(tenantMediaAssets)
+      .where(eq(tenantMediaAssets.status, 'active'))
+      .groupBy(tenantMediaAssets.contentHash);
+
+    const tenantRefMap = new Map<string, number>();
+    for (const row of activeTenantAssets) {
+      if (row.contentHash) tenantRefMap.set(row.contentHash, Number(row.count));
+    }
+
+    // 4. Fetch all assets in global registry
     const allAssets = await db.select().from(globalMediaAssets);
     let newlyMarkedCount = 0;
 
     for (const asset of allAssets) {
       const hashCount = refMap.get(asset.contentHash) || 0;
+      const tenantCount = tenantRefMap.get(asset.contentHash) || 0;
       const origUrl = (asset.originalUrl || '').toLowerCase().trim();
       const canonUrl = (asset.canonicalUrl || '').toLowerCase().trim();
       const storageUri = (asset.storageUri || '').toLowerCase().trim();
@@ -179,7 +196,7 @@ export class GarbageCollectionService {
         (canonUrl && canonUrl !== origUrl ? transformationUrlCounts.get(canonUrl) || 0 : 0) +
         (storageUri ? transformationUrlCounts.get(storageUri) || 0 : 0);
 
-      const totalActiveReferences = hashCount + transCount;
+      const totalActiveReferences = hashCount + transCount + tenantCount;
 
       if (totalActiveReferences === 0) {
         // Unreferenced! If not already marked as orphan, mark it with timestamp
