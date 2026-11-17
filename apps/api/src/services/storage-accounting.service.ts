@@ -340,13 +340,16 @@ export class StorageAccountingService {
         )
       );
 
-    let bytesReclaimed = 0;
+    let physicalBytesReclaimed = 0;
+    let logicalBytesReclaimed = 0;
     let filesDeleted = 0;
     let recordsPurged = 0;
     const affectedOrgIds = new Set<string>();
 
     for (const asset of expiredAssets) {
       affectedOrgIds.add(asset.organizationId);
+      const assetSize = Number(asset.fileSizeBytes) || 0;
+      logicalBytesReclaimed += assetSize;
 
       // Check if ANY other tenant has an active reference to the same contentHash or globalMediaAssetId
       const otherReferences = await db
@@ -373,7 +376,6 @@ export class StorageAccountingService {
           .where(eq(tenantMediaAssets.id, asset.id));
 
         recordsPurged++;
-        bytesReclaimed += Number(asset.fileSizeBytes) || 0;
         continue;
       }
 
@@ -386,24 +388,18 @@ export class StorageAccountingService {
         path.resolve(__dirname, '../../public', localRel),
       ];
 
-      let fileUnlinked = false;
       for (const p of possiblePaths) {
         if (fs.existsSync(p)) {
           try {
             const stat = fs.statSync(p);
             fs.unlinkSync(p);
             filesDeleted++;
-            bytesReclaimed += stat.size;
-            fileUnlinked = true;
+            physicalBytesReclaimed += stat.size;
             break;
           } catch (e) {
             console.warn(`[StorageAccounting] Could not unlink ${p}:`, e);
           }
         }
-      }
-
-      if (!fileUnlinked) {
-        bytesReclaimed += Number(asset.fileSizeBytes) || 0;
       }
 
       // Mark tenant asset as purged
@@ -427,8 +423,10 @@ export class StorageAccountingService {
       expiredAssetsCount: expiredAssets.length,
       recordsPurged,
       filesDeleted,
-      bytesReclaimed,
-      bytesReclaimedMb: Math.ceil(bytesReclaimed / (1024 * 1024)),
+      physicalBytesReclaimed,
+      logicalBytesReclaimed,
+      bytesReclaimed: logicalBytesReclaimed,
+      bytesReclaimedMb: Math.ceil(logicalBytesReclaimed / (1024 * 1024)),
     };
   }
 
