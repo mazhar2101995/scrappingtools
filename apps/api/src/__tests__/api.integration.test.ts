@@ -94,6 +94,15 @@ describe('Core SaaS REST API & Security Integration Test Suite', () => {
 
   // TEST 4: Global Product Search & EAN Barcode Search
   it('TEST 4: should search global products and locate by exact EAN barcode', async () => {
+    // Map to tenant first to populate tenant catalog
+    await request(app)
+      .post('/api/v1/catalog/map')
+      .set('Authorization', `Bearer ${authToken}`)
+      .send({
+        globalProductId: testProductId,
+        customerInternalSku: 'ACME-SLASH-001',
+      });
+
     // Search list
     const searchRes = await request(app)
       .get('/api/v1/products?q=Slash')

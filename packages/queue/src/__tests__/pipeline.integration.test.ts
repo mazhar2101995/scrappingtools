@@ -124,7 +124,7 @@ describe('BullMQ Ingestion Pipeline Integration Test Suite', () => {
     const health = await getAllQueuesHealth();
     expect(health.redis.status).toBe('healthy');
     expect(health.redis.latencyMs).toBeGreaterThanOrEqual(0);
-    expect(health.queues.length).toBe(4);
+    expect(health.queues.length).toBe(5);
     expect(health.queues.some((q) => q.name === 'product-scraping')).toBe(true);
   });
 

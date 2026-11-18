@@ -62,6 +62,7 @@ export const productAttributes = pgTable('product_attributes', {
   attributeKey: varchar('attribute_key', { length: 100 }).notNull(),
   rawValue: text('raw_value').notNull(),
   normalizedValue: text('normalized_value').notNull(),
+  attributes: jsonb('attributes').notNull().default({}),
   unit: varchar('unit', { length: 30 }),
   dataType: varchar('data_type', { length: 30 }).notNull().default('string'),
   sourceWebsiteId: uuid('source_website_id').references(() => sourceWebsites.id, { onDelete: 'set null' }),
@@ -70,6 +71,7 @@ export const productAttributes = pgTable('product_attributes', {
 }, (table) => [
   uniqueIndex('idx_pa_unique_attr').on(table.globalProductId, table.productVariantId, table.attributeKey),
   index('idx_pa_key_val').on(table.attributeKey, table.normalizedValue),
+  index('idx_product_attributes_attributes_gin').using('gin', table.attributes),
 ]);
 
 export const productImages = pgTable('product_images', {

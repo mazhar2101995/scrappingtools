@@ -1,6 +1,7 @@
 import React from 'react';
 import './globals.css';
 import AppShell from '../components/AppShell';
+import TelemetryInitializer from '../components/TelemetryInitializer';
 
 export const metadata = {
   title: 'AI Product Intelligence Platform',
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="antialiased selection:bg-sky-500 selection:text-white">
+        <TelemetryInitializer />
         <AppShell>{children}</AppShell>
       </body>
     </html>

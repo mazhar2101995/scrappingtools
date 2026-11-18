@@ -1,8 +1,7 @@
 import { db, proxyConfigurations } from '@saas/database';
 import { eq, and, or, isNull } from 'drizzle-orm';
 import axios, { AxiosRequestConfig } from 'axios';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { HttpsProxyAgent } = require('https-proxy-agent');
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 export interface AntiBotRequestOptions {
   organizationId?: string;

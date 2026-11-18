@@ -26,6 +26,8 @@ import { proxyRouter } from './routes/proxy.routes';
 import { competitorRouter } from './routes/competitor.routes';
 import { supplierSessionRouter } from './routes/supplier-session.routes';
 import { imageStudioRouter } from './routes/image-studio.routes';
+import { telemetryRouter } from './routes/telemetry.routes';
+import { errorMiddleware } from './middleware/error.middleware';
 import { ServiceHealth } from '@saas/shared-types';
 
 const app = express();
@@ -96,6 +98,10 @@ app.use('/api/v1/proxies', proxyRouter);
 app.use('/api/v1/competitors', competitorRouter);
 app.use('/api/v1/supplier-sessions', supplierSessionRouter);
 app.use('/api/v1/image-studio', imageStudioRouter);
+app.use('/api/v1/telemetry', telemetryRouter);
+
+// Global Centralized Error Telemetry Middleware (captures error reference IDs, context, & redacts secrets)
+app.use(errorMiddleware);
 
 // 4. Start Server & Background Storage Garbage Collection Worker
 if (process.env.NODE_ENV !== 'test') {

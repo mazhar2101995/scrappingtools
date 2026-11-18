@@ -255,6 +255,30 @@ export const competitorPriceHistory = pgTable('competitor_price_history', {
   index('idx_comp_hist_monitor').on(table.monitorId, table.recordedAt),
 ]);
 
+export const systemErrorLogs = pgTable('system_error_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  errorReferenceId: varchar('error_reference_id', { length: 64 }).notNull().unique(),
+  source: varchar('source', { length: 20 }).notNull().default('backend'),
+  severity: varchar('severity', { length: 20 }).notNull().default('error'),
+  errorName: varchar('error_name', { length: 255 }).notNull(),
+  errorMessage: text('error_message').notNull(),
+  stackTrace: text('stack_trace'),
+  httpMethod: varchar('http_method', { length: 10 }),
+  httpPath: text('http_path'),
+  httpStatusCode: integer('http_status_code').default(500),
+  organizationId: uuid('organization_id'),
+  userId: uuid('user_id'),
+  userEmail: varchar('user_email', { length: 255 }),
+  browserInfo: text('browser_info'),
+  context: jsonb('context').default(sql`'{}'::jsonb`),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_error_logs_ref_id').on(table.errorReferenceId),
+  index('idx_error_logs_org_created').on(table.organizationId, table.createdAt),
+  index('idx_error_logs_source_severity').on(table.source, table.severity),
+  index('idx_error_logs_created_at').on(table.createdAt),
+]);
+
 
 
 
