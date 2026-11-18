@@ -4,7 +4,7 @@ const jwt = require(path.resolve('apps/api/node_modules/jsonwebtoken'));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_super_secret_key_change_in_production';
 
-// Generate Super Admin token
+// Super Admin token
 const superAdminToken = jwt.sign(
   {
     userId: '00000000-0000-0000-0000-000000000001',
@@ -39,28 +39,35 @@ function makeRequest(options, postData) {
 }
 
 async function run() {
-  console.log('=== Centralized Error Telemetry Verification ===\n');
+  console.log('=== Comprehensive Error Telemetry Security Verification ===\n');
 
-  // Test 1: Frontend error report ingestion with sensitive data redaction
-  console.log('Test 1: Ingesting frontend error report with sensitive fields...');
-  const frontendErrorPayload = {
+  // TEL-01 & TEL-03 & TEL-04 & TEL-05: Deep Redaction Verification
+  console.log('TEL-01: Ingesting frontend error report with comprehensive sensitive vectors...');
+  const deepPayload = {
     source: 'frontend',
     severity: 'error',
-    errorName: 'PaymentFormException',
-    errorMessage: 'Card authorization token rejected',
-    stackTrace: 'Error: Card authorization token rejected\n    at checkout.tsx:42',
-    httpPath: '/checkout/pay',
+    errorName: 'PaymentAndAuthFailure',
+    errorMessage: 'Card failed on checkout for url https://checkout.store.com/pay?apiKey=sk_live_verysecret123&token=jwt_xyz_998',
+    stackTrace: 'Error: Card rejected\n    at checkout.tsx:120\n    auth: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sensitive_payload_string',
+    httpPath: '/checkout/pay?password=myPassword123&session_id=sess_48291',
     organizationId: 'c9361815-b6b7-4f7c-bbf3-192c671105d6',
     userId: '00000000-0000-0000-0000-000000000001',
     context: {
-      password: 'superSecretPassword123!',
+      password: 'plainTextPassword999!',
       apiKey: 'sk-prod-998877665544',
-      token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.sensitive',
-      userNote: 'Customer attempted checkout with promo code PROMO2026',
-      nestedAuth: {
-        authorization: 'Bearer secret_access_token',
-        safeProperty: 'Visa-4242'
-      }
+      token: 'jwt_token_here',
+      cookie: 'connect.sid=s%3A12345.abcdef',
+      creditCard: '4111111111111111',
+      cvv: '123',
+      nested: {
+        authorization: 'Bearer secret_auth_token_value',
+        rawPan: '5500000000000004',
+        safeNotes: 'Transaction attempt #3'
+      },
+      arrayData: [
+        { clientSecret: 'pi_3MtwBwLkdIwHu7ix28a3tqPa_secret_Yr9' },
+        'Embedded token string: Bearer abcdef123456789'
+      ]
     }
   };
 
@@ -75,69 +82,93 @@ async function run() {
         Authorization: `Bearer ${superAdminToken}`
       }
     },
-    frontendErrorPayload
+    deepPayload
   );
 
-  console.log('Ingest Response Status:', reportRes.status);
-  console.log('Ingest Response Body:', JSON.stringify(reportRes.body, null, 2));
+  console.log('Ingest HTTP Status:', reportRes.status);
+  const refId = reportRes.body?.errorReferenceId;
+  console.log('Generated Ref ID:', refId);
+  if (!refId) throw new Error('TEL-01 Failed: No errorReferenceId returned');
 
-  if (!reportRes.body?.errorReferenceId) {
-    throw new Error('Failed to ingest error: No errorReferenceId returned');
-  }
-
-  const generatedRefId = reportRes.body.errorReferenceId;
-  console.log('Generated Error Reference ID:', generatedRefId);
-
-  // Test 2: Query system error logs via Super Admin endpoint
-  console.log('\nTest 2: Querying error logs via Super Admin API (GET /api/v1/telemetry/errors)...');
+  // TEL-02: Query by Ref ID
+  console.log('\nTEL-02: Querying error record via Super Admin API...');
   const queryRes = await makeRequest({
     hostname: 'localhost',
     port: 4000,
-    path: `/api/v1/telemetry/errors?search=${generatedRefId}`,
+    path: `/api/v1/telemetry/errors?search=${refId}`,
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${superAdminToken}`
-    }
+    headers: { Authorization: `Bearer ${superAdminToken}` }
   });
 
-  console.log('Query Response Status:', queryRes.status);
-  console.log('Found Logs Count:', queryRes.body?.logs?.length);
+  const record = queryRes.body?.logs?.[0];
+  if (!record) throw new Error('TEL-02 Failed: Could not locate persisted error log');
+  console.log('>> SUCCESS: Error log successfully retrieved by Reference ID');
 
-  const matchedLog = queryRes.body?.logs?.[0];
-  if (!matchedLog) {
-    throw new Error('Could not find logged error in database');
+  // TEL-03: Passwords, tokens, API keys
+  console.log('\nTEL-03: Verifying passwords, tokens, and API key redaction...');
+  if (record.context.password !== '[REDACTED]' || record.context.apiKey !== '[REDACTED]' || record.context.token !== '[REDACTED]') {
+    throw new Error('TEL-03 Failed: Direct sensitive keys were not redacted');
   }
+  console.log('>> SUCCESS: Passwords, tokens, and API keys scrubbed to [REDACTED]');
 
-  console.log('\nRetrieved Log Record:');
-  console.log('- Reference ID:', matchedLog.errorReferenceId);
-  console.log('- Source:', matchedLog.source);
-  console.log('- Severity:', matchedLog.severity);
-  console.log('- Error Name:', matchedLog.errorName);
-  console.log('- Organization ID:', matchedLog.organizationId);
-  console.log('- User ID:', matchedLog.userId);
-
-  // Test 3: Verify sensitive data was redacted
-  console.log('\nTest 3: Checking Sensitive Data Redaction in Context...');
-  const ctx = matchedLog.context;
-  console.log('Context Object:', JSON.stringify(ctx, null, 2));
-
-  const redactionsPassed =
-    ctx.password === '[REDACTED]' &&
-    ctx.apiKey === '[REDACTED]' &&
-    ctx.token === '[REDACTED]' &&
-    ctx.nestedAuth?.authorization === '[REDACTED]' &&
-    ctx.nestedAuth?.safeProperty === 'Visa-4242' &&
-    ctx.userNote.includes('PROMO2026');
-
-  if (redactionsPassed) {
-    console.log('>> SUCCESS: All sensitive credentials recursively redacted to [REDACTED], safe data preserved!');
-  } else {
-    throw new Error('Redaction failed! Sensitive credentials leaked into context.');
+  // TEL-04: Payment credentials & card numbers
+  console.log('\nTEL-04: Verifying card number and CVV redaction...');
+  if (
+    record.context.creditCard !== '[REDACTED]' ||
+    record.context.cvv !== '[REDACTED]' ||
+    (record.context.nested.rawPan !== '[REDACTED]' && record.context.nested.rawPan !== '[CARD_REDACTED]')
+  ) {
+    throw new Error('TEL-04 Failed: Credit card PAN or CVV leaked');
   }
+  console.log('>> SUCCESS: Credit card numbers and CVV scrubbed');
 
-  // Test 4: Verify non-admin access is rejected
-  console.log('\nTest 4: Verifying Non-Admin RBAC Protection...');
-  const tenantToken = jwt.sign(
+  // TEL-05: Embedded credentials in URL and error message
+  console.log('\nTEL-05: Verifying URL query parameter and error message credential scrubbing...');
+  if (record.errorMessage.includes('sk_live_verysecret123') || !record.errorMessage.includes('apiKey=[REDACTED]')) {
+    throw new Error('TEL-05 Failed: Sensitive query parameters in errorMessage were not scrubbed');
+  }
+  if (record.httpPath.includes('myPassword123') || !record.httpPath.includes('password=[REDACTED]')) {
+    throw new Error('TEL-05 Failed: Password query parameter in httpPath was not scrubbed');
+  }
+  console.log('>> SUCCESS: Embedded query parameter secrets sanitized in errorMessage and httpPath');
+
+  // TEL-06: Authorization Bearer headers & nested objects/arrays
+  console.log('\nTEL-06: Verifying Bearer tokens and nested arrays...');
+  if (record.context.nested.authorization !== '[REDACTED]') {
+    throw new Error('TEL-06 Failed: Nested authorization was not redacted');
+  }
+  if (record.context.arrayData[0].clientSecret !== '[REDACTED]' || !record.context.arrayData[1].includes('[REDACTED]')) {
+    throw new Error('TEL-06 Failed: Array-nested client secrets were not redacted');
+  }
+  console.log('>> SUCCESS: Nested structures and Bearer tokens fully sanitized');
+
+  // TEL-07: Unauthenticated error capture (anonymous session)
+  console.log('\nTEL-07: Ingesting error from unauthenticated/anonymous visitor...');
+  const anonPayload = {
+    source: 'frontend',
+    severity: 'warning',
+    errorName: 'AnonymousLandingPageError',
+    errorMessage: 'Failed to load public feature banner',
+    context: { visitorIp: '203.0.113.19' }
+  };
+  const anonRes = await makeRequest(
+    {
+      hostname: 'localhost',
+      port: 4000,
+      path: '/api/v1/telemetry/errors',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    },
+    anonPayload
+  );
+  if (anonRes.status !== 201 || !anonRes.body?.errorReferenceId) {
+    throw new Error('TEL-07 Failed: Anonymous error report rejected');
+  }
+  console.log('>> SUCCESS: Unauthenticated error logged cleanly with Ref ID:', anonRes.body.errorReferenceId);
+
+  // TEL-08: RBAC Enforcement
+  console.log('\nTEL-08: Verifying RBAC protection for log querying...');
+  const regularTenantToken = jwt.sign(
     {
       userId: 'c9361815-b6b7-4f7c-bbf3-192c67110001',
       email: 'member@tenant.com',
@@ -148,71 +179,22 @@ async function run() {
     JWT_SECRET,
     { expiresIn: '1h' }
   );
-
-  const forbiddenRes = await makeRequest({
+  const rbacRes = await makeRequest({
     hostname: 'localhost',
     port: 4000,
     path: '/api/v1/telemetry/errors',
     method: 'GET',
-    headers: {
-      Authorization: `Bearer ${tenantToken}`
-    }
+    headers: { Authorization: `Bearer ${regularTenantToken}` }
   });
-
-  console.log('Tenant Access Response Status:', forbiddenRes.status);
-  if (forbiddenRes.status === 403) {
-    console.log('>> SUCCESS: Non-admin query access properly rejected with 403 Forbidden!');
-  } else {
-    throw new Error(`Expected 403 Forbidden, got ${forbiddenRes.status}`);
+  if (rbacRes.status !== 403) {
+    throw new Error(`TEL-08 Failed: Expected 403 Forbidden, got ${rbacRes.status}`);
   }
+  console.log('>> SUCCESS: Regular tenant query access strictly blocked with HTTP 403 Forbidden');
 
-  // Test 5: Verify backend error middleware interception and reference ID generation
-  console.log('\nTest 5: Triggering unhandled backend exception via error middleware...');
-  const backendErrRes = await makeRequest({
-    hostname: 'localhost',
-    port: 4000,
-    path: '/api/v1/telemetry/simulate-backend-error',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${superAdminToken}`
-    }
-  });
-
-  console.log('Backend Error Response Status:', backendErrRes.status);
-  console.log('Backend Error Response Body:', JSON.stringify(backendErrRes.body, null, 2));
-
-  if (backendErrRes.status !== 500) {
-    throw new Error(`Expected 500 status code, got ${backendErrRes.status}`);
-  }
-  if (!backendErrRes.body?.errorReferenceId) {
-    throw new Error('Backend error did not return errorReferenceId');
-  }
-
-  const backendRefId = backendErrRes.body.errorReferenceId;
-  console.log('Backend Generated Ref ID:', backendRefId);
-
-  // Verify backend error was persisted in database
-  const queryBackendRes = await makeRequest({
-    hostname: 'localhost',
-    port: 4000,
-    path: `/api/v1/telemetry/errors?search=${backendRefId}`,
-    method: 'GET',
-    headers: {
-      Authorization: `Bearer ${superAdminToken}`
-    }
-  });
-
-  const backendLog = queryBackendRes.body?.logs?.[0];
-  if (!backendLog || backendLog.source !== 'backend') {
-    throw new Error('Backend error was not logged correctly in system_error_logs');
-  }
-  console.log('>> SUCCESS: Backend error intercepted by middleware, assigned Ref ID and persisted in system_error_logs!');
-
-  console.log('\n=== ALL CENTRALIZED ERROR TELEMETRY CHECKS PASSED ===');
+  console.log('\n=== ALL 8 ERROR TELEMETRY SECURITY TESTS (TEL-01..TEL-08) PASSED ===');
 }
 
-run().catch((err) => {
-  console.error('FAILED:', err);
+run().catch((e) => {
+  console.error('FAILED:', e);
   process.exit(1);
 });

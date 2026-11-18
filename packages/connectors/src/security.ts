@@ -42,8 +42,8 @@ export class CredentialSecurity {
       const parsed = new URL(urlStr);
       if (!['http:', 'https:'].includes(parsed.protocol)) return false;
       const host = parsed.hostname.toLowerCase();
-      // In dev mode allow localhost/127.0.0.1 for testing local dev stores
-      if (process.env.NODE_ENV === 'production') {
+      // In production and testing, strictly forbid localhost/private IPs unless explicitly allowed via ALLOW_LOCAL_STORES=true
+      if (process.env.ALLOW_LOCAL_STORES !== 'true') {
         if (['localhost', '127.0.0.1', '::1', '169.254.169.254'].includes(host)) return false;
         if (/^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host)) {
           return false;

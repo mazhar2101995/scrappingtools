@@ -1,6 +1,7 @@
 import { db, proxyConfigurations } from '@saas/database';
 import { eq, and, or, isNull } from 'drizzle-orm';
 import axios, { AxiosRequestConfig } from 'axios';
+// @ts-ignore - https-proxy-agent uses package.json exports resolved at runtime
 import { HttpsProxyAgent } from 'https-proxy-agent';
 
 export interface AntiBotRequestOptions {

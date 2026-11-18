@@ -37,13 +37,31 @@ export class ErrorTelemetryService {
     'client_secret',
     'stripe_secret',
     'stripe_webhook_secret',
+    'card_number',
+    'pan',
+    'securitycode',
+    'security_code',
   ]);
+
+  /**
+   * Sanitizes string values to mask embedded query parameter credentials, Bearer tokens, and credit card numbers
+   */
+  public static sanitizeString(str: string): string {
+    if (!str || typeof str !== 'string') return str;
+    return str
+      .replace(/(password|secret|token|apiKey|api_key|authorization|cookie|cvv)=[^&\s]+/gi, '$1=[REDACTED]')
+      .replace(/(Bearer\s+)[A-Za-z0-9\-._~+/]+=*/gi, '$1[REDACTED]')
+      .replace(/\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3(?:0[0-5]|[68][0-9])[0-9]{11}|6(?:011|5[0-9]{2})[0-9]{12})\b/g, '[CARD_REDACTED]');
+  }
 
   /**
    * Recursively redact sensitive keys from any arbitrary payload or object
    */
   public static redactSensitiveData(data: any, depth = 0): any {
     if (depth > 5) return '[MAX_DEPTH_REACHED]';
+    if (typeof data === 'string') {
+      return this.sanitizeString(data);
+    }
     if (!data || typeof data !== 'object') return data;
 
     if (Array.isArray(data)) {
@@ -57,6 +75,8 @@ export class ErrorTelemetryService {
         cleaned[key] = '[REDACTED]';
       } else if (val && typeof val === 'object') {
         cleaned[key] = this.redactSensitiveData(val, depth + 1);
+      } else if (typeof val === 'string') {
+        cleaned[key] = this.sanitizeString(val);
       } else {
         cleaned[key] = val;
       }
@@ -93,10 +113,10 @@ export class ErrorTelemetryService {
         source: ctx.source || 'backend',
         severity: ctx.severity || 'error',
         errorName: String(errorName).slice(0, 255),
-        errorMessage: String(errorMessage),
+        errorMessage: this.sanitizeString(String(errorMessage)),
         stackTrace: stackTrace ? stackTrace.slice(0, 10000) : null,
         httpMethod: ctx.httpMethod ? String(ctx.httpMethod).slice(0, 10) : null,
-        httpPath: ctx.httpPath ? String(ctx.httpPath).slice(0, 500) : null,
+        httpPath: ctx.httpPath ? this.sanitizeString(String(ctx.httpPath)).slice(0, 500) : null,
         httpStatusCode: ctx.httpStatusCode || 500,
         organizationId: ctx.organizationId || null,
         userId: ctx.userId || null,

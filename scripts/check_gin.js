@@ -8,13 +8,41 @@ async function applyAndVerifyGin() {
   console.log('APPLYING AND VERIFYING POSTGRESQL GIN INDEX ON product_attributes');
   console.log('========================================================================\n');
 
-  // 1. Read and apply migration
-  const migrationSql = fs.readFileSync(
-    path.resolve(__dirname, '../infrastructure/postgres/migrations/05_product_attributes_gin_index.sql'),
-    'utf8'
-  );
-  await sql.unsafe(migrationSql);
-  console.log('[+] Migration 05_product_attributes_gin_index.sql executed successfully.');
+  // 1. Read and apply migration statement by statement outside transaction block
+  // (CREATE INDEX CONCURRENTLY must not be executed inside a multi-statement transaction)
+  await sql`
+    ALTER TABLE product_attributes 
+    ADD COLUMN IF NOT EXISTS attributes JSONB NOT NULL DEFAULT '{}'::jsonb;
+  `;
+
+  await sql`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM pg_index i
+        JOIN pg_class c ON c.oid = i.indexrelid
+        WHERE c.relname = 'idx_product_attributes_attributes_gin' AND NOT i.indisvalid
+      ) THEN
+        DROP INDEX idx_product_attributes_attributes_gin;
+      END IF;
+    END $$;
+  `;
+
+  // Check if index already exists and is valid before running CREATE INDEX CONCURRENTLY
+  const existing = await sql`
+    SELECT i.indisvalid 
+    FROM pg_index i 
+    JOIN pg_class c ON c.oid = i.indexrelid 
+    WHERE c.relname = 'idx_product_attributes_attributes_gin';
+  `;
+
+  if (existing.length === 0 || !existing[0].indisvalid) {
+    await sql.unsafe(
+      'CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_product_attributes_attributes_gin ON product_attributes USING gin (attributes);'
+    );
+  }
+  console.log('[+] Migration 05_product_attributes_gin_index executed successfully with safe CONCURRENT execution.');
 
   // 2. Verify column and index in information_schema / pg_indexes
   const col = await sql`
@@ -24,12 +52,34 @@ async function applyAndVerifyGin() {
   `;
   console.log('Verified Column:', col);
 
-  const idx = await sql`
+  const catalogIndex = await sql`
+    SELECT 
+      c.relname AS index_name,
+      i.indisvalid AS is_valid,
+      i.indisready AS is_ready,
+      am.amname AS access_method
+    FROM pg_index i
+    JOIN pg_class c ON c.oid = i.indexrelid
+    JOIN pg_am am ON am.oid = c.relam
+    WHERE c.relname = 'idx_product_attributes_attributes_gin';
+  `;
+  console.log('PostgreSQL Catalog Index Validity:', catalogIndex);
+  if (!catalogIndex[0] || !catalogIndex[0].is_valid) {
+    throw new Error('Index is invalid or missing in pg_index catalog!');
+  }
+
+  // Duplicate index check
+  const allIndexes = await sql`
     SELECT indexname, indexdef 
     FROM pg_indexes 
-    WHERE tablename = 'product_attributes' AND indexname = 'idx_product_attributes_attributes_gin';
+    WHERE tablename = 'product_attributes';
   `;
-  console.log('Verified Index:', idx);
+  console.log('All product_attributes indexes:', allIndexes.map(i => i.indexname).join(', '));
+  const ginIndexes = allIndexes.filter(i => i.indexdef.includes('gin (attributes)'));
+  if (ginIndexes.length > 1) {
+    throw new Error(`Duplicate GIN indexes found: ${ginIndexes.map(i => i.indexname).join(', ')}`);
+  }
+  console.log('[+] Verified: Zero duplicate GIN indexes exist.');
 
   // 3. Test representative JSONB query with EXPLAIN ANALYZE
   // Get an existing globalProductId or create dummy
