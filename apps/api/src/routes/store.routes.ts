@@ -85,7 +85,8 @@ storeRouter.post('/:id/inbound-webhook', async (req: Request, res: Response) => 
     });
 
     if (!result.success) {
-      return res.status(400).json(result);
+      const statusCode = result.actionTaken === 'REJECTED_UNAUTHORIZED' ? 401 : 400;
+      return res.status(statusCode).json(result);
     }
 
     return res.status(200).json(result);
