@@ -41,14 +41,26 @@ async function simulateWebhook() {
   console.log(`[+] Target Store: ${store.store_name} (${store.id})`);
   console.log(`[+] Shared Webhook Secret: ${webhookSecret.slice(0, 8)}...`);
 
+  const mappings = await sql`
+    SELECT external_product_id, global_product_id
+    FROM store_product_mappings
+    WHERE connected_store_id = ${store.id}
+    LIMIT 1
+  `;
+
+  const rawExtId = mappings.length > 0 ? mappings[0].external_product_id : '9948210';
+  const cleanExtId = String(rawExtId).replace(/^gid:\/\/shopify\/Product\//, '');
+
+  console.log(`[+] External Product ID: ${cleanExtId} ${mappings.length > 0 ? '(MAPPED to ' + mappings[0].global_product_id + ')' : '(UNMAPPED)'}`);
+
   const payloadObj = {
-    id: 9948210,
-    title: 'Updated Staging Product Title',
+    id: cleanExtId,
+    title: 'X-Maxx Ultimate (Staging Price Update)',
     variants: [
       {
         id: 8819203,
-        price: '479.99',
-        inventory_quantity: 18,
+        price: '1399.00',
+        inventory_quantity: 25,
       },
     ],
   };

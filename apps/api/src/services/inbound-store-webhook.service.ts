@@ -6,7 +6,7 @@ import {
   globalProducts,
   storeInboundWebhooks,
 } from '@saas/database';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 import { NotificationAndWebhookService } from './notification-and-webhook.service';
 
 export interface InboundWebhookResult {
@@ -150,7 +150,11 @@ export class InboundStoreWebhookService {
           .where(
             and(
               eq(storeProductMappings.connectedStoreId, store.id),
-              eq(storeProductMappings.externalProductId, externalProductId)
+              or(
+                eq(storeProductMappings.externalProductId, externalProductId),
+                eq(storeProductMappings.externalProductId, `gid://shopify/Product/${externalProductId}`),
+                eq(storeProductMappings.externalProductId, externalProductId.replace(/^gid:\/\/shopify\/Product\//, ''))
+              )
             )
           )
           .limit(1);
