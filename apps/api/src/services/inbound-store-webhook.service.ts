@@ -23,10 +23,12 @@ export class InboundStoreWebhookService {
   static async processStoreWebhook(params: {
     storeId: string;
     authSecret?: string;
+    signature?: string;
+    rawBody?: string;
     topic?: string;
     payload: any;
   }): Promise<InboundWebhookResult> {
-    const { storeId, authSecret, topic, payload } = params;
+    const { storeId, authSecret, signature, rawBody, topic, payload } = params;
 
     // 1. Fetch store and verify credentials
     const [store] = await db
@@ -43,23 +45,46 @@ export class InboundStoreWebhookService {
       };
     }
 
-    // Webhook secret verification (if secret configured on store)
-    if (store.webhookSecret && authSecret && store.webhookSecret !== authSecret) {
-      await this.logInboundWebhook({
-        organizationId: store.organizationId,
-        storeId: store.id,
-        platform: store.platformType,
-        eventType: topic || 'unknown',
-        externalId: null,
-        payload,
-        status: 'UNAUTHORIZED',
-        errorMessage: 'Invalid webhook secret token',
-      });
-      return {
-        success: false,
-        actionTaken: 'REJECTED_UNAUTHORIZED',
-        error: 'Invalid webhook secret',
-      };
+    // Webhook cryptographic signature & secret verification
+    if (store.webhookSecret) {
+      if (signature) {
+        const { CredentialSecurity } = await import('@saas/connectors');
+        const payloadString = rawBody || JSON.stringify(payload);
+        const isValid = CredentialSecurity.verifyHmacSha256(payloadString, store.webhookSecret, signature);
+        if (!isValid) {
+          await this.logInboundWebhook({
+            organizationId: store.organizationId,
+            storeId: store.id,
+            platform: store.platformType,
+            eventType: topic || 'unknown',
+            externalId: null,
+            payload,
+            status: 'UNAUTHORIZED',
+            errorMessage: 'Invalid HMAC signature verification',
+          });
+          return {
+            success: false,
+            actionTaken: 'REJECTED_UNAUTHORIZED',
+            error: 'Invalid HMAC signature',
+          };
+        }
+      } else if (authSecret && store.webhookSecret !== authSecret) {
+        await this.logInboundWebhook({
+          organizationId: store.organizationId,
+          storeId: store.id,
+          platform: store.platformType,
+          eventType: topic || 'unknown',
+          externalId: null,
+          payload,
+          status: 'UNAUTHORIZED',
+          errorMessage: 'Invalid webhook secret token',
+        });
+        return {
+          success: false,
+          actionTaken: 'REJECTED_UNAUTHORIZED',
+          error: 'Invalid webhook secret',
+        };
+      }
     }
 
     const platform = store.platformType.toLowerCase();

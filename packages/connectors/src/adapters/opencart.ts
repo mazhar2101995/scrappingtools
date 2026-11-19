@@ -118,22 +118,25 @@ export class OpenCartConnector implements UniversalConnector {
     const page = params?.page || 1;
 
     // 1. Try official module endpoint
-    const modulePullUrl = `${cleanUrl}/index.php?route=extension/module/saas_connector&action=pull_products&limit=${limit}&page=${page}`;
+    const modulePullUrl = `${cleanUrl}/index.php?route=extension/module/saas_connector&action=pull_products`;
     try {
       const timestamp = Math.floor(Date.now() / 1000).toString();
       const nonce = CredentialSecurity.generateSalt(16);
+      const rawPayload = JSON.stringify({ limit, page });
       const signature = CredentialSecurity.generateHmacSha256(
-        JSON.stringify({ limit, page }) + timestamp + nonce,
+        rawPayload + timestamp + nonce,
         this.config.apiKey
       );
 
       const modResp = await fetch(modulePullUrl, {
-        method: 'GET',
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'X-Saas-Timestamp': timestamp,
           'X-Saas-Nonce': nonce,
           'X-Saas-Signature': signature,
         },
+        body: rawPayload,
       });
 
       if (modResp.ok) {
@@ -330,12 +333,46 @@ export class OpenCartConnector implements UniversalConnector {
 
   public async updateProduct(externalId: string, delta: Partial<CanonicalProductModel>): Promise<boolean> {
     const cleanUrl = this.config.storeUrl.replace(/\/+$/, '');
+    const payload: any = { product_id: externalId };
+    if (delta.price !== undefined) payload.price = delta.price;
+    if (delta.stockQuantity !== undefined) {
+      payload.quantity = delta.stockQuantity;
+      payload.stockQuantity = delta.stockQuantity;
+    }
+
+    // 1. Try official SaaS connector module endpoint
+    const moduleUpdateUrl = `${cleanUrl}/index.php?route=extension/module/saas_connector&action=update_stock_price`;
+    try {
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const nonce = CredentialSecurity.generateSalt(16);
+      const rawPayload = JSON.stringify(payload);
+      const signature = CredentialSecurity.generateHmacSha256(
+        rawPayload + timestamp + nonce,
+        this.config.apiKey
+      );
+
+      const modResp = await fetch(moduleUpdateUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Saas-Timestamp': timestamp,
+          'X-Saas-Nonce': nonce,
+          'X-Saas-Signature': signature,
+        },
+        body: rawPayload,
+      });
+
+      if (modResp.ok) {
+        const modData = await modResp.json().catch(() => null);
+        if (modData && modData.success) {
+          return true;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Try standalone bridge (saas_bridge.php)
     const bridgeUrl = `${cleanUrl}/saas_bridge.php?action=update_stock_price`;
     try {
-      const payload: any = { product_id: externalId };
-      if (delta.price !== undefined) payload.price = delta.price;
-      if (delta.stockQuantity !== undefined) payload.quantity = delta.stockQuantity;
-
       const resp = await fetch(bridgeUrl, {
         method: 'POST',
         headers: {

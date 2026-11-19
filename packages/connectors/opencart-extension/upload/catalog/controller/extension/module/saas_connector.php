@@ -34,6 +34,9 @@ class ControllerExtensionModuleSaasConnector extends Controller {
             case 'pull_products':
                 $this->pullProducts();
                 break;
+            case 'update_stock_price':
+                $this->updateStockPrice();
+                break;
             case 'rollback':
                 $this->rollbackExport();
                 break;
@@ -317,8 +320,10 @@ class ControllerExtensionModuleSaasConnector extends Controller {
 
     private function pullProducts() {
         $prefix = defined('DB_PREFIX') ? DB_PREFIX : '';
-        $limit = isset($this->request->get['limit']) ? (int)$this->request->get['limit'] : 50;
-        $page = isset($this->request->get['page']) ? (int)$this->request->get['page'] : 1;
+        $raw = file_get_contents('php://input');
+        $req = json_decode($raw, true) ?: [];
+        $limit = isset($req['limit']) ? (int)$req['limit'] : (isset($this->request->get['limit']) ? (int)$this->request->get['limit'] : 50);
+        $page = isset($req['page']) ? (int)$req['page'] : (isset($this->request->get['page']) ? (int)$this->request->get['page'] : 1);
         $offset = ($page - 1) * $limit;
 
         $langs = $this->db->query("SELECT language_id FROM `{$prefix}language` WHERE `status` = 1 ORDER BY `sort_order` ASC LIMIT 1");
@@ -350,6 +355,29 @@ class ControllerExtensionModuleSaasConnector extends Controller {
             'hasMore' => ($offset + count($products)) < $total,
             'products' => $products
         ]));
+    }
+
+    private function updateStockPrice() {
+        $raw = file_get_contents('php://input');
+        $payload = json_decode($raw, true) ?: [];
+        $productId = isset($payload['product_id']) ? (int)$payload['product_id'] : 0;
+        $price = isset($payload['price']) ? (float)$payload['price'] : null;
+        $quantity = isset($payload['stockQuantity']) ? (int)$payload['stockQuantity'] : null;
+
+        if (!$productId) {
+            $this->response->setOutput(json_encode(['success' => false, 'error' => 'Missing product_id']));
+            return;
+        }
+
+        $prefix = defined('DB_PREFIX') ? DB_PREFIX : '';
+        $updates = [];
+        if ($price !== null) $updates[] = "`price` = {$price}";
+        if ($quantity !== null) $updates[] = "`quantity` = {$quantity}";
+        $updates[] = "`date_modified` = NOW()";
+
+        $this->db->query("UPDATE `{$prefix}product` SET " . implode(', ', $updates) . " WHERE `product_id` = {$productId}");
+
+        $this->response->setOutput(json_encode(['success' => true, 'updated_id' => $productId]));
     }
 
     private function exchangeToken() {

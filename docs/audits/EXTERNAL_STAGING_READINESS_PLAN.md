@@ -105,10 +105,15 @@ To transition Gate D.1 from `BLOCKED` to `PASS`, the following external infrastr
 
 ---
 
-### 4.2 OpenCart 4.x / 3.x Staging Setup (Zero-Cost Local Container or Hosted)
+### 4.2 OpenCart 3.x / 4.x Architecture & Staging Setup
 
-1. **Deploy OpenCart Instance:**
-   - Option A (Docker Local):
+> [!IMPORTANT]
+> **OpenCart 3.x vs 4.x Compatibility Distinction:**
+> - **OpenCart 3.0.x (Native Module):** The bundled `saas_connector.ocmod.zip` is an OpenCart 3.x native package (using traditional controller inheritance, `install.xml`, and `upload/admin/` layout). It installs seamlessly via Extensions > Installer on OpenCart 3.0.x.
+> - **OpenCart 4.x (Standalone Bridge):** OpenCart 4.x introduced a complete architectural overhaul requiring PHP 8.1+ PSR-4 namespaces (`Opencart\Admin\Controller\...`) and removed `install.xml` in favor of event triggers. Therefore, `saas_connector.ocmod.zip` cannot be uploaded via the OpenCart 4.x installer. For OpenCart 4.x staging instances, the zero-configuration standalone bridge `saas_bridge.php` placed directly into the OpenCart root folder is the verified, production-compatible integration path.
+
+1. **Deploy OpenCart Staging Instance:**
+   - **Recommended Zero-Cost Path (OpenCart 3.0.3.8 Docker or VHost):**
      ```bash
      docker run -d --name staging_opencart \
        -p 8080:80 \
@@ -117,52 +122,48 @@ To transition Gate D.1 from `BLOCKED` to `PASS`, the following external infrastr
        -e DB_USERNAME=root \
        -e DB_PASSWORD=secret \
        -e DB_DATABASE=opencart_staging \
-       khorolets/opencart-docker:latest
+       khorolets/opencart-docker:3.0.3.8
      ```
-   - Option B (Existing XAMPP / Apache VHost):
-     - Unpack OpenCart 3.0.3.8 or 4.0.2.3 to `d:\xampp82\htdocs\opencart`.
-     - Complete standard installation wizard pointing to a dedicated MySQL database.
-2. **Install SaaS Connector Module:**
+   - Alternatively, deploy OpenCart under local XAMPP (`d:\xampp82\htdocs\opencart`).
+2. **Install Connector on OpenCart 3.x:**
    - In OpenCart Admin, navigate to **Extensions** > **Installer**.
    - Click **Upload** and select `apps/api/public/saas_connector.ocmod.zip`.
    - Once upload finishes, navigate to **Extensions** > **Modifications** and click the blue **Refresh** icon.
    - Navigate to **Extensions** > **Extensions** > choose **Modules** from the dropdown.
-   - Find **Product Intelligence SaaS Connector** and click **Install** (`+`).
-   - Click **Edit** (`pencil`):
-     - Set **Status**: `Enabled`.
-     - Set **Secret Signing Key**: Generate a 32-character hexadecimal key (e.g., `openssl rand -hex 16`).
-     - Click **Save**.
-3. **Alternative: Standalone Bridge Installation:**
-   - If extension upload is restricted by server permissions, copy `packages/connectors/src/bridge/saas_bridge.php` directly into the OpenCart web root (e.g., `d:\xampp82\htdocs\opencart\saas_bridge.php`).
-   - OpenCart's `config.php` database credentials are automatically utilized.
+   - Find **Product Intelligence SaaS Connector** and click **Install** (`+`), then **Edit** (`pencil`).
+   - Enable the module and enter a 32-character hexadecimal secret key.
+3. **Install Connector on OpenCart 4.x (or Fallback for 3.x):**
+   - Copy `packages/connectors/src/bridge/saas_bridge.php` directly into the OpenCart web root (e.g. `d:\xampp82\htdocs\opencart\saas_bridge.php`).
+   - The bridge automatically reads database credentials from `config.php` and requires zero core file modifications.
 4. **Seed Reference Products & Language Data:**
-   - Ensure Language ID `1` (English) exists.
-   - Add a test product in OpenCart Admin:
-     - Title: `Traxxas Slash 4X4 VXL`
-     - Model: `68086-4`
-     - SKU: `TRA68086-4`
-     - Price: `429.95`
-     - Quantity: `14`
+   - Verify Language ID `1` (English) exists.
+   - Seed test product (`TRA68086-4`, Price: `429.95`, Quantity: `14`) to support PULL verification (`CON-06`).
 5. **Record OpenCart Credentials:**
    ```env
-   OPENCART_STORE_URL=https://<PUBLIC_TUNNEL_DOMAIN_OR_HOST>/opencart
+   OPENCART_STORE_URL=https://<PUBLIC_TUNNEL_OR_HOST>/opencart
    OPENCART_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
    OPENCART_DEFAULT_LANGUAGE_ID=1
    ```
 
 ---
 
-### 4.3 Public HTTPS Webhook Tunnel Setup (Cloudflare Tunnel)
+### 4.3 Public HTTPS Webhook Tunnel Setup & Caveats
 
-External platforms cannot deliver webhooks to `localhost:4000`. Set up a public tunnel:
+External platforms (Shopify, OpenCart) cannot deliver webhooks to private `localhost:4000` URLs. A publicly accessible HTTPS tunnel is required:
+
+> [!WARNING]
+> **Cloudflare Quick Tunnel Limitations (`cloudflared tunnel --url ...`):**
+> 1. **Ephemeral Subdomain:** Quick Tunnels generate a new, randomized subdomain on every process restart (e.g., `https://random-words.trycloudflare.com`). Any registered Shopify webhook or OpenCart endpoint pointing to an expired URL will immediately fail (HTTP 404/502).
+> 2. **Shopify Webhook Auto-Removal:** If a Shopify webhook fails consecutively for 48 hours or returns persistent connection errors, Shopify automatically removes the webhook subscription.
+> 3. **Recommended Staging Tunnel:** For reliable multi-day testing, use a **Named Cloudflare Tunnel** linked to a free custom domain or a static free tier domain from ngrok (`ngrok http 4000 --domain your-static-name.ngrok-free.app`).
 
 ```bash
-# Using Cloudflare Quick Tunnel (no account required, instant free HTTPS)
+# Quick Tunnel (for immediate one-shot test sessions)
 cloudflared tunnel --url http://localhost:4000
-```
-*Cloudflare outputs an ephemeral public URL such as `https://random-words-abc.trycloudflare.com`.*
 
-Update the target store URL and webhook endpoint configurations to point to this tunnel URL.
+# Persistent Named Tunnel (recommended for multi-day staging)
+cloudflared tunnel run my-staging-tunnel
+```
 
 ---
 
@@ -236,13 +237,24 @@ flowchart TD
     Phase_E --> Phase_F
 ```
 
-### Ordering Rationale:
-1. **Phase A (Zero Risk):** Validates network path, SSL handshakes, and credential authentication without writing any data.
-2. **Phase B (Zero Store Writes):** Reads pre-existing demo catalog products into canonical models to verify data parsing.
-3. **Phase C (Controlled Writes):** Pushes one isolated test SKU. Validates image fetching, multilingual fields, and SEO tags.
-4. **Phase D (Delta Modifications):** Modifies only the product created in Phase C, verifying that store-managed attributes are preserved.
-5. **Phase E (Inbound Telemetry):** Triggered by manual edit on the store to verify reverse sync into SaaS tenant overrides.
-6. **Phase F (Stress & Boundary):** Introduces simulated failures, rate limits, and duplicate dispatches to certify platform resilience.
+### 6.1 Operation Risk Classification
+
+Staging operations are strictly partitioned into four operational risk categories:
+
+| Category | Definition | Included Tests | Risk Level & Side Effects |
+| :--- | :--- | :--- | :--- |
+| **Category 1: Read-Only Connectivity** | Network & authentication probes. Zero writes to local database, zero writes to store. | `CON-05`, `CON-07` | **Zero Risk:** Authenticates API key / OAuth token and verifies latency. |
+| **Category 2: Local Database Writes** | Pulls catalog data from external store into local database. Zero writes to remote store. | `CON-06`, `CON-08` | **Low Risk:** Reads remote store products and upserts local `store_product_mappings` and `store_sync_history`. |
+| **Category 3: External Store Writes** | Provisions new products or updates attributes directly on external staging store. | `STG-SHP-01`, `STG-SHP-02`, `STG-OC-01`, `STG-OC-02`, `STG-IMG-01`, `STG-LNG-01`, `STG-PRC-01`, `STG-SEC-01` | **Medium Risk:** Creates/modifies catalog items on external store. Must use isolated staging SKUs (e.g. `STG-TEST-*`). |
+| **Category 4: Destructive & Resilience Operations** | Induces simulated HTTP 429/503 errors, tests concurrency locks, and cleans up test artifacts. | `STG-RTR-01`, `STG-ERR-01`, `STG-DED-01` | **Controlled Risk:** Exercises rate-limit bucket limits, validates lock contention, and deletes staging test products. |
+
+### 6.2 Ordering Rationale:
+1. **Phase A (Zero Risk / Cat 1):** Validates network path, SSL handshakes, and credential authentication without writing any data.
+2. **Phase B (Zero Store Writes / Cat 2):** Reads pre-existing demo catalog products into canonical models to verify data parsing.
+3. **Phase C (Controlled Writes / Cat 3):** Pushes one isolated test SKU. Validates image fetching, multilingual fields, and SEO tags.
+4. **Phase D (Delta Modifications / Cat 3):** Modifies only the product created in Phase C, verifying that store-managed attributes are preserved.
+5. **Phase E (Inbound Telemetry / Cat 3):** Triggered by manual edit on the store to verify reverse sync into SaaS tenant overrides.
+6. **Phase F (Stress & Resilience / Cat 4):** Introduces simulated failures, rate limits, and duplicate dispatches to certify platform resilience.
 
 ---
 
@@ -312,31 +324,39 @@ No expensive cloud infrastructure or commercial licenses are required to achieve
 
 ## 11. Staging Execution Command Playbook
 
-Once credentials are provisioned in `.env.staging`, execute verification in sequence:
+All scripts in this playbook are verified, validated, and executable in the repository:
 
 ```bash
-# 1. Start Public Webhook Tunnel in a separate terminal
+# Step 0: Run Pre-Staging Unit Verification (Zero Network, 100% Mocked)
+pnpm --filter @saas/connectors test connectors.unit.test.ts
+
+# Step 1: Start Public Webhook Tunnel in a separate terminal
 cloudflared tunnel --url http://localhost:4000
 
-# 2. Execute Phase A & B: Connector Connectivity & Catalog Pull
-pnpm --filter @saas/connectors test
-
-# 3. Seed Staging Connected Stores in PostgreSQL Database
+# Step 2: Seed Staging Connected Stores from .env.staging
 node scripts/seed_staging_stores.js
 
-# 4. Execute Phase C: Single Product Provisioning (Shopify & OpenCart)
+# Step 3 (Category 1): Read-Only Store Connectivity (Ping)
+node scripts/verify_staging_export.js --platform shopify --action ping
+node scripts/verify_staging_export.js --platform opencart --action ping
+
+# Step 4 (Category 2): Store Catalog Extraction (PULL)
+node scripts/verify_staging_export.js --platform shopify --action pull
+node scripts/verify_staging_export.js --platform opencart --action pull
+
+# Step 5 (Category 3): Single Product Provisioning (PUSH)
 node scripts/verify_staging_export.js --platform shopify --action create
 node scripts/verify_staging_export.js --platform opencart --action create
 
-# 5. Execute Phase D: Incremental Updates & Margin Calculation
+# Step 6 (Category 3): Incremental Price & Stock Updates
 node scripts/verify_staging_export.js --platform shopify --action update
 node scripts/verify_staging_export.js --platform opencart --action update
 
-# 6. Execute Phase E: Inbound Webhook Verification
+# Step 7 (Category 3): Inbound Webhook Reverse Synchronization
 node scripts/simulate_live_webhook.js --platform shopify
 node scripts/simulate_live_webhook.js --platform opencart
 
-# 7. Execute Phase F: Resilience, Retries & Concurrency
+# Step 8 (Category 4): Concurrency & Resilience Verification
 node scripts/verify_staging_resilience.js
 ```
 

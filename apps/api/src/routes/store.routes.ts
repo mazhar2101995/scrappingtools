@@ -38,11 +38,19 @@ storeRouter.get('/download-module', (req: Request, res: Response) => {
 storeRouter.post('/:id/inbound-webhook', async (req: Request, res: Response) => {
   try {
     const storeId = String(req.params.id);
+    const signature =
+      (req.headers['x-shopify-hmac-sha256'] as string) ||
+      (req.headers['x-saas-signature'] as string) ||
+      undefined;
+
     const authSecret =
       (req.headers['x-webhook-secret'] as string) ||
-      (req.headers['x-shopify-hmac-sha256'] as string) ||
       (req.query.secret as string) ||
       undefined;
+
+    const rawBody = (req as any).rawBody
+      ? (req as any).rawBody.toString('utf8')
+      : JSON.stringify(req.body);
 
     const topic =
       (req.headers['x-shopify-topic'] as string) ||
@@ -55,6 +63,8 @@ storeRouter.post('/:id/inbound-webhook', async (req: Request, res: Response) => 
     const result = await InboundStoreWebhookService.processStoreWebhook({
       storeId,
       authSecret,
+      signature,
+      rawBody,
       topic,
       payload: req.body,
     });
