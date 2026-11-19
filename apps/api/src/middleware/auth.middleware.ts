@@ -35,7 +35,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       req.user = {
         userId: decoded.userId,
         email: decoded.email,
-        organizationId: decoded.organizationId,
+        organizationId: decoded.organizationId || decoded.orgId || '',
         role: decoded.role,
         isSuperadmin: isSuper,
         authType: 'jwt',
