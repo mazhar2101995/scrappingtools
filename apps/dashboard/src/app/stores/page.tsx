@@ -50,6 +50,7 @@ export default function StoresPage() {
 
   // Credentials based on platform
   const [shopifyAccessToken, setShopifyAccessToken] = useState('');
+  const [shopifyWebhookSecret, setShopifyWebhookSecret] = useState('');
   const [wooConsumerKey, setWooConsumerKey] = useState('');
   const [wooConsumerSecret, setWooConsumerSecret] = useState('');
   const [openCartUsername, setOpenCartUsername] = useState('');
@@ -103,6 +104,7 @@ export default function StoresPage() {
     setStoreUrl('');
     setPlatformType('shopify');
     setShopifyAccessToken('');
+    setShopifyWebhookSecret('');
     setWooConsumerKey('');
     setWooConsumerSecret('');
     setOpenCartUsername('');
@@ -118,6 +120,7 @@ export default function StoresPage() {
     setStoreUrl(store.storeUrl || '');
     setPlatformType(store.platformType || 'opencart');
     setShopifyAccessToken('');
+    setShopifyWebhookSecret('');
     setWooConsumerKey('');
     setWooConsumerSecret('');
     setOpenCartUsername('');
@@ -153,6 +156,9 @@ export default function StoresPage() {
           shopDomain: storeUrl.trim().replace(/^https?:\/\//, '').replace(/\/$/, ''),
           accessToken: shopifyAccessToken.trim() || 'shpat_demo_sample_token',
         };
+        if (shopifyWebhookSecret.trim()) {
+          credentials.webhookSecret = shopifyWebhookSecret.trim();
+        }
       } else if (platformType === 'woocommerce') {
         credentials = {
           consumerKey: wooConsumerKey.trim() || 'ck_demo_sample_key',
@@ -179,6 +185,10 @@ export default function StoresPage() {
           openCartApiKey.trim()
         ) {
           updatePayload.credentials = credentials;
+        }
+
+        if (shopifyWebhookSecret.trim()) {
+          updatePayload.webhookSecret = shopifyWebhookSecret.trim();
         }
 
         await apiClient.updateStore(editingStore.id, updatePayload);
@@ -458,18 +468,33 @@ export default function StoresPage() {
                 </div>
 
                 {platformType === 'shopify' && (
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                      Shopify Admin API Access Token
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="shpat_xxxxxxxxxxxxxxxxxxxx"
-                      value={shopifyAccessToken}
-                      onChange={(e) => setShopifyAccessToken(e.target.value)}
-                      className="w-full px-3 py-2 bg-white border border-[#dbdade] rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
-                    />
-                    <p className="text-[10px] text-slate-400 mt-1">Generated from your Shopify Custom App settings.</p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Shopify Admin API Access Token
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="shpat_xxxxxxxxxxxxxxxxxxxx"
+                        value={shopifyAccessToken}
+                        onChange={(e) => setShopifyAccessToken(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-[#dbdade] rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-1">Generated from your Shopify Custom App settings (leave blank to keep existing).</p>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Shopify Webhook Signing Secret / App API Secret Key
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="e.g. shpss_... or Shopify App API secret key"
+                        value={shopifyWebhookSecret}
+                        onChange={(e) => setShopifyWebhookSecret(e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-[#dbdade] rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:border-[#0d2a2c]"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-1">Used to verify HMAC-SHA256 signatures for inbound webhook notifications.</p>
+                    </div>
                   </div>
                 )}
 

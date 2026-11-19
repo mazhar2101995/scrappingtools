@@ -641,7 +641,7 @@ storeRouter.put('/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Connected store not found' });
     }
 
-    const { storeName, storeUrl, credentials, capabilities } = req.body;
+    const { storeName, storeUrl, credentials, capabilities, webhookSecret } = req.body;
     const updateData: Record<string, any> = {
       updatedAt: new Date(),
     };
@@ -649,9 +649,22 @@ storeRouter.put('/:id', async (req: Request, res: Response) => {
     if (storeName) updateData.storeName = String(storeName).trim();
     if (storeUrl) updateData.storeUrl = String(storeUrl).trim();
     if (Array.isArray(capabilities)) updateData.capabilities = capabilities;
+    if (typeof webhookSecret === 'string') {
+      updateData.webhookSecret = webhookSecret.trim() || null;
+    }
 
     if (credentials && typeof credentials === 'object') {
-      updateData.encryptedCredentials = CredentialSecurity.encrypt(credentials);
+      let mergedCreds: Record<string, any> = { ...credentials };
+      try {
+        const existingCreds = CredentialSecurity.decrypt(existing.encryptedCredentials);
+        mergedCreds = { ...existingCreds, ...credentials };
+      } catch (_) {}
+      updateData.encryptedCredentials = CredentialSecurity.encrypt(mergedCreds);
+
+      // If webhookSecret was passed in credentials, synchronize to column as well
+      if (typeof credentials.webhookSecret === 'string') {
+        updateData.webhookSecret = credentials.webhookSecret.trim() || null;
+      }
 
       // Probe OpenCart connection on update
       try {

@@ -877,6 +877,7 @@ export class DashboardApiClient {
     storeUrl?: string;
     credentials?: Record<string, any>;
     capabilities?: string[];
+    webhookSecret?: string;
   }): Promise<any> {
     return this.fetchJson(`/stores/${id}`, {
       method: 'PUT',

@@ -46,12 +46,21 @@ export class InboundStoreWebhookService {
     }
 
     // Webhook cryptographic signature & secret verification
-    if (store.webhookSecret) {
+    let activeSecret = store.webhookSecret;
+    if (!activeSecret && store.encryptedCredentials) {
+      try {
+        const { CredentialSecurity } = await import('@saas/connectors');
+        const creds = CredentialSecurity.decrypt(store.encryptedCredentials);
+        activeSecret = creds.webhookSecret || creds.apiSecretKey || creds.clientSecret;
+      } catch (_) {}
+    }
+
+    if (activeSecret) {
       if (signature) {
         const { CredentialSecurity } = await import('@saas/connectors');
         const payloadString = rawBody || JSON.stringify(payload);
-        const isValid = CredentialSecurity.verifyHmacSha256(payloadString, store.webhookSecret, signature) ||
-          (store.webhookSecret.startsWith('shpss_') && CredentialSecurity.verifyHmacSha256(payloadString, store.webhookSecret.replace(/^shpss_/, ''), signature));
+        const isValid = CredentialSecurity.verifyHmacSha256(payloadString, activeSecret, signature) ||
+          (activeSecret.startsWith('shpss_') && CredentialSecurity.verifyHmacSha256(payloadString, activeSecret.replace(/^shpss_/, ''), signature));
         if (!isValid) {
           await this.logInboundWebhook({
             organizationId: store.organizationId,
@@ -69,7 +78,7 @@ export class InboundStoreWebhookService {
             error: 'Invalid HMAC signature',
           };
         }
-      } else if (authSecret && store.webhookSecret !== authSecret) {
+      } else if (authSecret && activeSecret !== authSecret) {
         await this.logInboundWebhook({
           organizationId: store.organizationId,
           storeId: store.id,
