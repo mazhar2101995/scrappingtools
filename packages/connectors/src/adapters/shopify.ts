@@ -31,6 +31,39 @@ export class ShopifyConnector implements UniversalConnector {
     this.config = config;
   }
 
+  private getEndpoint(subpath: string): string {
+    const apiVersion = this.config.apiVersion || process.env.SHOPIFY_API_VERSION || '2026-10';
+    const cleanSubpath = subpath.replace(/^\/+/, '');
+    if (this.config.shopDomain.startsWith('http://') || this.config.shopDomain.startsWith('https://')) {
+      return `${this.config.shopDomain.replace(/\/+$/, '')}/admin/api/${apiVersion}/${cleanSubpath}`;
+    }
+    const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+    return `https://${domain}/admin/api/${apiVersion}/${cleanSubpath}`;
+  }
+
+  private async fetchWithRetry(url: string, init: RequestInit, maxRetries = 3): Promise<Response> {
+    let attempt = 0;
+    while (attempt <= maxRetries) {
+      const resp = await fetch(url, init);
+      if (resp.status === 429 && attempt < maxRetries) {
+        attempt++;
+        const retryAfterHeader = resp.headers.get('Retry-After');
+        const waitSec = retryAfterHeader ? parseFloat(retryAfterHeader) : 1;
+        const waitMs = Math.max(100, Math.round(waitSec * 1000));
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+        continue;
+      }
+      return resp;
+    }
+    return fetch(url, init);
+  }
+
+  private sanitizeError(errText: string): string {
+    return errText
+      .replace(/shpat_[a-zA-Z0-9]+/g, '[REDACTED_ACCESS_TOKEN]')
+      .replace(/X-Shopify-Access-Token[:=]\s*[^\s,]+/gi, 'X-Shopify-Access-Token: [REDACTED]');
+  }
+
   public async testConnection(): Promise<ConnectionTestResult> {
     const start = Date.now();
     try {
@@ -42,11 +75,10 @@ export class ShopifyConnector implements UniversalConnector {
         };
       }
 
-      const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
       const apiVersion = this.config.apiVersion || process.env.SHOPIFY_API_VERSION || '2026-10';
-      const endpoint = `https://${domain}/admin/api/${apiVersion}/shop.json`;
+      const endpoint = this.getEndpoint('shop.json');
 
-      const resp = await fetch(endpoint, {
+      const resp = await this.fetchWithRetry(endpoint, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -66,13 +98,14 @@ export class ShopifyConnector implements UniversalConnector {
 
         return {
           success: false,
-          error: `Shopify API Error: ${errMsg}`,
+          error: this.sanitizeError(`Shopify API Error: ${errMsg}`),
           latencyMs: Date.now() - start,
         };
       }
 
       const data = await resp.json().catch(() => ({}));
       const shop = data.shop || {};
+      const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
 
       return {
         success: true,
@@ -84,7 +117,7 @@ export class ShopifyConnector implements UniversalConnector {
     } catch (err: any) {
       return {
         success: false,
-        error: err.message,
+        error: this.sanitizeError(err.message),
         latencyMs: Date.now() - start,
       };
     }
@@ -95,13 +128,11 @@ export class ShopifyConnector implements UniversalConnector {
     total: number;
     hasMore: boolean;
   }> {
-    const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-    const apiVersion = this.config.apiVersion || process.env.SHOPIFY_API_VERSION || '2026-10';
     const limit = params?.limit || 50;
-    const endpoint = `https://${domain}/admin/api/${apiVersion}/products.json?limit=${limit}`;
+    const endpoint = this.getEndpoint(`products.json?limit=${limit}`);
 
     try {
-      const resp = await fetch(endpoint, {
+      const resp = await this.fetchWithRetry(endpoint, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -258,9 +289,9 @@ export class ShopifyConnector implements UniversalConnector {
       payload.product.images = imagesPayload;
     }
 
-    const endpoint = `https://${domain}/admin/api/${apiVersion}/products.json`;
+    const endpoint = this.getEndpoint('products.json');
 
-    const resp = await fetch(endpoint, {
+    const resp = await this.fetchWithRetry(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -278,7 +309,7 @@ export class ShopifyConnector implements UniversalConnector {
           parsedErr = typeof j.errors === 'string' ? j.errors : JSON.stringify(j.errors);
         }
       } catch (_) {}
-      throw new Error(`Shopify Push Failed: ${parsedErr}`);
+      throw new Error(this.sanitizeError(`Shopify Push Failed: ${parsedErr}`));
     }
 
     const created = await resp.json();
@@ -291,10 +322,8 @@ export class ShopifyConnector implements UniversalConnector {
   }
 
   public async updateProduct(externalId: string, delta: Partial<CanonicalProductModel>): Promise<boolean> {
-    const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-    const apiVersion = this.config.apiVersion || process.env.SHOPIFY_API_VERSION || '2026-10';
     const cleanId = externalId.replace(/^gid:\/\/shopify\/Product\//, '');
-    const endpoint = `https://${domain}/admin/api/${apiVersion}/products/${cleanId}.json`;
+    const endpoint = this.getEndpoint(`products/${cleanId}.json`);
 
     const productPayload: any = {};
     if (delta.name) {
@@ -303,12 +332,19 @@ export class ShopifyConnector implements UniversalConnector {
     if (delta.description) {
       productPayload.body_html = typeof delta.description === 'object' ? (delta.description['en'] || Object.values(delta.description)[0]) : String(delta.description);
     }
-    if (delta.price !== undefined) {
-      productPayload.variants = [{ price: Number(delta.price).toFixed(2) }];
+    if (delta.price !== undefined || delta.stockQuantity !== undefined) {
+      const variantPayload: any = {};
+      if (delta.price !== undefined) {
+        variantPayload.price = Number(delta.price).toFixed(2);
+      }
+      if (delta.stockQuantity !== undefined) {
+        variantPayload.inventory_quantity = Number(delta.stockQuantity);
+      }
+      productPayload.variants = [variantPayload];
     }
 
     try {
-      const resp = await fetch(endpoint, {
+      const resp = await this.fetchWithRetry(endpoint, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

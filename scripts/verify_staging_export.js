@@ -6,6 +6,8 @@ const path = require('path');
 const postgres = require(path.resolve(__dirname, '../packages/database/node_modules/postgres'));
 const { SynchronizationEngine } = require(path.resolve(__dirname, '../packages/connectors/dist'));
 
+process.env.ALLOW_LOCAL_STORES = 'true';
+
 const dbUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres_dev_password@localhost:5432/product_intelligence_dev';
 const sql = postgres(dbUrl);
 
