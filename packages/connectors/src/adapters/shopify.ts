@@ -43,7 +43,7 @@ export class ShopifyConnector implements UniversalConnector {
       }
 
       const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-      const apiVersion = this.config.apiVersion || '2024-04';
+      const apiVersion = this.config.apiVersion || process.env.SHOPIFY_API_VERSION || '2026-10';
       const endpoint = `https://${domain}/admin/api/${apiVersion}/shop.json`;
 
       const resp = await fetch(endpoint, {
@@ -96,7 +96,7 @@ export class ShopifyConnector implements UniversalConnector {
     hasMore: boolean;
   }> {
     const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-    const apiVersion = this.config.apiVersion || '2024-04';
+    const apiVersion = this.config.apiVersion || process.env.SHOPIFY_API_VERSION || '2026-10';
     const limit = params?.limit || 50;
     const endpoint = `https://${domain}/admin/api/${apiVersion}/products.json?limit=${limit}`;
 
@@ -174,7 +174,7 @@ export class ShopifyConnector implements UniversalConnector {
     externalSku: string;
   }> {
     const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-    const apiVersion = this.config.apiVersion || '2024-04';
+    const apiVersion = this.config.apiVersion || process.env.SHOPIFY_API_VERSION || '2026-10';
 
     // 1. Resolve title & description
     const title = typeof product.name === 'object'
@@ -292,7 +292,7 @@ export class ShopifyConnector implements UniversalConnector {
 
   public async updateProduct(externalId: string, delta: Partial<CanonicalProductModel>): Promise<boolean> {
     const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
-    const apiVersion = this.config.apiVersion || '2024-04';
+    const apiVersion = this.config.apiVersion || process.env.SHOPIFY_API_VERSION || '2026-10';
     const cleanId = externalId.replace(/^gid:\/\/shopify\/Product\//, '');
     const endpoint = `https://${domain}/admin/api/${apiVersion}/products/${cleanId}.json`;
 

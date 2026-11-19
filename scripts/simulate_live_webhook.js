@@ -92,8 +92,17 @@ async function simulateWebhook() {
       console.log(`[+] Inbound Webhook Response Status: ${res.statusCode}`);
       console.log(`[+] Response Body: ${body}`);
 
+      let parsed = {};
+      try { parsed = JSON.parse(body || '{}'); } catch (_) {}
+
       if (res.statusCode === 200) {
-        console.log('\n>> SUCCESS: Webhook signature verified and payload processed!');
+        console.log('\n[HMAC AUTHENTICATION]: PASS (Cryptographic signature verified)');
+        if (parsed.actionTaken === 'NO_MAPPING_FOUND') {
+          console.log('[REVERSE SYNCHRONIZATION]: PENDING MAPPED PRODUCT (Action: NO_MAPPING_FOUND)');
+          console.log('[!] NOTE: STG-SEC-01 remains BLOCKED until a real mapped product receives live updates.');
+        } else if (parsed.actionTaken === 'REVERSE_SYNC_UPDATED') {
+          console.log('[REVERSE SYNCHRONIZATION]: PASS (customerProductOverrides updated in database)');
+        }
       } else {
         console.log(`\n>> FAILED/REJECTED: Status ${res.statusCode}`);
       }

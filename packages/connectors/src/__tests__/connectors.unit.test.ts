@@ -171,7 +171,7 @@ describe('Pre-Staging Unit Verification: Remediated Connector Defect Behaviors',
       });
 
       const result = await connector.updateProduct('gid://shopify/Product/8912345678', {
-        name: 'Traxxas Carbon Edition V2',
+        name: { en: 'Traxxas Carbon Edition V2' },
         price: 579.99,
       });
 

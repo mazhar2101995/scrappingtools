@@ -74,7 +74,15 @@ async function runStagingVerification() {
         }, null, 2));
       }
     } else if (action === 'create' || action === 'export') {
-      console.log('\n[*] Simulating Staging Product Creation...');
+      if (!process.argv.includes('--confirm-write')) {
+        console.log('\n[SAFETY GUARD ACTIVE] External store writes are strictly blocked.');
+        console.log('To prevent polluting operational or client development stores (e.g., mayda-com),');
+        console.log('write operations are disabled by default.');
+        console.log('To execute against an explicitly authorized staging store, pass the flag: --confirm-write');
+        await sql.end();
+        process.exit(0);
+      }
+      console.log('\n[*] Simulating Staging Product Creation with --confirm-write...');
       const sampleCanonical = {
         sku: `STG-TEST-${Date.now().toString().slice(-4)}`,
         name: { en: 'Staging Traxxas Test Vehicle' },
