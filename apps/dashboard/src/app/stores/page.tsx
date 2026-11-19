@@ -29,8 +29,11 @@ import {
   Trash2,
   Activity,
   Zap,
+  Clock,
+  Filter,
+  Info,
 } from 'lucide-react';
-import { apiClient } from '@/lib/api-client';
+import { apiClient, StoreDiagnosticsReport, StoreItem } from '@/lib/api-client';
 
 export default function StoresPage() {
   const [stores, setStores] = useState<any[]>([]);
@@ -77,6 +80,135 @@ export default function StoresPage() {
   const [langError, setLangError] = useState('');
   const [newLangCode, setNewLangCode] = useState('');
   const [newPlatformLocale, setNewPlatformLocale] = useState('');
+
+  // Authoritative Store Diagnostics & Readiness State
+  const [showDiagnosticsModal, setShowDiagnosticsModal] = useState(false);
+  const [activeDiagnosticsStore, setActiveDiagnosticsStore] = useState<any | null>(null);
+  const [diagnosticsReport, setDiagnosticsReport] = useState<StoreDiagnosticsReport | null>(null);
+  const [loadingDiagnostics, setLoadingDiagnostics] = useState(false);
+  const [diagnosticsFilter, setDiagnosticsFilter] = useState<'all' | 'issues' | 'passed'>('all');
+
+  const CAPABILITY_LABELS: Record<string, string> = {
+    PRODUCT_PULL: 'Pull',
+    PRODUCT_CREATE: 'Push',
+    PRODUCT_UPDATE: 'Update',
+    INVENTORY_SYNC: 'Stock',
+    PRICE_SYNC: 'Price',
+    MEDIA_SYNC: 'Media',
+    WEBHOOK_REVERSE_SYNC: 'Webhooks',
+    SCHEDULED_SYNC: 'Scheduler',
+  };
+
+  async function handleOpenDiagnosticsModal(store: any) {
+    setActiveDiagnosticsStore(store);
+    setShowDiagnosticsModal(true);
+    setLoadingDiagnostics(true);
+    setDiagnosticsFilter('all');
+    try {
+      const res = await apiClient.getStoreDiagnostics(store.id);
+      if (res?.report) {
+        setDiagnosticsReport(res.report);
+      }
+    } catch (err: any) {
+      console.error('Error fetching store diagnostics:', err);
+    } finally {
+      setLoadingDiagnostics(false);
+    }
+  }
+
+  async function handleRunLiveDiagnostics(storeId?: string) {
+    const targetId = storeId || activeDiagnosticsStore?.id;
+    if (!targetId) return;
+    setLoadingDiagnostics(true);
+    try {
+      const res = await apiClient.runStoreDiagnostics(targetId);
+      if (res?.report) {
+        setDiagnosticsReport(res.report);
+      }
+      await loadStores();
+    } catch (err: any) {
+      console.error('Error running live diagnostics:', err);
+    } finally {
+      setLoadingDiagnostics(false);
+    }
+  }
+
+  function renderReadinessBadge(state?: string) {
+    switch (state) {
+      case 'CONNECTED_READY':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-300 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+            <span>Connected &amp; Ready</span>
+          </span>
+        );
+      case 'CONNECTED_LIMITED':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3 text-amber-600" />
+            <span>Connected (Limited)</span>
+          </span>
+        );
+      case 'ACTION_REQUIRED':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3 text-rose-600" />
+            <span>Action Required</span>
+          </span>
+        );
+      case 'DISCONNECTED':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300 flex items-center gap-1">
+            <X className="w-3 h-3 text-slate-500" />
+            <span>Disconnected</span>
+          </span>
+        );
+      case 'CHECKING':
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-300 flex items-center gap-1">
+            <RefreshCw className="w-3 h-3 text-blue-600 animate-spin" />
+            <span>Checking...</span>
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-300 flex items-center gap-1">
+            <HelpCircle className="w-3 h-3 text-slate-400" />
+            <span>Unverified</span>
+          </span>
+        );
+    }
+  }
+
+  function renderCapabilityPill(capKey: string, capInfo?: { status: string; reason?: string }) {
+    const label = CAPABILITY_LABELS[capKey] || capKey;
+    const status = capInfo?.status || 'NOT_SUPPORTED';
+
+    let colorCls = 'bg-slate-100 text-slate-400 border-slate-200';
+    let icon = null;
+
+    if (status === 'READY') {
+      colorCls = 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100';
+      icon = <Check className="w-2.5 h-2.5 text-emerald-600" />;
+    } else if (status === 'LIMITED') {
+      colorCls = 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100';
+      icon = <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />;
+    } else if (status === 'BLOCKED') {
+      colorCls = 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100 line-through';
+      icon = <X className="w-2.5 h-2.5 text-rose-600" />;
+    }
+
+    return (
+      <span
+        key={capKey}
+        title={`${label}: ${status}${capInfo?.reason ? ` - ${capInfo.reason}` : ''}`}
+        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold border cursor-help transition ${colorCls}`}
+      >
+        {icon}
+        <span>{label}</span>
+      </span>
+    );
+  }
 
   async function loadStores() {
     try {
@@ -313,16 +445,18 @@ export default function StoresPage() {
     try {
       setPingingStoreId(storeId);
       const startTime = performance.now();
-      const res = await apiClient.testStoreConnection(storeId);
+      const res = await apiClient.runStoreDiagnostics(storeId);
       const latencyMs = Math.round(performance.now() - startTime);
 
-      if (res?.success || res?.testResult?.success) {
+      if (res?.success && res?.report) {
+        const isHealthy = res.report.readinessState === 'CONNECTED_READY' || res.report.readinessState === 'CONNECTED_LIMITED';
         setPingResults((prev) => ({
           ...prev,
           [storeId]: {
-            success: true,
+            success: isHealthy,
             latencyMs,
-            message: res?.testResult?.version ? `Connected (${res.testResult.version})` : 'Connected',
+            message: `${res.report.readinessState} (${res.report.summary.passed}/${res.report.summary.total} checks passed)`,
+            error: isHealthy ? undefined : `Readiness: ${res.report.readinessState} (${res.report.summary.failed} failed)`,
           },
         }));
       } else {
@@ -331,7 +465,7 @@ export default function StoresPage() {
           [storeId]: {
             success: false,
             latencyMs,
-            error: res?.error || res?.testResult?.error || 'Store connection failed or timed out',
+            error: 'Store diagnostic evaluation failed',
           },
         }));
       }
@@ -705,176 +839,219 @@ export default function StoresPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {stores.map((s) => (
-            <div
-              key={s.id}
-              className="bg-white rounded-xl border border-[#dbdade]/80 p-5 shadow-xs hover:border-slate-300 transition flex flex-col justify-between space-y-4"
-            >
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-[#0d2a2c] text-[#fad982]">
-                    {s.platformType}
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    {s.status === 'connected' && s.healthStatus !== 'auth_required' && s.platformType !== 'opencart' ? (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span>Connected &amp; Verified</span>
-                      </span>
-                    ) : s.status === 'connected' && s.platformType === 'opencart' && s.healthStatus === 'healthy' ? (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span>Connected &amp; Verified</span>
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                        <span>Action Required: Module Not Verified</span>
-                      </span>
-                    )}
-                    <button
-                      onClick={() => handleOpenEditModal(s)}
-                      title="Edit Store Settings & Credentials"
-                      className="p-1 rounded-md hover:bg-slate-100 text-slate-500 hover:text-slate-900 border border-transparent hover:border-[#dbdade] transition"
-                    >
-                      <Edit className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteStore(s)}
-                      disabled={deletingStoreId === s.id}
-                      title="Disconnect / Delete Store"
-                      className="p-1 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-transparent hover:border-rose-200 transition disabled:opacity-50"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
+          {stores.map((s) => {
+            const isPullBlocked = s.capabilitiesStatus?.PRODUCT_PULL?.status === 'BLOCKED';
+            const isPushBlocked = s.capabilitiesStatus?.PRODUCT_CREATE?.status === 'BLOCKED';
+            const isSyncBlocked = isPullBlocked || isPushBlocked;
 
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 tracking-tight">{s.storeName}</h3>
-                  <a
-                    href={s.storeUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-slate-400 font-mono hover:text-[#0d2a2c] flex items-center gap-1 mt-0.5 truncate"
-                  >
-                    <span className="truncate">{s.storeUrl}</span>
-                    <ExternalLink className="w-3 h-3 shrink-0" />
-                  </a>
-                </div>
-
-                {/* Verification Guidance Banner if Pending */}
-                {s.platformType === 'opencart' && (s.status !== 'connected' || s.healthStatus !== 'healthy') && (
-                  <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-lg text-[11px] text-amber-900 space-y-1.5">
-                    <div className="font-bold flex items-center gap-1.5 text-amber-950">
-                      <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                      <span>Setup Steps Incomplete:</span>
-                    </div>
-                    <div className="text-[10px] space-y-0.5 text-amber-800">
-                      <p>1. Install <a href="http://localhost:4000/api/v1/stores/download-module" className="font-bold underline">saas_connector.ocmod.zip</a> in OpenCart.</p>
-                      <p>2. Copy the Secret Key from <b>Extensions &gt; Modules &gt; SaaS Connector</b>.</p>
-                      <p>3. Click <b>Edit</b> (pencil icon above) and paste the Secret Key.</p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-[11px] text-slate-600 space-y-1 font-mono">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400 font-sans">Capabilities:</span>
-                    <span className="font-semibold text-slate-800 font-sans">Push, Pull, Pricing</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400 font-sans">Last Synced:</span>
-                    <span className="text-slate-800">
-                      {s.lastSyncAt ? new Date(s.lastSyncAt).toLocaleString() : 'Never'}
+            return (
+              <div
+                key={s.id}
+                className="bg-white rounded-xl border border-[#dbdade]/80 p-5 shadow-xs hover:border-slate-300 transition flex flex-col justify-between space-y-4"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-[#0d2a2c] text-[#fad982]">
+                      {s.platformType}
                     </span>
+                    <div className="flex items-center gap-1.5">
+                      {renderReadinessBadge(s.readinessState)}
+                      <button
+                        onClick={() => handleOpenEditModal(s)}
+                        title="Edit Store Settings & Credentials"
+                        className="p-1 rounded-md hover:bg-slate-100 text-slate-500 hover:text-slate-900 border border-transparent hover:border-[#dbdade] transition"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteStore(s)}
+                        disabled={deletingStoreId === s.id}
+                        title="Disconnect / Delete Store"
+                        className="p-1 rounded-md hover:bg-rose-50 text-slate-400 hover:text-rose-600 border border-transparent hover:border-rose-200 transition disabled:opacity-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
-                </div>
 
-                {/* Live Ping Health Banner */}
-                {pingResults[s.id] && (
-                  <div
-                    className={`p-2.5 rounded-lg text-xs font-semibold flex items-center justify-between border ${
-                      pingResults[s.id].success
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                        : 'bg-rose-50 border-rose-200 text-rose-800'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      {pingResults[s.id].success ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      ) : (
-                        <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                      )}
-                      <span className="truncate">
-                        {pingResults[s.id].success
-                          ? `Live & Healthy (${pingResults[s.id].latencyMs}ms)`
-                          : `Failed: ${pingResults[s.id].error}`}
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 tracking-tight">{s.storeName}</h3>
+                    <a
+                      href={s.storeUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-slate-400 font-mono hover:text-[#0d2a2c] flex items-center gap-1 mt-0.5 truncate"
+                    >
+                      <span className="truncate">{s.storeUrl}</span>
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                    </a>
+                  </div>
+
+                  {/* Diagnostics Summary Bar */}
+                  {s.diagnosticsSummary ? (
+                    <div className="flex items-center justify-between text-[11px] p-2 bg-slate-50 border border-slate-200/70 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1 font-semibold text-emerald-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          {s.diagnosticsSummary.passed} Passed
+                        </span>
+                        {s.diagnosticsSummary.warnings > 0 && (
+                          <span className="flex items-center gap-1 font-semibold text-amber-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                            {s.diagnosticsSummary.warnings} Warn
+                          </span>
+                        )}
+                        {s.diagnosticsSummary.failed > 0 && (
+                          <span className="flex items-center gap-1 font-semibold text-rose-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                            {s.diagnosticsSummary.failed} Fail
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleOpenDiagnosticsModal(s)}
+                        className="text-[10px] font-bold text-teal-800 hover:text-teal-900 underline flex items-center gap-0.5"
+                      >
+                        Details &rarr;
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {/* Capability Badges Grid */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Capabilities</span>
+                      <span className="text-[10px] font-mono text-slate-400">
+                        {s.lastDiagnosticsRunAt
+                          ? new Date(s.lastDiagnosticsRunAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          : 'Not verified'}
                       </span>
                     </div>
-                    {pingResults[s.id].success && (
-                      <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100/70 px-1.5 py-0.2 rounded font-bold shrink-0">
-                        200 OK
-                      </span>
-                    )}
+                    <div className="flex flex-wrap gap-1">
+                      {Object.keys(CAPABILITY_LABELS).map((capKey) =>
+                        renderCapabilityPill(capKey, s.capabilitiesStatus?.[capKey])
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <button
-                    onClick={() => handleTestStore(s.id)}
-                    disabled={pingingStoreId === s.id}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#f8f7fa] hover:bg-slate-200/70 text-slate-800 font-semibold text-xs rounded-lg border border-[#dbdade] transition disabled:opacity-50"
-                    title="Ping store live to test connection latency"
-                  >
-                    <Activity className={`w-3.5 h-3.5 text-teal-700 ${pingingStoreId === s.id ? 'animate-spin' : ''}`} />
-                    <span>{pingingStoreId === s.id ? 'Testing...' : 'Test Ping'}</span>
-                  </button>
-
-                  <button
-                    onClick={() => openLanguagesModal(s)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-lg transition"
-                    title="Manage destination languages for this store"
-                  >
-                    <Globe className="w-3.5 h-3.5 text-slate-600" />
-                    <span>Languages</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleOpenWebhookModal(s)}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-lg transition"
-                    title="View Reverse Sync Webhook URL & Inbound Logs"
-                  >
-                    <Terminal className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Webhooks</span>
-                  </button>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {s.platformType === 'opencart' && (
-                    <a
-                      href="http://localhost:4000/api/v1/stores/download-module"
-                      download="saas_connector.ocmod.zip"
-                      title="Download official saas_connector.ocmod.zip for this OpenCart store"
-                      className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 font-bold text-xs rounded-lg transition shadow-2xs"
-                    >
-                      <Download className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Download Module</span>
-                    </a>
+                  {/* Verification Guidance Banner if Pending */}
+                  {s.platformType === 'opencart' && (s.readinessState === 'ACTION_REQUIRED' || s.readinessState === 'DISCONNECTED') && (
+                    <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-lg text-[11px] text-amber-900 space-y-1.5">
+                      <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                        <span>Setup Steps Incomplete:</span>
+                      </div>
+                      <div className="text-[10px] space-y-0.5 text-amber-800">
+                        <p>1. Install <a href="http://localhost:4000/api/v1/stores/download-module" className="font-bold underline">saas_connector.ocmod.zip</a> in OpenCart.</p>
+                        <p>2. Copy the Secret Key from <b>Extensions &gt; Modules &gt; SaaS Connector</b>.</p>
+                        <p>3. Click <b>Edit</b> (pencil icon above) and paste the Secret Key.</p>
+                      </div>
+                    </div>
                   )}
-                  <button
-                    onClick={() => handleTriggerSync(s.id)}
-                    disabled={isSyncing === s.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#0d2a2c] hover:bg-[#143d40] text-white font-bold text-xs rounded-lg transition disabled:opacity-50 shadow-xs"
-                  >
-                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncing === s.id ? 'animate-spin' : ''}`} />
-                    <span>{isSyncing === s.id ? 'Syncing...' : 'Sync Now'}</span>
-                  </button>
+
+                  {/* Live Ping Health Banner */}
+                  {pingResults[s.id] && (
+                    <div
+                      className={`p-2.5 rounded-lg text-xs font-semibold flex items-center justify-between border ${
+                        pingResults[s.id].success
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                          : 'bg-rose-50 border-rose-200 text-rose-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {pingResults[s.id].success ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        ) : (
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                        )}
+                        <span className="truncate">
+                          {pingResults[s.id].success
+                            ? `Live & Healthy (${pingResults[s.id].latencyMs}ms)`
+                            : `Failed: ${pingResults[s.id].error}`}
+                        </span>
+                      </div>
+                      {pingResults[s.id].success && (
+                        <span className="text-[10px] font-mono text-emerald-700 bg-emerald-100/70 px-1.5 py-0.2 rounded font-bold shrink-0">
+                          READY
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      onClick={() => handleOpenDiagnosticsModal(s)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#0d2a2c]/5 hover:bg-[#0d2a2c]/10 text-[#0d2a2c] font-bold text-xs rounded-lg border border-[#0d2a2c]/15 transition"
+                      title="Open full diagnostic test suite & readiness report"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5 text-teal-700" />
+                      <span>Diagnostics</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleTestStore(s.id)}
+                      disabled={pingingStoreId === s.id}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#f8f7fa] hover:bg-slate-200/70 text-slate-800 font-semibold text-xs rounded-lg border border-[#dbdade] transition disabled:opacity-50"
+                      title="Run live diagnostics to test connection latency and capabilities"
+                    >
+                      <Activity className={`w-3.5 h-3.5 text-teal-700 ${pingingStoreId === s.id ? 'animate-spin' : ''}`} />
+                      <span>{pingingStoreId === s.id ? 'Testing...' : 'Test Ping'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => openLanguagesModal(s)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-lg transition"
+                      title="Manage destination languages for this store"
+                    >
+                      <Globe className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Languages</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleOpenWebhookModal(s)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs rounded-lg transition"
+                      title="View Reverse Sync Webhook URL & Inbound Logs"
+                    >
+                      <Terminal className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Webhooks</span>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {s.platformType === 'opencart' && (
+                      <a
+                        href="http://localhost:4000/api/v1/stores/download-module"
+                        download="saas_connector.ocmod.zip"
+                        title="Download official saas_connector.ocmod.zip for this OpenCart store"
+                        className="flex items-center gap-1 px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 font-bold text-xs rounded-lg transition shadow-2xs"
+                      >
+                        <Download className="w-3.5 h-3.5 text-emerald-700" />
+                        <span>Download Module</span>
+                      </a>
+                    )}
+                    <button
+                      onClick={() => handleTriggerSync(s.id)}
+                      disabled={isSyncing === s.id || isSyncBlocked}
+                      title={
+                        isSyncBlocked
+                          ? 'Sync disabled: Required capability is blocked. Open Diagnostics for remediation steps.'
+                          : 'Trigger product sync'
+                      }
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs ${
+                        isSyncBlocked
+                          ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed opacity-60'
+                          : 'bg-[#0d2a2c] hover:bg-[#143d40] text-white disabled:opacity-50'
+                      }`}
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isSyncing === s.id ? 'animate-spin' : ''}`} />
+                      <span>{isSyncing === s.id ? 'Syncing...' : 'Sync Now'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -1120,6 +1297,301 @@ export default function StoresPage() {
                 className="px-5 py-2.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl transition"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AUTHORITATIVE STORE DIAGNOSTICS & READINESS MODAL */}
+      {showDiagnosticsModal && activeDiagnosticsStore && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 z-50 animate-in fade-in">
+          <div className="bg-white rounded-2xl border border-[#dbdade] shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between gap-4 bg-slate-50/50">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-[#0d2a2c] text-[#fad982] flex items-center justify-center font-black text-sm shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-black text-slate-900 text-base sm:text-lg truncate">
+                      {activeDiagnosticsStore.storeName}
+                    </h3>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider bg-slate-200 text-slate-800">
+                      {activeDiagnosticsStore.platformType}
+                    </span>
+                    {renderReadinessBadge(diagnosticsReport?.readinessState || activeDiagnosticsStore.readinessState)}
+                  </div>
+                  <p className="text-xs text-slate-500 font-mono truncate mt-0.5">
+                    {activeDiagnosticsStore.storeUrl}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => handleRunLiveDiagnostics()}
+                  disabled={loadingDiagnostics}
+                  className="flex items-center gap-1.5 px-3.5 py-2 bg-[#0d2a2c] hover:bg-[#143d40] text-white font-bold text-xs rounded-xl shadow-xs transition disabled:opacity-50"
+                  title="Run all live diagnostic checks against this store"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${loadingDiagnostics ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">{loadingDiagnostics ? 'Evaluating...' : 'Re-run Diagnostics'}</span>
+                </button>
+                <button
+                  onClick={() => setShowDiagnosticsModal(false)}
+                  className="w-8 h-8 rounded-xl hover:bg-slate-200/70 flex items-center justify-center text-slate-400 hover:text-slate-700 transition"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1">
+              {loadingDiagnostics && !diagnosticsReport ? (
+                <div className="py-16 text-center space-y-3">
+                  <RefreshCw className="w-8 h-8 text-[#0d2a2c] animate-spin mx-auto" />
+                  <p className="text-xs font-bold text-slate-700">Executing authoritative diagnostic checks...</p>
+                  <p className="text-[11px] text-slate-400">Verifying API credentials, OAuth scopes, network latency, and store permissions.</p>
+                </div>
+              ) : diagnosticsReport ? (
+                <>
+                  {/* Summary Metric Counters */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl">
+                      <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Checks</div>
+                      <div className="text-xl font-black text-slate-900 mt-1">{diagnosticsReport.summary.total}</div>
+                    </div>
+                    <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl">
+                      <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Passed</span>
+                      </div>
+                      <div className="text-xl font-black text-emerald-900 mt-1">{diagnosticsReport.summary.passed}</div>
+                    </div>
+                    <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl">
+                      <div className="text-[11px] font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Warnings</span>
+                      </div>
+                      <div className="text-xl font-black text-amber-900 mt-1">{diagnosticsReport.summary.warnings}</div>
+                    </div>
+                    <div className="p-3.5 bg-rose-50/70 border border-rose-200 rounded-xl">
+                      <div className="text-[11px] font-bold text-rose-800 uppercase tracking-wider flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Failed</span>
+                      </div>
+                      <div className="text-xl font-black text-rose-900 mt-1">{diagnosticsReport.summary.failed}</div>
+                    </div>
+                  </div>
+
+                  {/* Capabilities Status Matrix */}
+                  <div className="bg-white border border-[#dbdade] rounded-xl p-4 sm:p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                        <Zap className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Capability Readiness Matrix</span>
+                      </h4>
+                      <span className="text-[11px] text-slate-400 font-mono">
+                        Evaluated {new Date(diagnosticsReport.executedAt || (diagnosticsReport as any).lastCheckedAt || Date.now()).toLocaleTimeString()}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                      {Object.entries(diagnosticsReport.capabilities || {}).map(([key, cap]) => {
+                        const label = CAPABILITY_LABELS[key] || key;
+                        let badgeBg = 'bg-slate-100 text-slate-600 border-slate-200';
+                        if (cap.status === 'READY') badgeBg = 'bg-emerald-50 text-emerald-800 border-emerald-300';
+                        if (cap.status === 'LIMITED') badgeBg = 'bg-amber-50 text-amber-800 border-amber-300';
+                        if (cap.status === 'BLOCKED') badgeBg = 'bg-rose-50 text-rose-800 border-rose-300';
+
+                        return (
+                          <div key={key} className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-slate-800">{label}</span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${badgeBg}`}>
+                                {cap.status}
+                              </span>
+                            </div>
+                            {cap.reason && (
+                              <p className="text-[11px] text-slate-500 leading-tight">
+                                {cap.reason}
+                              </p>
+                            )}
+                            {cap.missingPrerequisites && cap.missingPrerequisites.length > 0 && (
+                              <div className="mt-1 pt-1 border-t border-slate-200 text-[10px] text-rose-700 font-medium">
+                                Required: {cap.missingPrerequisites.join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Filter Tabs & Checks List */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setDiagnosticsFilter('all')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                            diagnosticsFilter === 'all'
+                              ? 'bg-[#0d2a2c] text-white'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          All Checks ({diagnosticsReport.summary.total})
+                        </button>
+                        <button
+                          onClick={() => setDiagnosticsFilter('issues')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                            diagnosticsFilter === 'issues'
+                              ? 'bg-rose-600 text-white'
+                              : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'
+                          }`}
+                        >
+                          Issues Only ({diagnosticsReport.summary.failed + diagnosticsReport.summary.warnings})
+                        </button>
+                        <button
+                          onClick={() => setDiagnosticsFilter('passed')}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                            diagnosticsFilter === 'passed'
+                              ? 'bg-emerald-600 text-white'
+                              : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+                          }`}
+                        >
+                          Passed ({diagnosticsReport.summary.passed})
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Filtered Checks List */}
+                    <div className="space-y-3">
+                      {diagnosticsReport.checks
+                        .filter((c) => {
+                          if (diagnosticsFilter === 'issues') return c.status === 'FAIL' || c.status === 'WARNING';
+                          if (diagnosticsFilter === 'passed') return c.status === 'PASS';
+                          return true;
+                        })
+                        .map((c) => {
+                          const isPass = c.status === 'PASS';
+                          const isFail = c.status === 'FAIL';
+                          const isWarn = c.status === 'WARNING';
+
+                          let statusBadge = (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                              NOT TESTED
+                            </span>
+                          );
+                          if (isPass) {
+                            statusBadge = (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                                <Check className="w-3 h-3 text-emerald-600" />
+                                <span>PASS</span>
+                              </span>
+                            );
+                          } else if (isFail) {
+                            statusBadge = (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-300 flex items-center gap-1">
+                                <X className="w-3 h-3 text-rose-600" />
+                                <span>FAIL</span>
+                              </span>
+                            );
+                          } else if (isWarn) {
+                            statusBadge = (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3 text-amber-600" />
+                                <span>WARNING</span>
+                              </span>
+                            );
+                          }
+
+                          let severityBadge = (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600">
+                              {c.severity}
+                            </span>
+                          );
+                          if (c.severity === 'CRITICAL') {
+                            severityBadge = (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-rose-100 text-rose-900 border border-rose-200">
+                                CRITICAL
+                              </span>
+                            );
+                          } else if (c.severity === 'HIGH') {
+                            severityBadge = (
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200">
+                                HIGH
+                              </span>
+                            );
+                          }
+
+                          return (
+                            <div
+                              key={c.id}
+                              className={`p-4 rounded-xl border transition ${
+                                isFail
+                                  ? 'bg-rose-50/40 border-rose-200'
+                                  : isWarn
+                                  ? 'bg-amber-50/30 border-amber-200'
+                                  : 'bg-white border-slate-200'
+                              }`}
+                            >
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-bold text-slate-900">{c.name}</span>
+                                  <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                    {c.id}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {severityBadge}
+                                  {statusBadge}
+                                </div>
+                              </div>
+
+                              <p className="text-xs text-slate-600 mt-1 leading-relaxed">{c.message}</p>
+
+                              {c.errorCode && (
+                                <div className="mt-2 flex items-center gap-1.5">
+                                  <span className="text-[10px] font-bold text-rose-700 bg-rose-100/80 border border-rose-200 px-2 py-0.5 rounded font-mono">
+                                    Code: {c.errorCode}
+                                  </span>
+                                </div>
+                              )}
+
+                              {c.actionRequired && (
+                                <div className="mt-3 p-3 bg-amber-100/60 border border-amber-300 rounded-lg text-xs text-amber-950 space-y-1">
+                                  <div className="font-black flex items-center gap-1.5">
+                                    <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                                    <span>Action Required:</span>
+                                  </div>
+                                  <p className="text-amber-900 pl-5 font-medium">{c.actionRequired}</p>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="py-12 text-center text-slate-400 text-xs">
+                  No diagnostic data available. Click &quot;Re-run Diagnostics&quot; above to evaluate this store.
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={() => setShowDiagnosticsModal(false)}
+                className="px-5 py-2 text-xs font-bold bg-[#0d2a2c] hover:bg-[#143d40] text-white rounded-xl shadow-sm transition"
+              >
+                Close Diagnostics
               </button>
             </div>
           </div>

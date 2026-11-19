@@ -194,6 +194,63 @@ export interface OrganizationItem {
   createdAt: string;
 }
 
+export type StoreReadinessState =
+  | 'CONNECTED_READY'
+  | 'CONNECTED_LIMITED'
+  | 'ACTION_REQUIRED'
+  | 'DISCONNECTED'
+  | 'CHECKING'
+  | 'UNKNOWN';
+
+export type StoreCapabilityType =
+  | 'PRODUCT_PULL'
+  | 'PRODUCT_CREATE'
+  | 'PRODUCT_UPDATE'
+  | 'INVENTORY_SYNC'
+  | 'PRICE_SYNC'
+  | 'MEDIA_SYNC'
+  | 'WEBHOOK_REVERSE_SYNC'
+  | 'SCHEDULED_SYNC';
+
+export type StoreCapabilityStatus = 'READY' | 'LIMITED' | 'BLOCKED' | 'NOT_SUPPORTED';
+
+export interface DiagnosticCheckItem {
+  id: string;
+  name: string;
+  status: 'PASS' | 'FAIL' | 'WARNING' | 'NOT_TESTED';
+  severity: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
+  timestamp: string;
+  latencyMs?: number;
+  message: string;
+  errorCode?: string | null;
+  actionRequired?: string | null;
+  capability?: string;
+  details?: any;
+}
+
+export interface StoreDiagnosticsReport {
+  storeId: string;
+  storeName: string;
+  platformType: string;
+  readinessState: StoreReadinessState;
+  executedAt: string;
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    warnings: number;
+    unverified: number;
+  };
+  capabilities: Record<string, {
+    supported: boolean;
+    verified: boolean;
+    status: StoreCapabilityStatus;
+    reason?: string;
+    missingPrerequisites?: string[];
+  }>;
+  checks: DiagnosticCheckItem[];
+}
+
 export interface StoreItem {
   id: string;
   platformType: string;
@@ -201,6 +258,22 @@ export interface StoreItem {
   storeUrl: string;
   status: string;
   capabilities: string[];
+  readinessState?: StoreReadinessState;
+  diagnosticsSummary?: {
+    total: number;
+    passed: number;
+    failed: number;
+    warnings: number;
+    unverified: number;
+  };
+  capabilitiesStatus?: Record<string, {
+    supported: boolean;
+    verified: boolean;
+    status: StoreCapabilityStatus;
+    reason?: string;
+    missingPrerequisites?: string[];
+  }>;
+  lastDiagnosticsRunAt?: string | null;
   lastSyncAt: string | null;
   createdAt: string;
 }
@@ -904,6 +977,16 @@ export class DashboardApiClient {
 
   async testStoreConnection(storeId: string): Promise<any> {
     return this.fetchJson(`/stores/${storeId}/test`, {
+      method: 'POST',
+    }, 'client');
+  }
+
+  async getStoreDiagnostics(storeId: string): Promise<{ success: boolean; report: StoreDiagnosticsReport }> {
+    return this.fetchJson(`/stores/${storeId}/diagnostics`, {}, 'client');
+  }
+
+  async runStoreDiagnostics(storeId: string): Promise<{ success: boolean; report: StoreDiagnosticsReport }> {
+    return this.fetchJson(`/stores/${storeId}/diagnostics/run`, {
       method: 'POST',
     }, 'client');
   }

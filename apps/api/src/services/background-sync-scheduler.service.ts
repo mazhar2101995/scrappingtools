@@ -251,6 +251,29 @@ export class BackgroundSyncSchedulerService {
           throw new Error('Target store is not configured for this schedule.');
         }
 
+        // Readiness & Capability Gating for Scheduled Operations
+        const { StoreDiagnosticsService } = await import('./store-diagnostics.service');
+        try {
+          await StoreDiagnosticsService.assertStoreCapability(schedule.storeId, schedule.organizationId, 'SCHEDULED_SYNC');
+        } catch (gateErr: any) {
+          console.warn(`[SyncScheduler] Schedule ${schedule.id} blocked by store readiness: ${gateErr.message}`);
+          await db
+            .update(automatedSyncSchedules)
+            .set({
+              lastRunStatus: 'FAILED',
+              lastRunSummary: `Blocked by readiness gating: ${gateErr.message} (Code: ${gateErr.code || 'STORE_CAPABILITY_NOT_VERIFIED'})`,
+              lastRunAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(automatedSyncSchedules.id, schedule.id));
+
+          return {
+            scheduleId: schedule.id,
+            executionStatus: 'FAILED',
+            summary: `Blocked by store readiness gating: ${gateErr.message}`,
+          };
+        }
+
         // Fetch products matching the brand (or all org products if no brand specified)
         let targetProducts: { id: string }[] = [];
         if (schedule.brandId) {

@@ -123,6 +123,7 @@ storeRouter.get('/', async (req: Request, res: Response) => {
         healthDetails: connectedStores.healthDetails,
         capabilities: connectedStores.capabilities,
         hasWebhookConfigured: sql<boolean>`CASE WHEN ${connectedStores.webhookSecret} IS NOT NULL THEN true ELSE false END`,
+        lastHealthCheckAt: connectedStores.lastHealthCheckAt,
         lastSyncAt: connectedStores.lastSyncAt,
         createdAt: connectedStores.createdAt,
       })
@@ -130,7 +131,17 @@ storeRouter.get('/', async (req: Request, res: Response) => {
       .where(eq(connectedStores.organizationId, orgId))
       .orderBy(desc(connectedStores.createdAt));
 
-    return res.json({ success: true, count: stores.length, stores });
+    const enrichedStores = stores.map((s) => {
+      const hd = (s.healthDetails as any) || {};
+      return {
+        ...s,
+        readinessState: hd.readinessState || (s.healthStatus === 'healthy' ? 'CONNECTED_READY' : (s.healthStatus === 'auth_required' ? 'ACTION_REQUIRED' : 'UNKNOWN')),
+        diagnosticsSummary: hd.summary || null,
+        capabilitiesStatus: hd.capabilities || null,
+      };
+    });
+
+    return res.json({ success: true, count: enrichedStores.length, stores: enrichedStores });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
@@ -209,6 +220,52 @@ storeRouter.post('/', async (req: Request, res: Response, next) => {
   }
 });
 
+// GET /api/v1/stores/:id/diagnostics - Retrieve connection diagnostics report
+storeRouter.get('/:id/diagnostics', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) {
+      return res.status(401).json({ error: 'Tenant context required' });
+    }
+    const storeId = req.params.id as string;
+    const [store] = await db
+      .select()
+      .from(connectedStores)
+      .where(and(eq(connectedStores.id, storeId), eq(connectedStores.organizationId, orgId)))
+      .limit(1);
+
+    if (!store) {
+      return res.status(404).json({ error: 'Connected store not found' });
+    }
+
+    let report = store.healthDetails as any;
+    if (!report || !report.checks || !Array.isArray(report.checks)) {
+      const { StoreDiagnosticsService } = await import('../services/store-diagnostics.service');
+      report = await StoreDiagnosticsService.runDiagnostics(storeId, orgId);
+    }
+
+    return res.json({ success: true, report });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/v1/stores/:id/diagnostics/run - Execute live connection diagnostics evaluation
+storeRouter.post('/:id/diagnostics/run', async (req: Request, res: Response) => {
+  try {
+    const orgId = getOrgId(req);
+    if (!orgId) {
+      return res.status(401).json({ error: 'Tenant context required' });
+    }
+    const storeId = req.params.id as string;
+    const { StoreDiagnosticsService } = await import('../services/store-diagnostics.service');
+    const report = await StoreDiagnosticsService.runDiagnostics(storeId, orgId);
+    return res.json({ success: true, report });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/v1/stores/:id/test - Ping and test store connection
 storeRouter.post('/:id/test', async (req: Request, res: Response) => {
   try {
@@ -232,20 +289,35 @@ storeRouter.post('/:id/test', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/v1/stores/:id/sync - Trigger asynchronous store synchronization
+// POST /api/v1/stores/:id/sync - Trigger asynchronous store synchronization (Capability Gated)
 storeRouter.post('/:id/sync', async (req: Request, res: Response) => {
   try {
+    const orgId = getOrgId(req);
     const storeId = req.params.id as string;
     const { direction = 'PULL' } = req.body;
 
     const [store] = await db
-      .select({ id: connectedStores.id, status: connectedStores.status })
+      .select({ id: connectedStores.id, status: connectedStores.status, organizationId: connectedStores.organizationId })
       .from(connectedStores)
       .where(eq(connectedStores.id, storeId))
       .limit(1);
 
     if (!store) {
       return res.status(404).json({ error: 'Connected store not found' });
+    }
+
+    // Capability Readiness Gating
+    const { StoreDiagnosticsService } = await import('../services/store-diagnostics.service');
+    const requiredCap = direction === 'PULL' ? 'PRODUCT_PULL' : 'PRODUCT_CREATE';
+    try {
+      await StoreDiagnosticsService.assertStoreCapability(storeId, store.organizationId, requiredCap);
+    } catch (gateErr: any) {
+      return res.status(403).json({
+        success: false,
+        error: gateErr.message,
+        code: gateErr.code || 'STORE_CAPABILITY_NOT_VERIFIED',
+        remediation: gateErr.remediation || [],
+      });
     }
 
     const jobId = `store_sync_${Date.now()}`;
@@ -304,6 +376,19 @@ storeRouter.post('/push-product', quotaMiddleware('store_integration'), async (r
 
     if (!store) {
       return res.status(404).json({ error: 'Store not found or does not belong to your organization' });
+    }
+
+    // Capability Readiness Gating
+    const { StoreDiagnosticsService } = await import('../services/store-diagnostics.service');
+    try {
+      await StoreDiagnosticsService.assertStoreCapability(storeId, orgId, 'PRODUCT_CREATE');
+    } catch (gateErr: any) {
+      return res.status(403).json({
+        success: false,
+        error: gateErr.message,
+        code: gateErr.code || 'STORE_WRITE_PERMISSION_DENIED',
+        remediation: gateErr.remediation || [],
+      });
     }
 
     // Verify product exists in tenant catalog with overrides and brand profile
@@ -529,6 +614,19 @@ storeRouter.post('/bulk-controlled-push', quotaMiddleware('store_integration'), 
     }
     if (!storeId) {
       return res.status(400).json({ error: 'storeId is required' });
+    }
+
+    // Capability Readiness Gating
+    const { StoreDiagnosticsService } = await import('../services/store-diagnostics.service');
+    try {
+      await StoreDiagnosticsService.assertStoreCapability(storeId, orgId, 'PRODUCT_CREATE');
+    } catch (gateErr: any) {
+      return res.status(403).json({
+        success: false,
+        error: gateErr.message,
+        code: gateErr.code || 'STORE_WRITE_PERMISSION_DENIED',
+        remediation: gateErr.remediation || [],
+      });
     }
 
     const bulkResult = await StoreExportExecutionService.executeBulkControlledPush(
