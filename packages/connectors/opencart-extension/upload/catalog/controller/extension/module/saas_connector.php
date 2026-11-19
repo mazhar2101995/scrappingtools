@@ -31,6 +31,9 @@ class ControllerExtensionModuleSaasConnector extends Controller {
             case 'push_product':
                 $this->pushProduct();
                 break;
+            case 'pull_products':
+                $this->pullProducts();
+                break;
             case 'rollback':
                 $this->rollbackExport();
                 break;
@@ -310,6 +313,43 @@ class ControllerExtensionModuleSaasConnector extends Controller {
     private function rollbackExport() {
         // Rollback execution
         $this->response->setOutput(json_encode(['success' => true, 'message' => 'Rollback completed']));
+    }
+
+    private function pullProducts() {
+        $prefix = defined('DB_PREFIX') ? DB_PREFIX : '';
+        $limit = isset($this->request->get['limit']) ? (int)$this->request->get['limit'] : 50;
+        $page = isset($this->request->get['page']) ? (int)$this->request->get['page'] : 1;
+        $offset = ($page - 1) * $limit;
+
+        $langs = $this->db->query("SELECT language_id FROM `{$prefix}language` WHERE `status` = 1 ORDER BY `sort_order` ASC LIMIT 1");
+        $default_lang_id = ($langs && $langs->num_rows > 0) ? (int)$langs->row['language_id'] : 1;
+
+        $sql = "SELECT p.product_id, p.model, p.sku, p.price, p.quantity, p.image, p.status, pd.name, pd.description
+                FROM `{$prefix}product` p
+                LEFT JOIN `{$prefix}product_description` pd ON (p.product_id = pd.product_id AND pd.language_id = {$default_lang_id})
+                ORDER BY p.product_id DESC
+                LIMIT {$offset}, {$limit}";
+
+        $res = $this->db->query($sql);
+        $products = [];
+        if ($res) {
+            foreach ($res->rows as $row) {
+                $products[] = $row;
+            }
+        }
+
+        $totalRes = $this->db->query("SELECT COUNT(*) AS total FROM `{$prefix}product`");
+        $total = ($totalRes && $totalRes->num_rows > 0) ? (int)$totalRes->row['total'] : count($products);
+
+        $this->response->setOutput(json_encode([
+            'success' => true,
+            'page' => $page,
+            'limit' => $limit,
+            'total' => $total,
+            'count' => count($products),
+            'hasMore' => ($offset + count($products)) < $total,
+            'products' => $products
+        ]));
     }
 
     private function exchangeToken() {

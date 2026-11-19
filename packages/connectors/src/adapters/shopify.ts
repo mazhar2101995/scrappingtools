@@ -117,7 +117,7 @@ export class ShopifyConnector implements UniversalConnector {
       const shopifyProducts = data.products || [];
 
       const products: CanonicalProductModel[] = shopifyProducts.map((p: any) => ({
-        externalId: String(p.id),
+        externalId: p.admin_graphql_api_id || `gid://shopify/Product/${p.id}`,
         sku: p.variants?.[0]?.sku || `SHOPIFY-${p.id}`,
         name: { en: p.title || '' },
         description: { en: p.body_html || '' },
@@ -134,14 +134,25 @@ export class ShopifyConnector implements UniversalConnector {
           sortOrder: idx,
         })),
         attributes: {},
-        variants: (p.variants || []).map((v: any) => ({
-          externalVariantId: String(v.id),
-          sku: v.sku || '',
-          name: v.title || '',
-          price: parseFloat(v.price || '0'),
-          stockQuantity: v.inventory_quantity || 0,
-          options: { title: v.title },
-        })),
+        variants: (p.variants || []).map((v: any) => {
+          const variantOptions: Record<string, string> = { title: v.title };
+          if (p.options && Array.isArray(p.options)) {
+            p.options.forEach((opt: any, oIdx: number) => {
+              const val = v[`option${oIdx + 1}`];
+              if (opt.name && val) {
+                variantOptions[opt.name] = val;
+              }
+            });
+          }
+          return {
+            externalVariantId: v.admin_graphql_api_id || `gid://shopify/ProductVariant/${v.id}`,
+            sku: v.sku || '',
+            name: v.title || '',
+            price: parseFloat(v.price || '0'),
+            stockQuantity: v.inventory_quantity || 0,
+            options: variantOptions,
+          };
+        }),
       }));
 
       return {
@@ -280,7 +291,35 @@ export class ShopifyConnector implements UniversalConnector {
   }
 
   public async updateProduct(externalId: string, delta: Partial<CanonicalProductModel>): Promise<boolean> {
-    return true;
+    const domain = this.config.shopDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+    const apiVersion = this.config.apiVersion || '2024-04';
+    const cleanId = externalId.replace(/^gid:\/\/shopify\/Product\//, '');
+    const endpoint = `https://${domain}/admin/api/${apiVersion}/products/${cleanId}.json`;
+
+    const productPayload: any = {};
+    if (delta.name) {
+      productPayload.title = typeof delta.name === 'object' ? (delta.name['en'] || Object.values(delta.name)[0]) : String(delta.name);
+    }
+    if (delta.description) {
+      productPayload.body_html = typeof delta.description === 'object' ? (delta.description['en'] || Object.values(delta.description)[0]) : String(delta.description);
+    }
+    if (delta.price !== undefined) {
+      productPayload.variants = [{ price: Number(delta.price).toFixed(2) }];
+    }
+
+    try {
+      const resp = await fetch(endpoint, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shopify-Access-Token': this.config.accessToken,
+        },
+        body: JSON.stringify({ product: productPayload }),
+      });
+      return resp.ok;
+    } catch {
+      return false;
+    }
   }
 
   public verifyWebhookSignature(payload: string, signature: string): boolean {

@@ -113,11 +113,106 @@ export class OpenCartConnector implements UniversalConnector {
     total: number;
     hasMore: boolean;
   }> {
+    const cleanUrl = this.config.storeUrl.replace(/\/+$/, '');
+    const limit = params?.limit || 50;
+    const page = params?.page || 1;
+
+    // 1. Try official module endpoint
+    const modulePullUrl = `${cleanUrl}/index.php?route=extension/module/saas_connector&action=pull_products&limit=${limit}&page=${page}`;
+    try {
+      const timestamp = Math.floor(Date.now() / 1000).toString();
+      const nonce = CredentialSecurity.generateSalt(16);
+      const signature = CredentialSecurity.generateHmacSha256(
+        JSON.stringify({ limit, page }) + timestamp + nonce,
+        this.config.apiKey
+      );
+
+      const modResp = await fetch(modulePullUrl, {
+        method: 'GET',
+        headers: {
+          'X-Saas-Timestamp': timestamp,
+          'X-Saas-Nonce': nonce,
+          'X-Saas-Signature': signature,
+        },
+      });
+
+      if (modResp.ok) {
+        const modData = await modResp.json().catch(() => null);
+        if (modData && modData.success && Array.isArray(modData.products)) {
+          return {
+            products: this.mapOpenCartProducts(modData.products, cleanUrl),
+            total: modData.total || modData.products.length,
+            hasMore: Boolean(modData.hasMore),
+          };
+        }
+      }
+    } catch (_) {}
+
+    // 2. Try standalone bridge (saas_bridge.php)
+    const bridgeUrl = `${cleanUrl}/saas_bridge.php?action=pull_products&limit=${limit}&page=${page}`;
+    try {
+      const resp = await fetch(bridgeUrl, {
+        method: 'GET',
+        headers: {
+          'X-Saas-Key': this.config.apiKey,
+        },
+      });
+
+      if (resp.ok) {
+        const data = await resp.json().catch(() => null);
+        if (data && data.success && Array.isArray(data.products)) {
+          return {
+            products: this.mapOpenCartProducts(data.products, cleanUrl),
+            total: data.count || data.products.length,
+            hasMore: data.products.length === limit,
+          };
+        }
+      }
+    } catch (_) {}
+
     return {
       products: [],
       total: 0,
       hasMore: false,
     };
+  }
+
+  private mapOpenCartProducts(rawItems: any[], cleanUrl: string): CanonicalProductModel[] {
+    return rawItems.map((p) => {
+      const quantity = parseInt(String(p.quantity || '0'), 10);
+      const sku = p.sku || p.model || `OC-${p.product_id}`;
+      return {
+        externalId: String(p.product_id),
+        sku,
+        name: {
+          en: p.name || `Product ${sku}`,
+          ...(p.name_de ? { de: p.name_de } : {}),
+        },
+        description: {
+          en: p.description || '',
+          ...(p.description_de ? { de: p.description_de } : {}),
+        },
+        brand: p.manufacturer || '',
+        modelNumber: p.model || '',
+        price: parseFloat(String(p.price || '0')),
+        currency: 'USD',
+        stockQuantity: quantity,
+        stockStatus: quantity > 0 ? 'IN_STOCK' : 'OUT_OF_STOCK',
+        productStatus: String(p.status) === '1' || p.status === 1 ? 'ACTIVE' : 'DRAFT',
+        categories: p.category ? [p.category] : [],
+        images: p.image
+          ? [
+              {
+                url: p.image.startsWith('http') ? p.image : `${cleanUrl}/image/${p.image}`,
+                isPrimary: true,
+                sortOrder: 0,
+              },
+            ]
+          : [],
+        attributes: {},
+        variants: Array.isArray(p.variants) ? p.variants : [],
+      };
+    });
   }
 
   public async pushProduct(product: CanonicalProductModel): Promise<{
@@ -234,7 +329,25 @@ export class OpenCartConnector implements UniversalConnector {
   }
 
   public async updateProduct(externalId: string, delta: Partial<CanonicalProductModel>): Promise<boolean> {
-    return true;
+    const cleanUrl = this.config.storeUrl.replace(/\/+$/, '');
+    const bridgeUrl = `${cleanUrl}/saas_bridge.php?action=update_stock_price`;
+    try {
+      const payload: any = { product_id: externalId };
+      if (delta.price !== undefined) payload.price = delta.price;
+      if (delta.stockQuantity !== undefined) payload.quantity = delta.stockQuantity;
+
+      const resp = await fetch(bridgeUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Saas-Key': this.config.apiKey,
+        },
+        body: JSON.stringify(payload),
+      });
+      return resp.ok;
+    } catch {
+      return false;
+    }
   }
 
   public verifyWebhookSignature(payload: string, signature: string): boolean {
