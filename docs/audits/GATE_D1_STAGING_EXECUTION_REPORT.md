@@ -2,9 +2,9 @@
 
 **Audit Baseline Commit:** `7628cf5f812c5956cedad1e03a1960b27f8eb077`  
 **Certified Hardened Baseline:** `f2922c9`  
-**Execution & Reconciliation Timestamp:** 2026-11-19T16:05:00+05:30  
+**Execution & Reconciliation Timestamp:** 2026-11-19T16:10:00+05:30  
 **Target Release Gate:** `Gate D.1 (External Store Staging Integration)`  
-**Gate D.1 Standing:** `14/15 VERIFIED (PASS)` \| `1/15 PARTIALLY VERIFIED (PENDING LIVE OWNER APP SECRET)`  
+**Gate D.1 Standing:** `14/15 VERIFIED (PASS)` \| `1/15 BLOCKED (STG-SEC-01: Live App Secret Required)`  
 **Overall Release Authorization:** `NOT AUTHORIZED FOR PRODUCTION RELEASE` (Release Gates D.1, D.2, and D.3 Pending Final Production Prerequisites)
 
 ---
@@ -41,7 +41,7 @@ This report provides the rigorous, evidence-backed evaluation of all 15 master G
 
 ---
 
-## 3. Comprehensive 15-Test Gate D.1 Execution Ledger
+## 3. Authoritative 15-Test Gate D.1 Execution Ledger
 
 | Test ID | Platform | Target Component | Command Executed | Live Identifiers & External HTTP Response | Database / File Evidence | Expected vs Actual Result | Final Verdict |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -59,13 +59,13 @@ This report provides the rigorous, evidence-backed evaluation of all 15 master G
 | **STG-PRC-01** | Multi | Margin Markup Rules (100 -> 125) & Currency Precision | `verify_pricing_margin_rule.js` & `verify_staging_export.js` | Base price: `100.00`<br>Margin rule: `25%`<br>Exported price: `125.00`<br>Change Plan ID: `a26ce519-9743-4cbf-9f91-e552d92a26fd` | Export Audit Log: `59185680-e410-43f1-a8b9-18ad2dab553c`. OpenCart MariaDB `oc_product.price = 125.0000`. (Supplementary 4-decimal multi-currency conversion EUR/GBP preserved). | Expected: Supplier base 100 with 25% markup produces exported price 125 with change plan and audit trace.<br>Actual: 100% confirmed across Change Plan, Audit Log, and MariaDB. | **VERIFIED (PASS)** |
 | **STG-RTR-01** | Shopify | 429 Rate Limit Backoff & Auto-Retry | `node scripts/verify_staging_resilience.js` | Attempt 1: HTTP 429 (`Retry-After: 1`)<br>Attempt 2: HTTP 200 OK<br>Total duration: `1062ms` | Connector intercepted 429, extracted `Retry-After: 1`, slept for 1000ms, retried automatically, and completed successfully. | Expected: Transparent backoff and automatic retry on 429.<br>Actual: Verified with controlled fault injection. | **VERIFIED (PASS)** |
 | **STG-ERR-01** | Shopify | Error Classification & Token Redaction | `node scripts/verify_staging_resilience.js` | 401 Unauthorized, 422 Unprocessable Entity, 404 Not Found tested | Error logger redacted `shpat_` tokens to `[REDACTED_ACCESS_TOKEN]`. Parsed 422 validation errors cleanly. | Expected: Sanitized error reporting without token leaks.<br>Actual: Verified across all error scenarios. | **VERIFIED (PASS)** |
-| **STG-SEC-01** | Shopify / Multi | End-to-End Inbound Webhook Delivery, HMAC & Reverse Sync | `node scripts/test_live_shopify_webhook.js` & `node scripts/simulate_live_webhook.js` | **1. Direct Cloud Delivery:** Verified HTTP POST from Shopify Cloud (`x-shopify-topic: products/update`, `x-shopify-event-id: c0c7b6eb...`, 1318 bytes) via Cloudflare tunnel.<br>**2. Security Firewall:** Verified rejection of unauthenticated signatures (HTTP 400, `status: 'UNAUTHORIZED'`).<br>**3. Reverse Sync Pipeline:** Verified that valid HMAC signatures trigger DB overrides (`price: '1399.00'`) and audit logs (`status: 'PROCESSED'`).<br>**4. Gap Identified:** Live end-to-end correlation blocked until store owner enters live Custom App API Secret Key into `connected_stores.webhook_secret`. | PostgreSQL `store_inbound_webhooks` records: `c0aa94ad-d525...`, `b55496b3-5157...`, `adaa1927-7836...`. PostgreSQL `customer_product_overrides` updated. Temporary webhook subscriptions (`2109326328063`, `2109331800319`) and test products (`10451522486527`, `10451526910207`) deleted (HTTP 200). | Expected: Genuine cloud webhook delivery, raw-body cryptographic HMAC verification, security boundary enforcement, and reverse-sync DB update.<br>Actual: Cloud delivery, security rejection, and reverse-sync logic verified; live end-to-end webhook execution requires live owner secret key. | **PARTIALLY VERIFIED (PASS / BLOCKED ON OWNER SECRET)** |
+| **STG-SEC-01** | Shopify / Multi | Inbound Webhook Delivery, HMAC Security & Reverse Sync | `node scripts/test_live_shopify_webhook.js` & `node scripts/simulate_live_webhook.js` | **1. Cloud Delivery:** Verified direct HTTP POST from Shopify Cloud (`x-shopify-topic: products/update`, `x-shopify-event-id: c0c7b6eb...`, 1318 bytes) via Cloudflare tunnel.<br>**2. Security Firewall:** Verified rejection of unauthenticated signatures (HTTP 400, `status: 'UNAUTHORIZED'`).<br>**3. Reverse Sync Pipeline:** Verified that valid HMAC signatures trigger DB overrides (`price: '1399.00'`) and audit logs (`status: 'PROCESSED'`).<br>**4. Blocking Gap:** Installed Custom App `"SaaS Tools"` (API Key: `822e3c771379158e21fddaa9ee2b7461`) signs webhooks using its API Secret Key. The database currently holds a mismatched secret (`shpss_160c...`), causing HMAC mismatch on live cloud deliveries. | PostgreSQL `store_inbound_webhooks` records: `c0aa94ad-d525...`, `b55496b3-5157...`, `adaa1927-7836...`. Temporary webhook subscriptions (`2109326328063`, `2109331800319`) and test products (`10451522486527`, `10451526910207`) deleted (HTTP 200). | Expected: Genuine cloud webhook delivery, raw-body cryptographic HMAC verification, security boundary enforcement, and reverse-sync DB update.<br>Actual: Cloud delivery, security rejection, and reverse-sync logic verified; live end-to-end webhook execution requires the store owner to input the live Custom App API Secret Key. | **BLOCKED (Owner App Secret Required)** |
 
 ---
 
-## 4. Deep-Dive Evidence: Webhook Trace & Reconciliation (Task 1)
+## 4. Webhook Evidence Trace & Discrepancy Reconciliation
 
-A rigorous trace of the database audit records reveals two distinct execution events:
+A forensic trace of the database audit records confirms that the simulation test and the live cloud delivery were two distinct events:
 
 ```
 ========================================================================================================================
@@ -85,9 +85,9 @@ Shop Domain Header            mayda-com.myshopify.com                         ma
 External Product ID           10428815835391                                  10451525140735 (STG-TEST-WEBHOOK-TRIGGER-882)
 Store Product Mapping         Mapped to Global Prod 909676bd-039a...          Mapped to Global Prod 6940910a-2055...
 Raw Body Size                 184 bytes                                       1,318 bytes (genuine Shopify JSON)
-HMAC Signing Secret Used      Configured tenant secret (whsec_dae4de...)      Shopify Custom App API Secret Key
+HMAC Secret Key Used          Configured tenant secret (whsec_dae4de...)      Shopify Custom App API Secret Key
 Received Signature            Base64 HMAC matching configured secret          GArogHpdu91Tr7IAdCjMI9VmqJlUlljn1XXOky2hEQ4=
-HMAC Validation Result        PASSED (Bit-exact rawBody match)                REJECTED (Mismatched with DB secret)
+HMAC Validation Result        PASSED (Bit-exact rawBody match)                REJECTED (Mismatched with database secret)
 Database Override Updated?    YES (Price set to 1399.00 in overrides)         NO (Firewall blocked unauthorized payload)
 Inbound Webhook Status        PROCESSED                                       UNAUTHORIZED
 Action Taken                  REVERSE_SYNC_UPDATED                            null (errorMessage: Invalid HMAC signature)
@@ -95,13 +95,46 @@ Action Taken                  REVERSE_SYNC_UPDATED                            nu
 ```
 
 ### Forensic Determination:
-1. **Disjoint Events:** The genuine Shopify cloud webhook delivery (`958d6930-217d-43d8-942a-43571c1650b5`) and the successful PostgreSQL reverse-sync update (`adaa1927-7836-41ca-9ed3-1e8a68b5b068`) **do not belong to the same event or external product**.
-2. **Security Integrity Verified:** When Shopify delivered its webhook signed with the Custom App's secret key, our backend evaluated `CredentialSecurity.verifyHmacSha256(rawBody, store.webhookSecret, signature)`. Because `store.webhookSecret` in the database contained an unverified placeholder rather than the live Custom App's API Secret Key, the security firewall **correctly rejected the delivery as UNAUTHORIZED**, preventing unverified catalog tampering.
-3. **The Precise Remaining Gap:** The Shopify Admin API strictly prohibits retrieval of an app's API Secret Key via API endpoints. The live secret key is only accessible to the human store owner inside Shopify Admin (`Settings > Apps and sales channels > Develop apps > [App Name] > API credentials > API secret key`). Once the store owner inputs this secret into `connected_stores.webhook_secret`, genuine Shopify deliveries will immediately pass HMAC verification and execute the reverse sync.
+1. **Disjoint Events:** The genuine Shopify cloud webhook delivery (`958d6930...`) and the successful PostgreSQL reverse-sync update (`adaa1927...`) **belonged to two different events and external products**.
+2. **Security Integrity Verified:** When Shopify delivered its webhook signed with the Custom App's secret key, our backend evaluated `CredentialSecurity.verifyHmacSha256(rawBody, store.webhookSecret, signature)`. Because `store.webhookSecret` in the database contained an unverified key (`shpss_160c...`) rather than the active Custom App's API Secret Key (`822e3c771379158e21fddaa9ee2b7461`), the security firewall **correctly rejected the delivery as UNAUTHORIZED**, preventing unverified catalog tampering.
+3. **Owner Action Required:** The live API secret key cannot be queried through the Shopify API. It must be copied by the store owner from Shopify Admin and configured in the database.
 
 ---
 
-## 5. Reversibility & Catalog Protection Proof
+## 5. Owner Instructions for Configuring the Shopify App Secret Key
+
+To enable authentic end-to-end webhook validation, the store owner must perform the following one-time configuration:
+
+1. **Access Shopify Admin:**
+   - Log in to `https://mayda-com.myshopify.com/admin`.
+   - Navigate to **Settings** (gear icon in lower-left) > **Apps and sales channels** > **Develop apps**.
+   - Click on the active app **`SaaS Tools`** (App API Key: `822e3c771379158e21fddaa9ee2b7461`).
+2. **Retrieve API Secret Key:**
+   - Click the **API credentials** tab.
+   - Under **API key and secret key**, locate **API secret key**.
+   - Click **Show** or copy the 32-character secret string.
+3. **Update Store Configuration in SaaS:**
+   - In the SaaS Dashboard (`http://localhost:3000/stores`), click **Edit** next to `mayda-com`.
+   - Paste the copied API Secret Key into the **Webhook Secret / App Secret Key** field and save.
+   - *Alternatively, via local secure CLI:*
+     ```bash
+     node -e "
+     const postgres = require('./node_modules/.pnpm/postgres@3.4.9/node_modules/postgres');
+     const sql = postgres('postgresql://postgres:postgres_dev_password@localhost:5432/product_intelligence_dev');
+     sql\`UPDATE connected_stores SET webhook_secret = 'PASTE_YOUR_API_SECRET_KEY_HERE', updated_at = NOW() WHERE id = 'ac8455f6-872a-4f07-9198-09c583797458'\`
+       .then(() => { console.log('Successfully updated webhook secret.'); process.exit(0); });
+     "
+     ```
+4. **Execute Verification:**
+   - Run the automated test:
+     ```bash
+     node scripts/test_live_shopify_webhook.js
+     ```
+   - This test creates an isolated staging product, maps it, registers the webhook, modifies the product on Shopify, confirms genuine cloud delivery with valid HMAC validation and reverse-sync update, and cleanly deletes all temporary test objects.
+
+---
+
+## 6. Reversibility & Catalog Protection Proof
 
 All write operations performed on the live testing store `mayda-com` were verified for 100% reversibility:
 
@@ -126,7 +159,7 @@ All write operations performed on the live testing store `mayda-com` were verifi
 
 ---
 
-## 6. Release Gate Boundaries & Existing Matrix Status (Task 2)
+## 7. Release Gate Boundaries & Authoritative Matrix Status
 
 A successful staging test run on Gate D.1 does **not** constitute authorization for live production deployment. In accordance with the project release governance, the release gates are strictly partitioned:
 
@@ -164,21 +197,22 @@ OVERALL PRODUCTION RELEASE AUTHORIZATION:              NOT AUTHORIZED (BLOCKED O
 
 ---
 
-## 7. Next Uncompleted Release Prerequisites (Task 3)
+## 8. Final Certification & Release Verdict
 
-To progress from the current staging baseline to final live production authorization, the following three prerequisites must be executed in sequence:
+```
+========================================================================================
+GATE D.1 STANDING:
+========================================================================================
+Total Master Scenarios:           15
+VERIFIED (PASS):                  14  (CON-05, CON-06, CON-07, CON-08,
+                                       STG-SHP-01, STG-SHP-02, STG-OC-01, STG-OC-02,
+                                       STG-DED-01, STG-IMG-01, STG-LNG-01, STG-PRC-01,
+                                       STG-RTR-01, STG-ERR-01)
+BLOCKED:                           1  (STG-SEC-01: Ingress delivery VERIFIED;
+                                       local HMAC reverse sync VERIFIED;
+                                       live webhook verification pending owner app secret)
 
-1. **Prerequisite 1 (Gate D.1 Webhook Closure):**
-   - The store owner accesses Shopify Admin: `Settings > Apps and sales channels > Develop apps > [Custom App] > API credentials`.
-   - Copy the **API Secret Key** and update `connected_stores.webhook_secret` for store `ac8455f6-872a-4f07-9198-09c583797458`.
-   - Execute `node scripts/test_live_shopify_webhook.js` to observe genuine cloud delivery, valid HMAC calculation, and automated `customer_product_overrides` update in a single event.
-
-2. **Prerequisite 2 (Gate D.2 Live Payment Certification):**
-   - Provide production Stripe API keys (`STRIPE_SECRET_KEY=sk_live_...`, `STRIPE_WEBHOOK_SECRET=whsec_...`).
-   - Register live webhook endpoint: `https://api.yourdomain.com/api/v1/billing/webhook`.
-   - Execute a controlled $1.00 live transaction and immediate refund drill.
-
-3. **Prerequisite 3 (Gate D.3 Cloud Observability & Host Readiness):**
-   - Deploy backend API and dashboard to the target production server with PM2 supervision.
-   - Configure external monitoring DSN (`SENTRY_DSN=https://...`) to stream uncaught exceptions.
-   - Attach disk capacity monitoring cron (`df -h`) alerting at >85% volume utilization.
+GATE D.1 VERDICT:                 PROVISIONALLY HARDENED (OWNER APP SECRET PENDING)
+OVERALL PRODUCTION RELEASE:       NOT AUTHORIZED FOR PRODUCTION RELEASE
+========================================================================================
+```
