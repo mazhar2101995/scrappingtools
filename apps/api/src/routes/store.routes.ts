@@ -59,6 +59,21 @@ storeRouter.post('/:id/inbound-webhook', async (req: Request, res: Response) => 
       req.body?.action ||
       'product.update';
 
+    const shopifyHeaders: Record<string, string> = {};
+    for (const [k, v] of Object.entries(req.headers)) {
+      if (k.startsWith('x-shopify') || k.startsWith('x-saas')) {
+        shopifyHeaders[k] = String(v);
+      }
+    }
+    console.log('[Inbound Webhook Received]', {
+      storeId,
+      topic,
+      hasSignature: Boolean(signature),
+      signatureHeader: req.headers['x-shopify-hmac-sha256'] ? 'x-shopify-hmac-sha256' : (req.headers['x-saas-signature'] ? 'x-saas-signature' : 'none'),
+      shopifyHeaders,
+      bodyBytes: rawBody ? Buffer.byteLength(rawBody) : 0,
+    });
+
     const { InboundStoreWebhookService } = await import('../services/inbound-store-webhook.service');
     const result = await InboundStoreWebhookService.processStoreWebhook({
       storeId,

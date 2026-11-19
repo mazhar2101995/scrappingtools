@@ -50,7 +50,8 @@ export class InboundStoreWebhookService {
       if (signature) {
         const { CredentialSecurity } = await import('@saas/connectors');
         const payloadString = rawBody || JSON.stringify(payload);
-        const isValid = CredentialSecurity.verifyHmacSha256(payloadString, store.webhookSecret, signature);
+        const isValid = CredentialSecurity.verifyHmacSha256(payloadString, store.webhookSecret, signature) ||
+          (store.webhookSecret.startsWith('shpss_') && CredentialSecurity.verifyHmacSha256(payloadString, store.webhookSecret.replace(/^shpss_/, ''), signature));
         if (!isValid) {
           await this.logInboundWebhook({
             organizationId: store.organizationId,
